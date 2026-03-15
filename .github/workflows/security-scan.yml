@@ -1,0 +1,178 @@
+name: Security Scan (Scheduled)
+
+on:
+  schedule:
+    # Every Monday and Thursday at 06:00 UTC
+    - cron: "0 6 * * 1,4"
+  push:
+    branches: [main]
+  workflow_dispatch: # Allow manual trigger
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Python dependency CVE audit
+  # ═══════════════════════════════════════════════════════════════════════════
+  pip-audit:
+    name: Python — CVE Audit (pip-audit)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install pip-audit and backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install pip-audit
+          pip install -e backend/
+
+      - name: pip-audit — strict CVE scan
+        run: pip-audit --strict --desc on --format json -o pip-audit-report.json || true
+
+      - name: Upload audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pip-audit-report
+          path: pip-audit-report.json
+          retention-days: 30
+
+      - name: pip-audit — fail on any known CVE
+        run: pip-audit --strict
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Node.js dependency audit
+  # ═══════════════════════════════════════════════════════════════════════════
+  npm-audit:
+    name: Node.js — CVE Audit (npm audit)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: "frontend/package-lock.json"
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci --legacy-peer-deps
+
+      - name: npm audit — fail on high+ severity
+        working-directory: frontend
+        run: npm audit --audit-level=high
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Bandit SAST — Python static security analysis
+  # ═══════════════════════════════════════════════════════════════════════════
+  bandit-sast:
+    name: Python — SAST (Bandit)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install bandit
+        run: pip install bandit[toml]
+
+      - name: Bandit — SAST scan (all severity levels)
+        run: |
+          bandit -r backend/ \
+            -x backend/tests/,backend/.venv/,backend/.mypy_cache/ \
+            -ll \
+            --format json \
+            -o bandit-report.json || true
+
+      - name: Upload Bandit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bandit-sast-report
+          path: bandit-report.json
+          retention-days: 30
+
+      - name: Bandit — fail on high severity findings
+        run: |
+          bandit -r backend/ \
+            -x backend/tests/,backend/.venv/,backend/.mypy_cache/ \
+            -lll \
+            --format txt
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # License compliance check
+  # ═══════════════════════════════════════════════════════════════════════════
+  license-check:
+    name: License Compliance
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install pip-licenses and backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install pip-licenses
+          pip install -e backend/
+
+      - name: Generate license report
+        run: |
+          pip-licenses \
+            --format=json \
+            --with-urls \
+            --with-description \
+            --output-file=license-report.json
+
+      - name: Check for copyleft licenses
+        run: |
+          python -c "
+          import json, sys
+          DISALLOWED = {'GPL-3.0', 'GPL-2.0', 'AGPL-3.0', 'AGPL-3.0-only', 'SSPL-1.0'}
+          with open('license-report.json') as f:
+              packages = json.load(f)
+          violations = [
+              p for p in packages
+              if any(d in p.get('License', '') for d in DISALLOWED)
+          ]
+          if violations:
+              print('LICENSE VIOLATION: Copyleft dependencies found:')
+              for v in violations:
+                  print(f'  {v[\"Name\"]} {v[\"Version\"]}: {v[\"License\"]}')
+              sys.exit(1)
+          print(f'License check passed — {len(packages)} packages scanned')
+          "
+
+      - name: Upload license report
+        uses: actions/upload-artifact@v4
+        with:
+          name: license-report
+          path: license-report.json
+          retention-days: 90

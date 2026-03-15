@@ -1,0 +1,80 @@
+# Sentora — Docker Compose
+#
+# Production: `docker compose up -d`
+#   Builds the backend image (which also compiles and embeds the frontend)
+#   and starts MongoDB. Everything is served from a single container on APP_PORT.
+#
+# Development: `./start.sh`
+#   Runs uvicorn (port 5002) and Vite dev server (port 5003) locally,
+#   with Vite proxying /api/* to uvicorn.
+
+services:
+
+  # ── MongoDB ─────────────────────────────────────────────────────────────────
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: sentora
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # ── Jaeger (distributed tracing) ─────────────────────────────────────────────
+  # Optional: start with `docker compose --profile tracing up`
+  jaeger:
+    image: jaegertracing/all-in-one:1.64
+    profiles: [tracing]
+    restart: unless-stopped
+    ports:
+      - "16686:16686"   # Jaeger UI
+      - "4317:4317"     # OTLP gRPC
+      - "4318:4318"     # OTLP HTTP
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+
+  # ── Backend (embeds compiled frontend) ───────────────────────────────────────
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-5002}:5002"
+    env_file:
+      - .env
+    environment:
+      MONGO_URI: mongodb://mongo:27017
+      MONGO_DB: ${MONGO_DB:-sentora}
+      APP_ENV: ${APP_ENV:-production}
+      OTEL_ENABLED: ${OTEL_ENABLED:-false}
+      OTEL_ENDPOINT: ${OTEL_ENDPOINT:-http://jaeger:4317}
+      WORKERS: ${WORKERS:-1}
+    depends_on:
+      mongo:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5002/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+
+volumes:
+  mongo_data:
+    driver: local
