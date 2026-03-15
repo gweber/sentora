@@ -5,7 +5,7 @@
 # This file produces a self-contained nginx container that serves
 # the compiled frontend and proxies /api requests to the backend.
 
-FROM node:22-alpine AS builder
+FROM node:25-alpine AS builder
 
 WORKDIR /app
 COPY frontend/package*.json ./
