@@ -12,7 +12,12 @@ from typing import Any
 
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
-from domains.compliance.entities import CheckResult, CheckStatus, ComplianceViolation, ControlSeverity
+from domains.compliance.entities import (
+    CheckResult,
+    CheckStatus,
+    ComplianceViolation,
+    ControlSeverity,
+)
 from utils.dt import utc_now
 
 
@@ -92,9 +97,7 @@ async def execute(
                 ComplianceViolation(
                     agent_id="system",
                     agent_hostname="sentora",
-                    violation_detail=(
-                        f"Data is {age_hours:.1f}h old (threshold: {max_hours}h)"
-                    ),
+                    violation_detail=(f"Data is {age_hours:.1f}h old (threshold: {max_hours}h)"),
                     remediation="Trigger a data sync to refresh the inventory",
                 )
             )

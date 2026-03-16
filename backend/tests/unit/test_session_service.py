@@ -174,7 +174,10 @@ class TestRevokeSession:
             sessions.append(s)
 
         count = await revoke_all_user_sessions(
-            test_db, "excludetest", reason="test", exclude_session_id=sessions[0].id,
+            test_db,
+            "excludetest",
+            reason="test",
+            exclude_session_id=sessions[0].id,
         )
         assert count == 2
 

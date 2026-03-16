@@ -135,10 +135,14 @@ async def stream_entries_for_epoch(
     Returns:
         Ordered list of entry dicts.
     """
-    cursor = db["audit_log"].find(
-        {"epoch": epoch, "sequence": {"$exists": True}},
-        {"_id": 0},
-    ).sort("sequence", 1)
+    cursor = (
+        db["audit_log"]
+        .find(
+            {"epoch": epoch, "sequence": {"$exists": True}},
+            {"_id": 0},
+        )
+        .sort("sequence", 1)
+    )
     return [doc async for doc in cursor]
 
 
@@ -157,12 +161,16 @@ async def stream_entries_in_range(
     Returns:
         Ordered list of entry dicts.
     """
-    cursor = db["audit_log"].find(
-        {
-            "sequence": {"$gte": start_sequence, "$lte": end_sequence},
-        },
-        {"_id": 0},
-    ).sort("sequence", 1)
+    cursor = (
+        db["audit_log"]
+        .find(
+            {
+                "sequence": {"$gte": start_sequence, "$lte": end_sequence},
+            },
+            {"_id": 0},
+        )
+        .sort("sequence", 1)
+    )
     return [doc async for doc in cursor]
 
 

@@ -297,6 +297,8 @@ jobs:
             --exclude-files '\.pyc$' \
             --exclude-files 'coverage/' \
             --exclude-files 'dist/' \
+            --exclude-files '__tests__/' \
+            --exclude-files 'backend/tests/' \
             --exclude-secrets 'test_token_placeholder' \
             --exclude-secrets 'build_placeholder' \
             --exclude-secrets 'ci-test-secret-key' \

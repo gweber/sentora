@@ -54,36 +54,38 @@ async def enforcement_db(test_db: AsyncIOMotorDatabase) -> AsyncIOMotorDatabase:
     await test_db["s1_agents"].insert_many(agents)
 
     # Taxonomy entries
-    await test_db["taxonomy_entries"].insert_many([
-        {
-            "name": "SentinelOne",
-            "patterns": ["SentinelOne*"],
-            "category": "required_edr",
-            "category_display": "Required / EDR",
-            "publisher": "SentinelOne",
-        },
-        {
-            "name": "uTorrent",
-            "patterns": ["*torrent*"],
-            "category": "forbidden_p2p",
-            "category_display": "Forbidden / P2P",
-            "publisher": "BitTorrent",
-        },
-        {
-            "name": "Chrome",
-            "patterns": ["Chrome*"],
-            "category": "approved_browsers",
-            "category_display": "Approved / Browsers",
-            "publisher": "Google",
-        },
-        {
-            "name": "Firefox",
-            "patterns": ["Firefox*"],
-            "category": "approved_browsers",
-            "category_display": "Approved / Browsers",
-            "publisher": "Mozilla",
-        },
-    ])
+    await test_db["taxonomy_entries"].insert_many(
+        [
+            {
+                "name": "SentinelOne",
+                "patterns": ["SentinelOne*"],
+                "category": "required_edr",
+                "category_display": "Required / EDR",
+                "publisher": "SentinelOne",
+            },
+            {
+                "name": "uTorrent",
+                "patterns": ["*torrent*"],
+                "category": "forbidden_p2p",
+                "category_display": "Forbidden / P2P",
+                "publisher": "BitTorrent",
+            },
+            {
+                "name": "Chrome",
+                "patterns": ["Chrome*"],
+                "category": "approved_browsers",
+                "category_display": "Approved / Browsers",
+                "publisher": "Google",
+            },
+            {
+                "name": "Firefox",
+                "patterns": ["Firefox*"],
+                "category": "approved_browsers",
+                "category_display": "Approved / Browsers",
+                "publisher": "Mozilla",
+            },
+        ]
+    )
 
     return test_db
 

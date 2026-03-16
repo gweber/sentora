@@ -5,7 +5,7 @@ Provides lookup functions used by the engine, commands, and queries.
 
 from __future__ import annotations
 
-from domains.compliance.entities import ComplianceFramework, ControlDefinition, FrameworkId
+from domains.compliance.entities import ComplianceFramework, ControlDefinition
 from domains.compliance.frameworks import bsi, hipaa, pci_dss, soc2
 
 #: All built-in frameworks keyed by ID.

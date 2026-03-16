@@ -331,19 +331,23 @@ async def get_app_detail(
     group_site_pipeline = [
         active_match_stage(normalized_name=normalized_name),
         {"$group": {"_id": "$agent_id"}},
-        {"$lookup": {
-            "from": "s1_agents",
-            "localField": "_id",
-            "foreignField": "s1_agent_id",
-            "as": "_a",
-            "pipeline": [{"$project": {"group_id": 1, "site_id": 1, "_id": 0}}],
-        }},
+        {
+            "$lookup": {
+                "from": "s1_agents",
+                "localField": "_id",
+                "foreignField": "s1_agent_id",
+                "as": "_a",
+                "pipeline": [{"$project": {"group_id": 1, "site_id": 1, "_id": 0}}],
+            }
+        },
         {"$unwind": "$_a"},
-        {"$group": {
-            "_id": None,
-            "groups": {"$addToSet": "$_a.group_id"},
-            "sites": {"$addToSet": "$_a.site_id"},
-        }},
+        {
+            "$group": {
+                "_id": None,
+                "groups": {"$addToSet": "$_a.group_id"},
+                "sites": {"$addToSet": "$_a.site_id"},
+            }
+        },
     ]
     gs_result = await db["s1_installed_apps"].aggregate(group_site_pipeline).to_list(1)
     if gs_result:

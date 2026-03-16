@@ -64,13 +64,7 @@ async def list_audit_log(
 
     skip = (page - 1) * limit
     total = await db["audit_log"].count_documents(query)
-    cursor = (
-        db["audit_log"]
-        .find(query, {"_id": 0})
-        .sort("timestamp", -1)
-        .skip(skip)
-        .limit(limit)
-    )
+    cursor = db["audit_log"].find(query, {"_id": 0}).sort("timestamp", -1).skip(skip).limit(limit)
     entries = [_serialise_entry(doc) async for doc in cursor]
 
     return JSONResponse({"entries": entries, "total": total, "page": page, "limit": limit})

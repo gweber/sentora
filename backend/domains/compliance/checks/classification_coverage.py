@@ -11,7 +11,12 @@ from typing import Any
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from domains.compliance.checks.base import not_applicable_result
-from domains.compliance.entities import CheckResult, CheckStatus, ComplianceViolation, ControlSeverity
+from domains.compliance.entities import (
+    CheckResult,
+    CheckStatus,
+    ComplianceViolation,
+    ControlSeverity,
+)
 from utils.dt import utc_now
 
 
@@ -47,15 +52,16 @@ async def execute(
     total_agents = await db["s1_agents"].count_documents(scope_filter or {})
     if total_agents == 0:
         return not_applicable_result(
-            control_id=control_id, framework_id=framework_id,
-            control_name=control_name, category=category,
-            severity=severity, checked_at=now,
+            control_id=control_id,
+            framework_id=framework_id,
+            control_name=control_name,
+            category=category,
+            severity=severity,
+            checked_at=now,
         )
 
     # Count agents with classification results
-    classified_count = await db["classification_results"].count_documents(
-        scope_filter or {}
-    )
+    classified_count = await db["classification_results"].count_documents(scope_filter or {})
 
     coverage_pct = (classified_count / total_agents * 100) if total_agents > 0 else 0
     violations: list[ComplianceViolation] = []
@@ -77,9 +83,7 @@ async def execute(
                     f"{unclassified} agent(s) lack classification results "
                     f"({coverage_pct:.1f}% coverage, minimum {min_classified_pct}%)"
                 ),
-                remediation=(
-                    "Run a classification sweep to classify unprocessed agents"
-                ),
+                remediation=("Run a classification sweep to classify unprocessed agents"),
             )
         )
 

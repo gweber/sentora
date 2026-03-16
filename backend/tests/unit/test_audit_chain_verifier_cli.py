@@ -131,9 +131,7 @@ class TestVerifyCrossEpoch:
         # Set previous_hash of first entry in epoch 1 to last hash of epoch 0
         epoch1_entries[0]["previous_hash"] = epoch0[-1]["hash"]
         epoch1_entries[0]["previous_epoch_hash"] = epoch0[-1]["hash"]
-        epoch1_entries[0]["hash"] = compute_entry_hash(
-            epoch1_entries[0], epoch0[-1]["hash"]
-        )
+        epoch1_entries[0]["hash"] = compute_entry_hash(epoch1_entries[0], epoch0[-1]["hash"])
 
         current = {"export_metadata": {"epoch": 1}, "entries": epoch1_entries}
         previous = {"export_metadata": {"epoch": 0}, "entries": epoch0}
@@ -159,8 +157,9 @@ class TestHasherIdentity:
 
     def test_backend_and_cli_hashers_identical(self) -> None:
         """Backend and CLI hasher produce the same hash for the same input."""
-        from audit.chain.hasher import compute_entry_hash as backend_hash
         from sentora_verify.hasher import compute_entry_hash as cli_hash
+
+        from audit.chain.hasher import compute_entry_hash as backend_hash
 
         entry = {
             "sequence": 42,
@@ -181,8 +180,9 @@ class TestHasherIdentity:
 
     def test_genesis_hash_identical(self) -> None:
         """Genesis hash (previous_hash=None) matches between backend and CLI."""
-        from audit.chain.hasher import compute_entry_hash as backend_hash
         from sentora_verify.hasher import compute_entry_hash as cli_hash
+
+        from audit.chain.hasher import compute_entry_hash as backend_hash
 
         entry = {
             "sequence": 0,

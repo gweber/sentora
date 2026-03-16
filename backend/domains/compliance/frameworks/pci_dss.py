@@ -23,8 +23,7 @@ FRAMEWORK = ComplianceFramework(
     name="PCI DSS 4.0.1",
     version="4.0.1",
     description=(
-        "Payment Card Industry Data Security Standard — requirements "
-        "for protecting cardholder data"
+        "Payment Card Industry Data Security Standard — requirements for protecting cardholder data"
     ),
     disclaimer=(
         "PCI DSS compliance requires validation by a Qualified Security "
@@ -68,9 +67,7 @@ CONTROLS: list[ControlDefinition] = [
         id="PCI-2.2.5-P",
         framework_id=FrameworkId.pci_dss,
         name="No Prohibited Software in CDE",
-        description=(
-            "No prohibited applications may be present on CDE endpoints."
-        ),
+        description=("No prohibited applications may be present on CDE endpoints."),
         category="Req 2 — Secure Configurations",
         severity=ControlSeverity.critical,
         check_type=CheckType.prohibited_app,
@@ -84,8 +81,7 @@ CONTROLS: list[ControlDefinition] = [
         framework_id=FrameworkId.pci_dss,
         name="Anti-Malware on All Systems",
         description=(
-            "SentinelOne agent must be active on all managed endpoints, "
-            "particularly CDE systems."
+            "SentinelOne agent must be active on all managed endpoints, particularly CDE systems."
         ),
         category="Req 5 — Malware Protection",
         severity=ControlSeverity.critical,
@@ -126,8 +122,7 @@ CONTROLS: list[ControlDefinition] = [
         framework_id=FrameworkId.pci_dss,
         name="Anti-Malware Active on CDE Systems",
         description=(
-            "SentinelOne agent must be online and current specifically "
-            "on CDE-tagged endpoints."
+            "SentinelOne agent must be online and current specifically on CDE-tagged endpoints."
         ),
         category="Req 5 — Malware Protection",
         severity=ControlSeverity.critical,
@@ -169,9 +164,7 @@ CONTROLS: list[ControlDefinition] = [
         id="PCI-6.3.3-CDE",
         framework_id=FrameworkId.pci_dss,
         name="CDE Patch Currency",
-        description=(
-            "CDE endpoints must have stricter patch currency requirements."
-        ),
+        description=("CDE endpoints must have stricter patch currency requirements."),
         category="Req 6 — Secure Software",
         severity=ControlSeverity.critical,
         check_type=CheckType.app_version,
@@ -229,8 +222,7 @@ CONTROLS: list[ControlDefinition] = [
         framework_id=FrameworkId.pci_dss,
         name="Unclassified Software Below Threshold",
         description=(
-            "Unclassified applications must not exceed the configured "
-            "threshold on any endpoint."
+            "Unclassified applications must not exceed the configured threshold on any endpoint."
         ),
         category="Req 12 — Security Policy",
         severity=ControlSeverity.medium,
@@ -242,10 +234,7 @@ CONTROLS: list[ControlDefinition] = [
         id="PCI-12.5.2",
         framework_id=FrameworkId.pci_dss,
         name="Required Security Software",
-        description=(
-            "All PCI-scoped endpoints must have mandatory security "
-            "tools installed."
-        ),
+        description=("All PCI-scoped endpoints must have mandatory security tools installed."),
         category="Req 12 — Security Policy",
         severity=ControlSeverity.high,
         check_type=CheckType.required_app,

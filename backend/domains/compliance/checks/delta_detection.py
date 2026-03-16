@@ -12,7 +12,12 @@ from typing import Any
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from domains.compliance.checks.base import not_applicable_result
-from domains.compliance.entities import CheckResult, CheckStatus, ComplianceViolation, ControlSeverity
+from domains.compliance.entities import (
+    CheckResult,
+    CheckStatus,
+    ComplianceViolation,
+    ControlSeverity,
+)
 from utils.dt import utc_now
 
 
@@ -50,9 +55,12 @@ async def execute(
     total_agents = await db["s1_agents"].count_documents(scope_filter or {})
     if total_agents == 0:
         return not_applicable_result(
-            control_id=control_id, framework_id=framework_id,
-            control_name=control_name, category=category,
-            severity=severity, checked_at=now,
+            control_id=control_id,
+            framework_id=framework_id,
+            control_name=control_name,
+            category=category,
+            severity=severity,
+            checked_at=now,
         )
 
     # Find recently synced apps (new installations within the lookback window)
@@ -125,19 +133,14 @@ async def execute(
                         ),
                         app_name=app["name"],
                         app_version=app.get("version"),
-                        remediation=(
-                            f"Review and classify '{app['name']}' on {hostname}"
-                        ),
+                        remediation=(f"Review and classify '{app['name']}' on {hostname}"),
                     )
                 )
 
     non_compliant = len(non_compliant_agents)
     compliant = total_agents - non_compliant
 
-    if new_app_count == 0:
-        status = CheckStatus.passed
-    else:
-        status = CheckStatus.warning
+    status = CheckStatus.passed if new_app_count == 0 else CheckStatus.warning
 
     return CheckResult(
         control_id=control_id,

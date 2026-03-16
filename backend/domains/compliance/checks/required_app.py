@@ -14,7 +14,12 @@ from typing import Any
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from domains.compliance.checks.base import not_applicable_result
-from domains.compliance.entities import CheckResult, CheckStatus, ComplianceViolation, ControlSeverity
+from domains.compliance.entities import (
+    CheckResult,
+    CheckStatus,
+    ComplianceViolation,
+    ControlSeverity,
+)
 from utils.dt import utc_now
 
 
@@ -50,18 +55,24 @@ async def execute(
 
     if not required_apps:
         return not_applicable_result(
-            control_id=control_id, framework_id=framework_id,
-            control_name=control_name, category=category,
-            severity=severity, checked_at=now,
+            control_id=control_id,
+            framework_id=framework_id,
+            control_name=control_name,
+            category=category,
+            severity=severity,
+            checked_at=now,
             evidence_summary="No required applications configured",
         )
 
     total_agents = await db["s1_agents"].count_documents(scope_filter or {})
     if total_agents == 0:
         return not_applicable_result(
-            control_id=control_id, framework_id=framework_id,
-            control_name=control_name, category=category,
-            severity=severity, checked_at=now,
+            control_id=control_id,
+            framework_id=framework_id,
+            control_name=control_name,
+            category=category,
+            severity=severity,
+            checked_at=now,
         )
 
     # Build regex patterns for each required app (case-insensitive)
@@ -75,7 +86,6 @@ async def execute(
         agent_id = agent["s1_agent_id"]
         hostname = agent.get("hostname", "unknown")
         installed = agent.get("installed_app_names", [])
-        installed_lower = [name.lower() for name in installed]
 
         for idx, required in enumerate(required_apps):
             pattern = patterns[idx]

@@ -6,9 +6,8 @@ uses this registry to dispatch control evaluations.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any
-
-from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from domains.compliance.checks import (
     agent_online,
@@ -22,7 +21,7 @@ from domains.compliance.checks import (
     sync_freshness,
     unclassified_threshold,
 )
-from domains.compliance.entities import CheckResult, CheckType
+from domains.compliance.entities import CheckType
 
 #: Maps each ``CheckType`` to its executor function.
 _REGISTRY: dict[str, Any] = {
@@ -41,7 +40,7 @@ _REGISTRY: dict[str, Any] = {
 
 def get_executor(
     check_type: str,
-) -> Any | None:
+) -> Callable[..., Any] | None:
     """Look up the executor function for a check type.
 
     Args:

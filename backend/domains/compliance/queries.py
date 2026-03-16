@@ -27,23 +27,22 @@ from domains.compliance.dto import (
     ViolationListResponse,
     ViolationResponse,
 )
-from domains.compliance.entities import CheckStatus, ControlSeverity
+from domains.compliance.entities import CheckStatus
 from domains.compliance.frameworks.registry import (
     get_all_frameworks,
     get_framework,
     get_framework_controls,
-    is_valid_framework,
 )
 from domains.compliance.repository import (
     get_all_control_configs,
-    get_all_framework_configs,
     get_all_current_violations,
+    get_all_framework_configs,
     get_control_history,
     get_latest_results,
     get_schedule,
     list_custom_controls,
 )
-from errors import ControlNotFoundError, FrameworkNotFoundError
+from errors import FrameworkNotFoundError
 
 
 async def list_frameworks(
@@ -263,9 +262,7 @@ async def get_dashboard(
             total_violations += len(r.get("violations", []))
             checked = r.get("checked_at")
             if checked:
-                checked_str = (
-                    checked.isoformat() if hasattr(checked, "isoformat") else str(checked)
-                )
+                checked_str = checked.isoformat() if hasattr(checked, "isoformat") else str(checked)
                 if last_run_at is None or checked_str > last_run_at:
                     last_run_at = checked_str
 
@@ -283,11 +280,7 @@ async def get_dashboard(
             )
         )
 
-    overall = (
-        (total_passed / total_applicable * 100)
-        if total_applicable > 0
-        else 0.0
-    )
+    overall = (total_passed / total_applicable * 100) if total_applicable > 0 else 0.0
 
     return DashboardResponse(
         frameworks=frameworks,
@@ -469,8 +462,6 @@ async def get_schedule_config(
         run_after_sync=schedule.run_after_sync,
         cron_expression=schedule.cron_expression,
         enabled=schedule.enabled,
-        updated_at=(
-            schedule.updated_at.isoformat() if schedule.updated_at else None
-        ),
+        updated_at=(schedule.updated_at.isoformat() if schedule.updated_at else None),
         updated_by=schedule.updated_by,
     )

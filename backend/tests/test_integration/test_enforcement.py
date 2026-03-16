@@ -6,8 +6,6 @@ Covers: CRUD, check execution, summary, violations, RBAC.
 
 from __future__ import annotations
 
-from datetime import timedelta
-
 import pytest
 import pytest_asyncio
 from httpx import AsyncClient
@@ -67,15 +65,39 @@ async def enforcement_seeded(seeded_db: AsyncIOMotorDatabase) -> AsyncIOMotorDat
     ]
     await seeded_db["s1_agents"].insert_many(agents)
 
-    await seeded_db["taxonomy_categories"].insert_many([
-        {"key": "required_edr", "display": "Required / EDR", "created_at": now, "updated_at": now},
-        {"key": "forbidden_p2p", "display": "Forbidden / P2P", "created_at": now, "updated_at": now},
-    ])
+    await seeded_db["taxonomy_categories"].insert_many(
+        [
+            {
+                "key": "required_edr",
+                "display": "Required / EDR",
+                "created_at": now,
+                "updated_at": now,
+            },
+            {
+                "key": "forbidden_p2p",
+                "display": "Forbidden / P2P",
+                "created_at": now,
+                "updated_at": now,
+            },
+        ]
+    )
 
-    await seeded_db["taxonomy_entries"].insert_many([
-        {"name": "SentinelOne", "patterns": ["SentinelOne*"], "category": "required_edr", "category_display": "Required / EDR"},
-        {"name": "uTorrent", "patterns": ["*torrent*", "*Torrent*"], "category": "forbidden_p2p", "category_display": "Forbidden / P2P"},
-    ])
+    await seeded_db["taxonomy_entries"].insert_many(
+        [
+            {
+                "name": "SentinelOne",
+                "patterns": ["SentinelOne*"],
+                "category": "required_edr",
+                "category_display": "Required / EDR",
+            },
+            {
+                "name": "uTorrent",
+                "patterns": ["*torrent*", "*Torrent*"],
+                "category": "forbidden_p2p",
+                "category_display": "Forbidden / P2P",
+            },
+        ]
+    )
 
     return seeded_db
 
@@ -84,9 +106,7 @@ class TestRuleCRUD:
     """Tests for enforcement rule CRUD operations."""
 
     @pytest.mark.asyncio
-    async def test_create_rule(
-        self, client: AsyncClient, admin_headers: dict[str, str]
-    ) -> None:
+    async def test_create_rule(self, client: AsyncClient, admin_headers: dict[str, str]) -> None:
         """POST /rules creates a new rule and returns 201."""
         resp = await client.post(
             "/api/v1/enforcement/rules",
@@ -105,9 +125,7 @@ class TestRuleCRUD:
         assert data["enabled"] is True
 
     @pytest.mark.asyncio
-    async def test_list_rules(
-        self, client: AsyncClient, admin_headers: dict[str, str]
-    ) -> None:
+    async def test_list_rules(self, client: AsyncClient, admin_headers: dict[str, str]) -> None:
         """GET /rules returns all rules."""
         # Create a rule first
         await client.post(
@@ -126,9 +144,7 @@ class TestRuleCRUD:
         assert data["total"] >= 1
 
     @pytest.mark.asyncio
-    async def test_get_rule(
-        self, client: AsyncClient, admin_headers: dict[str, str]
-    ) -> None:
+    async def test_get_rule(self, client: AsyncClient, admin_headers: dict[str, str]) -> None:
         """GET /rules/{id} returns rule detail."""
         create_resp = await client.post(
             "/api/v1/enforcement/rules",
@@ -146,9 +162,7 @@ class TestRuleCRUD:
         assert resp.json()["name"] == "Get Test"
 
     @pytest.mark.asyncio
-    async def test_update_rule(
-        self, client: AsyncClient, admin_headers: dict[str, str]
-    ) -> None:
+    async def test_update_rule(self, client: AsyncClient, admin_headers: dict[str, str]) -> None:
         """PUT /rules/{id} updates fields."""
         create_resp = await client.post(
             "/api/v1/enforcement/rules",
@@ -170,9 +184,7 @@ class TestRuleCRUD:
         assert resp.json()["name"] == "Updated Name"
 
     @pytest.mark.asyncio
-    async def test_delete_rule(
-        self, client: AsyncClient, admin_headers: dict[str, str]
-    ) -> None:
+    async def test_delete_rule(self, client: AsyncClient, admin_headers: dict[str, str]) -> None:
         """DELETE /rules/{id} removes the rule."""
         create_resp = await client.post(
             "/api/v1/enforcement/rules",
@@ -192,9 +204,7 @@ class TestRuleCRUD:
         assert resp.status_code == 404
 
     @pytest.mark.asyncio
-    async def test_toggle_rule(
-        self, client: AsyncClient, admin_headers: dict[str, str]
-    ) -> None:
+    async def test_toggle_rule(self, client: AsyncClient, admin_headers: dict[str, str]) -> None:
         """PUT /rules/{id}/toggle flips enabled state."""
         create_resp = await client.post(
             "/api/v1/enforcement/rules",
@@ -209,7 +219,10 @@ class TestRuleCRUD:
         rule_id = create_resp.json()["id"]
         assert create_resp.json()["enabled"] is True
 
-        resp = await client.put(f"/api/v1/enforcement/rules/{rule_id}/toggle", headers=admin_headers)
+        resp = await client.put(
+            f"/api/v1/enforcement/rules/{rule_id}/toggle",
+            headers=admin_headers,
+        )
         assert resp.status_code == 200
         assert resp.json()["enabled"] is False
 
@@ -282,9 +295,7 @@ class TestSummaryAndViolations:
     """Tests for summary and violations endpoints."""
 
     @pytest.mark.asyncio
-    async def test_summary_empty(
-        self, client: AsyncClient, admin_headers: dict[str, str]
-    ) -> None:
+    async def test_summary_empty(self, client: AsyncClient, admin_headers: dict[str, str]) -> None:
         """Summary with no rules returns zeros."""
         resp = await client.get("/api/v1/enforcement/summary", headers=admin_headers)
         assert resp.status_code == 200

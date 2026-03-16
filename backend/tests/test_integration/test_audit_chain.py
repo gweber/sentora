@@ -7,18 +7,14 @@ test database.
 
 from __future__ import annotations
 
-import asyncio
-import json
-
 import pytest
-import pytest_asyncio
 from httpx import AsyncClient
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from audit.chain.commands import append_chained_entry, initialize_chain
 from audit.chain.hasher import compute_entry_hash
-from audit.chain.queries import export_epoch, get_chain_status, list_epochs, verify_chain
-from audit.chain.repository import DEFAULT_EPOCH_SIZE, get_epoch_size, save_epoch_size
+from audit.chain.queries import export_epoch, get_chain_status, verify_chain
+from audit.chain.repository import save_epoch_size
 
 
 class TestChainInitialization:
@@ -259,7 +255,10 @@ class TestChainAPIEndpoints:
 
     @pytest.mark.asyncio
     async def test_chain_status_endpoint(
-        self, client: AsyncClient, admin_headers: dict[str, str], seeded_db: AsyncIOMotorDatabase,
+        self,
+        client: AsyncClient,
+        admin_headers: dict[str, str],
+        seeded_db: AsyncIOMotorDatabase,
     ) -> None:
         """GET /audit/chain/status returns chain information."""
         # Ensure chain is initialized in the test DB
@@ -273,7 +272,10 @@ class TestChainAPIEndpoints:
 
     @pytest.mark.asyncio
     async def test_verify_endpoint(
-        self, client: AsyncClient, admin_headers: dict[str, str], seeded_db: AsyncIOMotorDatabase,
+        self,
+        client: AsyncClient,
+        admin_headers: dict[str, str],
+        seeded_db: AsyncIOMotorDatabase,
     ) -> None:
         """POST /audit/chain/verify returns verification result."""
         await initialize_chain(seeded_db)
@@ -328,7 +330,8 @@ class TestAuditWriterChainIntegration:
 
     @pytest.mark.asyncio
     async def test_audit_function_produces_chained_entries(
-        self, test_db: AsyncIOMotorDatabase,
+        self,
+        test_db: AsyncIOMotorDatabase,
     ) -> None:
         """The audit() function creates chained entries when chain is active."""
         await initialize_chain(test_db)
@@ -354,7 +357,8 @@ class TestAuditWriterChainIntegration:
 
     @pytest.mark.asyncio
     async def test_audit_function_without_chain(
-        self, test_db: AsyncIOMotorDatabase,
+        self,
+        test_db: AsyncIOMotorDatabase,
     ) -> None:
         """The audit() function works without chain initialization (plain mode)."""
         from audit.log import audit

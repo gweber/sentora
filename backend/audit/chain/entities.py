@@ -6,13 +6,13 @@ the domain model — not the MongoDB documents or API DTOs.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 
-class ChainStatus(str, Enum):
+class ChainStatus(StrEnum):
     """Verification result status."""
 
     VALID = "valid"
@@ -20,7 +20,7 @@ class ChainStatus(str, Enum):
     GAP_DETECTED = "gap_detected"
 
 
-class BrokenReason(str, Enum):
+class BrokenReason(StrEnum):
     """Reason a chain verification failed."""
 
     HASH_MISMATCH = "hash_mismatch"

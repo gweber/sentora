@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import time
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -25,7 +25,7 @@ class TestRateLimiter:
         limiter = RateLimiter(max_requests=2, window_seconds=60)
         assert limiter.is_limited("1.2.3.4") is False  # 1st
         assert limiter.is_limited("1.2.3.4") is False  # 2nd
-        assert limiter.is_limited("1.2.3.4") is True   # 3rd = blocked
+        assert limiter.is_limited("1.2.3.4") is True  # 3rd = blocked
 
     def test_different_ips_are_independent(self) -> None:
         """Each IP has its own counter."""

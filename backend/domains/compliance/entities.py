@@ -10,8 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import StrEnum
-from typing import Any, Literal
-
+from typing import Any
 
 # ---------------------------------------------------------------------------
 # Enumerations
@@ -71,9 +70,9 @@ class HipaaType(StrEnum):
 class BsiLevel(StrEnum):
     """BSI IT-Grundschutz requirement level."""
 
-    basis = "basis"          # MUSS
-    standard = "standard"    # SOLLTE
-    elevated = "elevated"    # SOLLTE bei erhöhtem Schutzbedarf
+    basis = "basis"  # MUSS
+    standard = "standard"  # SOLLTE
+    elevated = "elevated"  # SOLLTE bei erhöhtem Schutzbedarf
 
 
 # ---------------------------------------------------------------------------

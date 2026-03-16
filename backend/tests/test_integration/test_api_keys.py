@@ -11,11 +11,8 @@ import hashlib
 from typing import Any
 
 import pytest
-import pytest_asyncio
 from httpx import AsyncClient
 from motor.motor_asyncio import AsyncIOMotorDatabase
-
-from domains.api_keys.service import generate_api_key, hash_key
 
 pytestmark = pytest.mark.asyncio
 
@@ -50,7 +47,9 @@ class TestCreate:
     """POST /api/v1/api-keys/"""
 
     async def test_create_returns_full_key_once(
-        self, client: AsyncClient, admin_headers: dict[str, str],
+        self,
+        client: AsyncClient,
+        admin_headers: dict[str, str],
     ) -> None:
         data = await _create_key(client, admin_headers)
         assert "full_key" in data
@@ -60,7 +59,10 @@ class TestCreate:
         assert data["key"]["is_active"] is True
 
     async def test_create_stores_hash_not_key(
-        self, client: AsyncClient, admin_headers: dict[str, str], test_db: AsyncIOMotorDatabase,
+        self,
+        client: AsyncClient,
+        admin_headers: dict[str, str],
+        test_db: AsyncIOMotorDatabase,
     ) -> None:
         data = await _create_key(client, admin_headers)
         full_key = data["full_key"]
@@ -75,7 +77,9 @@ class TestCreate:
                 assert value != full_key
 
     async def test_create_with_invalid_scope_returns_400(
-        self, client: AsyncClient, admin_headers: dict[str, str],
+        self,
+        client: AsyncClient,
+        admin_headers: dict[str, str],
     ) -> None:
         resp = await client.post(
             "/api/v1/api-keys/",
@@ -85,7 +89,9 @@ class TestCreate:
         assert resp.status_code == 400
 
     async def test_create_requires_admin(
-        self, client: AsyncClient, viewer_headers: dict[str, str],
+        self,
+        client: AsyncClient,
+        viewer_headers: dict[str, str],
     ) -> None:
         resp = await client.post(
             "/api/v1/api-keys/",
@@ -95,7 +101,8 @@ class TestCreate:
         assert resp.status_code == 403
 
     async def test_create_without_auth_returns_401(
-        self, client: AsyncClient,
+        self,
+        client: AsyncClient,
     ) -> None:
         resp = await client.post(
             "/api/v1/api-keys/",
@@ -108,7 +115,9 @@ class TestList:
     """GET /api/v1/api-keys/"""
 
     async def test_list_returns_keys(
-        self, client: AsyncClient, admin_headers: dict[str, str],
+        self,
+        client: AsyncClient,
+        admin_headers: dict[str, str],
     ) -> None:
         await _create_key(client, admin_headers, name="Key A")
         await _create_key(client, admin_headers, name="Key B")
@@ -123,7 +132,9 @@ class TestList:
             assert not key.get("key_hash")
 
     async def test_list_never_exposes_full_key(
-        self, client: AsyncClient, admin_headers: dict[str, str],
+        self,
+        client: AsyncClient,
+        admin_headers: dict[str, str],
     ) -> None:
         create_resp = await _create_key(client, admin_headers)
         full_key = create_resp["full_key"]
@@ -137,7 +148,9 @@ class TestGet:
     """GET /api/v1/api-keys/{id}"""
 
     async def test_get_by_id(
-        self, client: AsyncClient, admin_headers: dict[str, str],
+        self,
+        client: AsyncClient,
+        admin_headers: dict[str, str],
     ) -> None:
         data = await _create_key(client, admin_headers)
         key_id = data["key"]["id"]
@@ -147,7 +160,9 @@ class TestGet:
         assert resp.json()["id"] == key_id
 
     async def test_get_nonexistent_returns_404(
-        self, client: AsyncClient, admin_headers: dict[str, str],
+        self,
+        client: AsyncClient,
+        admin_headers: dict[str, str],
     ) -> None:
         resp = await client.get("/api/v1/api-keys/nonexistent", headers=admin_headers)
         assert resp.status_code == 404
@@ -157,7 +172,9 @@ class TestUpdate:
     """PUT /api/v1/api-keys/{id}"""
 
     async def test_update_name_and_scopes(
-        self, client: AsyncClient, admin_headers: dict[str, str],
+        self,
+        client: AsyncClient,
+        admin_headers: dict[str, str],
     ) -> None:
         data = await _create_key(client, admin_headers)
         key_id = data["key"]["id"]
@@ -176,7 +193,9 @@ class TestRevoke:
     """DELETE /api/v1/api-keys/{id}"""
 
     async def test_revoke_makes_key_inactive(
-        self, client: AsyncClient, admin_headers: dict[str, str],
+        self,
+        client: AsyncClient,
+        admin_headers: dict[str, str],
     ) -> None:
         data = await _create_key(client, admin_headers)
         key_id = data["key"]["id"]
@@ -189,7 +208,9 @@ class TestRevoke:
         assert resp.json()["is_active"] is False
 
     async def test_revoked_key_cannot_authenticate(
-        self, client: AsyncClient, admin_headers: dict[str, str],
+        self,
+        client: AsyncClient,
+        admin_headers: dict[str, str],
     ) -> None:
         data = await _create_key(client, admin_headers)
         full_key = data["full_key"]
@@ -210,7 +231,9 @@ class TestRotate:
     """POST /api/v1/api-keys/{id}/rotate"""
 
     async def test_rotate_returns_new_key(
-        self, client: AsyncClient, admin_headers: dict[str, str],
+        self,
+        client: AsyncClient,
+        admin_headers: dict[str, str],
     ) -> None:
         data = await _create_key(client, admin_headers)
         old_key_id = data["key"]["id"]
@@ -227,7 +250,9 @@ class TestRotate:
         assert rotate_data["key"]["is_active"] is True
 
     async def test_rotate_preserves_scopes(
-        self, client: AsyncClient, admin_headers: dict[str, str],
+        self,
+        client: AsyncClient,
+        admin_headers: dict[str, str],
     ) -> None:
         data = await _create_key(client, admin_headers, scopes=["agents:read", "apps:read"])
         old_key_id = data["key"]["id"]
@@ -247,7 +272,9 @@ class TestAPIKeyAuth:
     """Test authenticating with an API key."""
 
     async def test_bearer_header_auth(
-        self, client: AsyncClient, admin_headers: dict[str, str],
+        self,
+        client: AsyncClient,
+        admin_headers: dict[str, str],
     ) -> None:
         data = await _create_key(client, admin_headers, scopes=["agents:read"])
         full_key = data["full_key"]
@@ -260,7 +287,9 @@ class TestAPIKeyAuth:
         assert resp.json()["name"] == "Test Key"
 
     async def test_x_api_key_header_auth(
-        self, client: AsyncClient, admin_headers: dict[str, str],
+        self,
+        client: AsyncClient,
+        admin_headers: dict[str, str],
     ) -> None:
         data = await _create_key(client, admin_headers, scopes=["agents:read"])
         full_key = data["full_key"]
@@ -272,16 +301,22 @@ class TestAPIKeyAuth:
         assert resp.status_code == 200
 
     async def test_invalid_key_returns_401(
-        self, client: AsyncClient,
+        self,
+        client: AsyncClient,
     ) -> None:
         resp = await client.get(
             "/api/v1/api-keys/current",
-            headers={"Authorization": "Bearer sentora_sk_live_invalid0000000000000000000000000000000000000000"},
+            headers={
+                "Authorization": "Bearer sentora_sk_live_"
+                "invalid0000000000000000000000000000000000000000",
+            },
         )
         assert resp.status_code == 401
 
     async def test_expired_key_returns_401(
-        self, client: AsyncClient, admin_headers: dict[str, str],
+        self,
+        client: AsyncClient,
+        admin_headers: dict[str, str],
     ) -> None:
         resp = await client.post(
             "/api/v1/api-keys/",
@@ -309,7 +344,9 @@ class TestSecurity:
     """Security constraints for API key management."""
 
     async def test_api_key_cannot_manage_keys(
-        self, client: AsyncClient, admin_headers: dict[str, str],
+        self,
+        client: AsyncClient,
+        admin_headers: dict[str, str],
     ) -> None:
         """API keys must not be able to create/list/revoke other API keys."""
         data = await _create_key(client, admin_headers, scopes=["read:all"])
@@ -331,19 +368,25 @@ class TestSecurity:
         assert resp.status_code == 403
 
     async def test_viewer_cannot_manage_keys(
-        self, client: AsyncClient, viewer_headers: dict[str, str],
+        self,
+        client: AsyncClient,
+        viewer_headers: dict[str, str],
     ) -> None:
         resp = await client.get("/api/v1/api-keys/", headers=viewer_headers)
         assert resp.status_code == 403
 
     async def test_analyst_cannot_manage_keys(
-        self, client: AsyncClient, analyst_headers: dict[str, str],
+        self,
+        client: AsyncClient,
+        analyst_headers: dict[str, str],
     ) -> None:
         resp = await client.get("/api/v1/api-keys/", headers=analyst_headers)
         assert resp.status_code == 403
 
     async def test_get_never_returns_full_key(
-        self, client: AsyncClient, admin_headers: dict[str, str],
+        self,
+        client: AsyncClient,
+        admin_headers: dict[str, str],
     ) -> None:
         create_data = await _create_key(client, admin_headers)
         full_key = create_data["full_key"]

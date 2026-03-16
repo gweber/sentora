@@ -13,16 +13,13 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from utils.dt import utc_now
 
-
 # ── Dashboard ──────────────────────────────────────────────────────────
 
 
 @pytest.mark.asyncio
 async def test_dashboard_soc2(client: AsyncClient, admin_headers: dict) -> None:
     """SOC 2 dashboard returns all 8 controls with aggregate scores."""
-    resp = await client.get(
-        "/api/v1/compliance/platform/dashboard/soc2", headers=admin_headers
-    )
+    resp = await client.get("/api/v1/compliance/platform/dashboard/soc2", headers=admin_headers)
     assert resp.status_code == 200
     data = resp.json()
     assert data["framework"] == "soc2"
@@ -38,9 +35,7 @@ async def test_dashboard_soc2(client: AsyncClient, admin_headers: dict) -> None:
 @pytest.mark.asyncio
 async def test_dashboard_iso27001(client: AsyncClient, admin_headers: dict) -> None:
     """ISO 27001 dashboard returns all 6 controls."""
-    resp = await client.get(
-        "/api/v1/compliance/platform/dashboard/iso27001", headers=admin_headers
-    )
+    resp = await client.get("/api/v1/compliance/platform/dashboard/iso27001", headers=admin_headers)
     assert resp.status_code == 200
     data = resp.json()
     assert data["framework"] == "iso27001"
@@ -51,9 +46,7 @@ async def test_dashboard_iso27001(client: AsyncClient, admin_headers: dict) -> N
 @pytest.mark.asyncio
 async def test_dashboard_unknown_framework(client: AsyncClient, admin_headers: dict) -> None:
     """Unknown framework returns 400."""
-    resp = await client.get(
-        "/api/v1/compliance/platform/dashboard/pci-dss", headers=admin_headers
-    )
+    resp = await client.get("/api/v1/compliance/platform/dashboard/pci-dss", headers=admin_headers)
     assert resp.status_code == 400
     assert "Unknown framework" in resp.json()["detail"]
 
@@ -73,13 +66,25 @@ async def test_soc2_cc6_1_multi_role(
     client: AsyncClient, admin_headers: dict, seeded_db: AsyncIOMotorDatabase
 ) -> None:
     """CC6.1 passes with role separation when multiple roles exist."""
-    await seeded_db["users"].insert_many([
-        {"username": "u1", "email": "u1@t.com", "role": "admin", "disabled": False, "hashed_password": ""},
-        {"username": "u2", "email": "u2@t.com", "role": "viewer", "disabled": False, "hashed_password": ""},
-    ])
-    resp = await client.get(
-        "/api/v1/compliance/platform/dashboard/soc2", headers=admin_headers
+    await seeded_db["users"].insert_many(
+        [
+            {
+                "username": "u1",
+                "email": "u1@t.com",
+                "role": "admin",
+                "disabled": False,
+                "hashed_password": "",
+            },
+            {
+                "username": "u2",
+                "email": "u2@t.com",
+                "role": "viewer",
+                "disabled": False,
+                "hashed_password": "",
+            },
+        ]
     )
+    resp = await client.get("/api/v1/compliance/platform/dashboard/soc2", headers=admin_headers)
     cc6_1 = next(c for c in resp.json()["controls"] if c["reference"] == "CC6.1")
     assert cc6_1["status"] == "passing"
     assert "Role separation" in cc6_1["evidence_summary"]
@@ -91,11 +96,15 @@ async def test_soc2_cc6_1_all_admins_warning(
 ) -> None:
     """CC6.1 warns when all users are admins."""
     await seeded_db["users"].insert_one(
-        {"username": "solo_admin", "email": "a@t.com", "role": "admin", "disabled": False, "hashed_password": ""},
+        {
+            "username": "solo_admin",
+            "email": "a@t.com",
+            "role": "admin",
+            "disabled": False,
+            "hashed_password": "",
+        }
     )
-    resp = await client.get(
-        "/api/v1/compliance/platform/dashboard/soc2", headers=admin_headers
-    )
+    resp = await client.get("/api/v1/compliance/platform/dashboard/soc2", headers=admin_headers)
     cc6_1 = next(c for c in resp.json()["controls"] if c["reference"] == "CC6.1")
     assert cc6_1["status"] == "warning"
     assert "consider role separation" in cc6_1["evidence_summary"]
@@ -110,9 +119,7 @@ async def test_soc2_cc7_2_with_audit_logs(
     await seeded_db["audit_log"].insert_one(
         {"timestamp": now, "created_at": now, "domain": "auth", "action": "login", "actor": "test"}
     )
-    resp = await client.get(
-        "/api/v1/compliance/platform/dashboard/soc2", headers=admin_headers
-    )
+    resp = await client.get("/api/v1/compliance/platform/dashboard/soc2", headers=admin_headers)
     cc7_2 = next(c for c in resp.json()["controls"] if c["reference"] == "CC7.2")
     assert cc7_2["status"] == "passing"
     assert "audit events in last 24h" in cc7_2["evidence_summary"]
@@ -126,22 +133,16 @@ async def test_soc2_a1_1_with_backups(
     await seeded_db["backup_history"].insert_one(
         {"status": "completed", "timestamp": utc_now().isoformat()}
     )
-    resp = await client.get(
-        "/api/v1/compliance/platform/dashboard/soc2", headers=admin_headers
-    )
+    resp = await client.get("/api/v1/compliance/platform/dashboard/soc2", headers=admin_headers)
     a1_1 = next(c for c in resp.json()["controls"] if c["reference"] == "A1.1")
     assert a1_1["status"] == "passing"
     assert "successful backup" in a1_1["evidence_summary"]
 
 
 @pytest.mark.asyncio
-async def test_iso_a7_physical_is_na(
-    client: AsyncClient, admin_headers: dict
-) -> None:
+async def test_iso_a7_physical_is_na(client: AsyncClient, admin_headers: dict) -> None:
     """ISO A.7 physical controls are always N/A for SaaS."""
-    resp = await client.get(
-        "/api/v1/compliance/platform/dashboard/iso27001", headers=admin_headers
-    )
+    resp = await client.get("/api/v1/compliance/platform/dashboard/iso27001", headers=admin_headers)
     a7 = next(c for c in resp.json()["controls"] if c["reference"] == "A.7")
     assert a7["status"] == "not_applicable"
 
@@ -168,9 +169,7 @@ async def test_generate_report(client: AsyncClient, admin_headers: dict) -> None
 @pytest.mark.asyncio
 async def test_list_reports_empty(client: AsyncClient, admin_headers: dict) -> None:
     """List reports returns empty when none exist."""
-    resp = await client.get(
-        "/api/v1/compliance/platform/reports", headers=admin_headers
-    )
+    resp = await client.get("/api/v1/compliance/platform/reports", headers=admin_headers)
     assert resp.status_code == 200
     assert resp.json()["reports"] == []
 
@@ -222,9 +221,7 @@ async def test_report_csv_export(client: AsyncClient, admin_headers: dict) -> No
 
 
 @pytest.mark.asyncio
-async def test_generate_report_requires_admin(
-    client: AsyncClient, analyst_headers: dict
-) -> None:
+async def test_generate_report_requires_admin(client: AsyncClient, analyst_headers: dict) -> None:
     """Non-admin roles cannot generate platform reports."""
     resp = await client.post(
         "/api/v1/compliance/platform/reports",

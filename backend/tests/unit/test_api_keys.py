@@ -85,6 +85,6 @@ class TestScopeExpansion:
         assert "write:all" not in WRITE_SCOPES
 
     def test_available_scopes_has_descriptions(self) -> None:
-        for scope, desc in AVAILABLE_SCOPES.items():
+        for _scope, desc in AVAILABLE_SCOPES.items():
             assert isinstance(desc, str)
             assert len(desc) > 0

@@ -35,7 +35,6 @@ from domains.auth.dto import TokenPayload
 from domains.auth.entities import UserRole
 from domains.compliance import commands, queries
 from domains.compliance.dto import (
-    CheckResultResponse,
     ConfigureControlRequest,
     ControlHistoryResponse,
     ControlResponse,
@@ -153,11 +152,7 @@ async def configure_control(
         name=config.control_id,
         description="",
         category="",
-        severity=(
-            config.severity_override.value
-            if config.severity_override
-            else ""
-        ),
+        severity=(config.severity_override.value if config.severity_override else ""),
         check_type="",
         parameters=config.parameters_override,
         scope_tags=config.scope_tags_override or [],
@@ -322,34 +317,38 @@ async def export_violations_csv(
 
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow([
-        "Framework",
-        "Control ID",
-        "Control Name",
-        "Severity",
-        "Agent ID",
-        "Hostname",
-        "Violation",
-        "Application",
-        "Version",
-        "Remediation",
-        "Checked At",
-    ])
+    writer.writerow(
+        [
+            "Framework",
+            "Control ID",
+            "Control Name",
+            "Severity",
+            "Agent ID",
+            "Hostname",
+            "Violation",
+            "Application",
+            "Version",
+            "Remediation",
+            "Checked At",
+        ]
+    )
 
     for v in result.violations:
-        writer.writerow([
-            sanitize_csv_cell(v.framework_id),
-            sanitize_csv_cell(v.control_id),
-            sanitize_csv_cell(v.control_name),
-            sanitize_csv_cell(v.severity),
-            sanitize_csv_cell(v.agent_id),
-            sanitize_csv_cell(v.agent_hostname),
-            sanitize_csv_cell(v.violation_detail),
-            sanitize_csv_cell(v.app_name or ""),
-            sanitize_csv_cell(v.app_version or ""),
-            sanitize_csv_cell(v.remediation),
-            sanitize_csv_cell(v.checked_at),
-        ])
+        writer.writerow(
+            [
+                sanitize_csv_cell(v.framework_id),
+                sanitize_csv_cell(v.control_id),
+                sanitize_csv_cell(v.control_name),
+                sanitize_csv_cell(v.severity),
+                sanitize_csv_cell(v.agent_id),
+                sanitize_csv_cell(v.agent_hostname),
+                sanitize_csv_cell(v.violation_detail),
+                sanitize_csv_cell(v.app_name or ""),
+                sanitize_csv_cell(v.app_version or ""),
+                sanitize_csv_cell(v.remediation),
+                sanitize_csv_cell(v.checked_at),
+            ]
+        )
 
     output.seek(0)
     return StreamingResponse(
@@ -396,20 +395,22 @@ async def list_unified_violations(
         )
         total += compliance_result.total
         for v in compliance_result.violations:
-            all_violations.append(UnifiedViolationResponse(
-                source="compliance",
-                control_id=v.control_id,
-                control_name=v.control_name,
-                framework_id=v.framework_id,
-                severity=v.severity,
-                agent_id=v.agent_id,
-                agent_hostname=v.agent_hostname,
-                violation_detail=v.violation_detail,
-                app_name=v.app_name,
-                app_version=v.app_version,
-                remediation=v.remediation,
-                checked_at=v.checked_at,
-            ))
+            all_violations.append(
+                UnifiedViolationResponse(
+                    source="compliance",
+                    control_id=v.control_id,
+                    control_name=v.control_name,
+                    framework_id=v.framework_id,
+                    severity=v.severity,
+                    agent_id=v.agent_id,
+                    agent_hostname=v.agent_hostname,
+                    violation_detail=v.violation_detail,
+                    app_name=v.app_name,
+                    app_version=v.app_version,
+                    remediation=v.remediation,
+                    checked_at=v.checked_at,
+                )
+            )
 
     # Enforcement violations — fetch only the requested page
     if source in (None, "enforcement"):
@@ -420,20 +421,22 @@ async def list_unified_violations(
         )
         total += enforcement_result.total
         for v in enforcement_result.violations:
-            all_violations.append(UnifiedViolationResponse(
-                source="enforcement",
-                control_id=v.rule_id,
-                control_name=v.rule_name,
-                framework_id=v.rule_type,
-                severity=v.severity,
-                agent_id=v.agent_id,
-                agent_hostname=v.agent_hostname,
-                violation_detail=v.violation_detail,
-                app_name=v.app_name,
-                app_version=v.app_version,
-                remediation="",
-                checked_at=v.checked_at,
-            ))
+            all_violations.append(
+                UnifiedViolationResponse(
+                    source="enforcement",
+                    control_id=v.rule_id,
+                    control_name=v.rule_name,
+                    framework_id=v.rule_type,
+                    severity=v.severity,
+                    agent_id=v.agent_id,
+                    agent_hostname=v.agent_hostname,
+                    violation_detail=v.violation_detail,
+                    app_name=v.app_name,
+                    app_version=v.app_version,
+                    remediation="",
+                    checked_at=v.checked_at,
+                )
+            )
 
     # Sort merged page by severity priority then checked_at
     severity_order = {"critical": 0, "high": 1, "medium": 2, "low": 3}
@@ -491,8 +494,6 @@ async def update_schedule(
         run_after_sync=schedule.run_after_sync,
         cron_expression=schedule.cron_expression,
         enabled=schedule.enabled,
-        updated_at=(
-            schedule.updated_at.isoformat() if schedule.updated_at else None
-        ),
+        updated_at=(schedule.updated_at.isoformat() if schedule.updated_at else None),
         updated_by=schedule.updated_by,
     )

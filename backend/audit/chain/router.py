@@ -16,7 +16,6 @@ from audit.chain.commands import initialize_chain
 from audit.chain.dtos import (
     ChainStatusResponse,
     EpochListResponse,
-    EpochSummaryResponse,
     VerifyChainRequest,
     VerifyChainResponse,
 )
@@ -45,16 +44,18 @@ async def verify_audit_chain(
     Returns verification result with status, counts, and failure details.
     """
     result = await verify_chain(db, epoch=body.epoch)
-    return JSONResponse({
-        "status": result.status.value,
-        "verified_entries": result.verified_entries,
-        "first_sequence": result.first_sequence,
-        "last_sequence": result.last_sequence,
-        "epochs_verified": result.epochs_verified,
-        "broken_at_sequence": result.broken_at_sequence,
-        "broken_reason": result.broken_reason.value if result.broken_reason else None,
-        "verification_time_ms": result.verification_time_ms,
-    })
+    return JSONResponse(
+        {
+            "status": result.status.value,
+            "verified_entries": result.verified_entries,
+            "first_sequence": result.first_sequence,
+            "last_sequence": result.last_sequence,
+            "epochs_verified": result.epochs_verified,
+            "broken_at_sequence": result.broken_at_sequence,
+            "broken_reason": result.broken_reason.value if result.broken_reason else None,
+            "verification_time_ms": result.verification_time_ms,
+        }
+    )
 
 
 @router.get(
@@ -71,17 +72,19 @@ async def chain_status(
     latest hash, and last verification result.
     """
     status = await get_chain_status(db)
-    return JSONResponse({
-        "total_entries": status.total_entries,
-        "current_epoch": status.current_epoch,
-        "current_sequence": status.current_sequence,
-        "genesis_hash": status.genesis_hash,
-        "latest_hash": status.latest_hash,
-        "chain_valid": status.chain_valid,
-        "last_verified_at": status.last_verified_at.isoformat()
-        if status.last_verified_at
-        else None,
-    })
+    return JSONResponse(
+        {
+            "total_entries": status.total_entries,
+            "current_epoch": status.current_epoch,
+            "current_sequence": status.current_sequence,
+            "genesis_hash": status.genesis_hash,
+            "latest_hash": status.latest_hash,
+            "chain_valid": status.chain_valid,
+            "last_verified_at": status.last_verified_at.isoformat()
+            if status.last_verified_at
+            else None,
+        }
+    )
 
 
 @router.get(
@@ -98,27 +101,29 @@ async def list_chain_epochs(
     whether it has been exported.
     """
     epochs = await list_epochs(db)
-    return JSONResponse({
-        "epochs": [
-            {
-                "epoch": e.epoch,
-                "first_sequence": e.first_sequence,
-                "last_sequence": e.last_sequence,
-                "entry_count": e.entry_count,
-                "first_timestamp": e.first_timestamp.isoformat()
-                if hasattr(e.first_timestamp, "isoformat")
-                else str(e.first_timestamp),
-                "last_timestamp": e.last_timestamp.isoformat()
-                if hasattr(e.last_timestamp, "isoformat")
-                else str(e.last_timestamp),
-                "epoch_final_hash": e.epoch_final_hash,
-                "previous_epoch_hash": e.previous_epoch_hash,
-                "exported": e.exported,
-            }
-            for e in epochs
-        ],
-        "total": len(epochs),
-    })
+    return JSONResponse(
+        {
+            "epochs": [
+                {
+                    "epoch": e.epoch,
+                    "first_sequence": e.first_sequence,
+                    "last_sequence": e.last_sequence,
+                    "entry_count": e.entry_count,
+                    "first_timestamp": e.first_timestamp.isoformat()
+                    if hasattr(e.first_timestamp, "isoformat")
+                    else str(e.first_timestamp),
+                    "last_timestamp": e.last_timestamp.isoformat()
+                    if hasattr(e.last_timestamp, "isoformat")
+                    else str(e.last_timestamp),
+                    "epoch_final_hash": e.epoch_final_hash,
+                    "previous_epoch_hash": e.previous_epoch_hash,
+                    "exported": e.exported,
+                }
+                for e in epochs
+            ],
+            "total": len(epochs),
+        }
+    )
 
 
 @router.post(

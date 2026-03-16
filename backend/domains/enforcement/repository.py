@@ -15,15 +15,12 @@ from bson.errors import InvalidId
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from domains.enforcement.entities import (
-    CheckStatus,
     EnforcementResult,
     EnforcementRule,
-    EnforcementViolation,
     RuleType,
     Severity,
 )
 from utils.dt import utc_now
-
 
 # ---------------------------------------------------------------------------
 # Rules CRUD
@@ -122,9 +119,7 @@ async def update_rule(
     except (InvalidId, TypeError):
         return False
     updates["updated_at"] = utc_now()
-    result = await db["enforcement_rules"].update_one(
-        {"_id": oid}, {"$set": updates}
-    )
+    result = await db["enforcement_rules"].update_one({"_id": oid}, {"$set": updates})
     return result.matched_count > 0
 
 
@@ -174,19 +169,21 @@ async def store_results(
         return
     docs = []
     for r in results:
-        docs.append({
-            "run_id": run_id,
-            "rule_id": r.rule_id,
-            "rule_name": r.rule_name,
-            "rule_type": r.rule_type,
-            "severity": r.severity,
-            "checked_at": r.checked_at,
-            "status": r.status.value,
-            "total_agents": r.total_agents,
-            "compliant_agents": r.compliant_agents,
-            "non_compliant_agents": r.non_compliant_agents,
-            "violations": [asdict(v) for v in r.violations],
-        })
+        docs.append(
+            {
+                "run_id": run_id,
+                "rule_id": r.rule_id,
+                "rule_name": r.rule_name,
+                "rule_type": r.rule_type,
+                "severity": r.severity,
+                "checked_at": r.checked_at,
+                "status": r.status.value,
+                "total_agents": r.total_agents,
+                "compliant_agents": r.compliant_agents,
+                "non_compliant_agents": r.non_compliant_agents,
+                "violations": [asdict(v) for v in r.violations],
+            }
+        )
     await db["enforcement_results"].insert_many(docs)
 
 
@@ -274,46 +271,52 @@ async def get_all_current_violations(
     if severity:
         pipeline.append({"$match": {"severity": severity}})
 
-    pipeline.extend([
-        {"$unwind": "$violations"},
-        {
-            "$project": {
-                "rule_id": 1,
-                "rule_name": 1,
-                "rule_type": 1,
-                "severity": 1,
-                "checked_at": 1,
-                "violation": "$violations",
-            }
-        },
-    ])
+    pipeline.extend(
+        [
+            {"$unwind": "$violations"},
+            {
+                "$project": {
+                    "rule_id": 1,
+                    "rule_name": 1,
+                    "rule_type": 1,
+                    "severity": 1,
+                    "checked_at": 1,
+                    "violation": "$violations",
+                }
+            },
+        ]
+    )
 
     count_pipeline = pipeline + [{"$count": "total"}]
     count_result = await db["enforcement_results"].aggregate(count_pipeline).to_list(1)
     total = count_result[0]["total"] if count_result else 0
 
     skip = (page - 1) * page_size
-    pipeline.extend([
-        {"$sort": {"severity": 1, "checked_at": -1}},
-        {"$skip": skip},
-        {"$limit": page_size},
-    ])
+    pipeline.extend(
+        [
+            {"$sort": {"severity": 1, "checked_at": -1}},
+            {"$skip": skip},
+            {"$limit": page_size},
+        ]
+    )
 
     violations: list[dict[str, Any]] = []
     async for doc in db["enforcement_results"].aggregate(pipeline):
         v = doc["violation"]
-        violations.append({
-            "rule_id": doc["rule_id"],
-            "rule_name": doc["rule_name"],
-            "rule_type": doc["rule_type"],
-            "severity": doc["severity"],
-            "checked_at": doc["checked_at"].isoformat() if doc.get("checked_at") else "",
-            "agent_id": v.get("agent_id", ""),
-            "agent_hostname": v.get("agent_hostname", ""),
-            "violation_detail": v.get("violation_detail", ""),
-            "app_name": v.get("app_name"),
-            "app_version": v.get("app_version"),
-        })
+        violations.append(
+            {
+                "rule_id": doc["rule_id"],
+                "rule_name": doc["rule_name"],
+                "rule_type": doc["rule_type"],
+                "severity": doc["severity"],
+                "checked_at": doc["checked_at"].isoformat() if doc.get("checked_at") else "",
+                "agent_id": v.get("agent_id", ""),
+                "agent_hostname": v.get("agent_hostname", ""),
+                "violation_detail": v.get("violation_detail", ""),
+                "app_name": v.get("app_name"),
+                "app_version": v.get("app_version"),
+            }
+        )
 
     return violations, total
 

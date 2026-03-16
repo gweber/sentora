@@ -9,7 +9,6 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, patch
 
 import pytest
-import pytest_asyncio
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from domains.webhooks.entities import VALID_EVENTS
@@ -44,7 +43,13 @@ class TestValidEventsRegistry:
         """
         from pathlib import Path
 
-        frontend_types = Path(__file__).parent.parent.parent.parent / "frontend" / "src" / "types" / "webhooks.ts"
+        frontend_types = (
+            Path(__file__).parent.parent.parent.parent
+            / "frontend"
+            / "src"
+            / "types"
+            / "webhooks.ts"
+        )
         if not frontend_types.exists():
             pytest.skip("Frontend types file not found")
 
@@ -78,8 +83,7 @@ class TestEnforcementWebhookEvents:
 
             # Find the check.completed call
             completed_calls = [
-                c for c in mock_dispatch.call_args_list
-                if c[0][1] == "enforcement.check.completed"
+                c for c in mock_dispatch.call_args_list if c[0][1] == "enforcement.check.completed"
             ]
             assert len(completed_calls) == 1
 
@@ -145,8 +149,7 @@ class TestComplianceWebhookEvents:
             await trigger_compliance_run(test_db, actor="testadmin")
 
             completed_calls = [
-                c for c in mock_dispatch.call_args_list
-                if c[0][1] == "compliance.check.completed"
+                c for c in mock_dispatch.call_args_list if c[0][1] == "compliance.check.completed"
             ]
             assert len(completed_calls) == 1
 
@@ -161,7 +164,8 @@ class TestComplianceWebhookEvents:
 
     @pytest.mark.asyncio
     async def test_webhook_dispatch_does_not_block_run(
-        self, test_db: AsyncIOMotorDatabase,
+        self,
+        test_db: AsyncIOMotorDatabase,
     ) -> None:
         """Webhook failures do not block compliance run completion."""
         with patch(
@@ -171,9 +175,7 @@ class TestComplianceWebhookEvents:
             from domains.compliance.commands import trigger_compliance_run
 
             # Should complete without raising
-            run_id, results, duration_ms = await trigger_compliance_run(
-                test_db, actor="testadmin"
-            )
+            run_id, results, duration_ms = await trigger_compliance_run(test_db, actor="testadmin")
             assert run_id is not None
 
 
@@ -182,7 +184,8 @@ class TestAuditChainWebhookEvents:
 
     @pytest.mark.asyncio
     async def test_integrity_failure_fires_webhook(
-        self, test_db: AsyncIOMotorDatabase,
+        self,
+        test_db: AsyncIOMotorDatabase,
     ) -> None:
         """audit.chain.integrity_failure fires on chain break detection."""
         from audit.chain.commands import append_chained_entry, initialize_chain
@@ -209,7 +212,8 @@ class TestAuditChainWebhookEvents:
             assert result.status.value == "broken"
 
             integrity_calls = [
-                c for c in mock_dispatch.call_args_list
+                c
+                for c in mock_dispatch.call_args_list
                 if c[0][1] == "audit.chain.integrity_failure"
             ]
             assert len(integrity_calls) == 1
@@ -221,7 +225,8 @@ class TestAuditChainWebhookEvents:
 
     @pytest.mark.asyncio
     async def test_valid_chain_does_not_fire_webhook(
-        self, test_db: AsyncIOMotorDatabase,
+        self,
+        test_db: AsyncIOMotorDatabase,
     ) -> None:
         """Valid chain verification does not fire integrity_failure webhook."""
         from audit.chain.commands import append_chained_entry, initialize_chain
@@ -242,7 +247,8 @@ class TestAuditChainWebhookEvents:
             assert result.status.value == "valid"
 
             integrity_calls = [
-                c for c in mock_dispatch.call_args_list
+                c
+                for c in mock_dispatch.call_args_list
                 if c[0][1] == "audit.chain.integrity_failure"
             ]
             assert len(integrity_calls) == 0

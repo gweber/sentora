@@ -177,24 +177,35 @@ async def export_report_csv(
 
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow([
-        "Framework", "Reference", "Control", "Category", "Status",
-        "Evidence Summary", "Evidence Count", "Period Start", "Period End",
-        "Checked At",
-    ])
+    writer.writerow(
+        [
+            "Framework",
+            "Reference",
+            "Control",
+            "Category",
+            "Status",
+            "Evidence Summary",
+            "Evidence Count",
+            "Period Start",
+            "Period End",
+            "Checked At",
+        ]
+    )
     for ctrl in report.get("controls", []):
-        writer.writerow([
-            sanitize_csv_cell(report["framework"]),
-            sanitize_csv_cell(ctrl.get("reference", "")),
-            sanitize_csv_cell(ctrl.get("title", "")),
-            sanitize_csv_cell(ctrl.get("category", "")),
-            sanitize_csv_cell(ctrl.get("status", "")),
-            sanitize_csv_cell(ctrl.get("evidence_summary", "")),
-            ctrl.get("evidence_count", 0),
-            sanitize_csv_cell(report.get("period_start", "")),
-            sanitize_csv_cell(report.get("period_end", "")),
-            sanitize_csv_cell(ctrl.get("last_checked", "")),
-        ])
+        writer.writerow(
+            [
+                sanitize_csv_cell(report["framework"]),
+                sanitize_csv_cell(ctrl.get("reference", "")),
+                sanitize_csv_cell(ctrl.get("title", "")),
+                sanitize_csv_cell(ctrl.get("category", "")),
+                sanitize_csv_cell(ctrl.get("status", "")),
+                sanitize_csv_cell(ctrl.get("evidence_summary", "")),
+                ctrl.get("evidence_count", 0),
+                sanitize_csv_cell(report.get("period_start", "")),
+                sanitize_csv_cell(report.get("period_end", "")),
+                sanitize_csv_cell(ctrl.get("last_checked", "")),
+            ]
+        )
 
     output.seek(0)
     filename = f"platform-compliance-{report['framework']}-{report_id[:8]}.csv"

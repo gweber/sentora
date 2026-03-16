@@ -9,7 +9,6 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field
 
-
 # ---------------------------------------------------------------------------
 # Response DTOs
 # ---------------------------------------------------------------------------
@@ -249,7 +248,9 @@ class CreateCustomControlRequest(BaseModel):
         min_length=1,
         max_length=100,
         pattern=r"^custom-[a-z0-9][a-z0-9._-]*$",
-        description="Must start with 'custom-', lowercase alphanumeric with dots/dashes/underscores",
+        description=(
+            "Must start with 'custom-', lowercase alphanumeric with dots/dashes/underscores"
+        ),
     )
     framework_id: str
     name: str = Field(..., min_length=1, max_length=200)

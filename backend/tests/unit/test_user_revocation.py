@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import pytest
+from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from utils.user_revocation import (
     is_user_revoked,
@@ -53,29 +54,28 @@ class TestUserRevocation:
 
 
 @pytest.mark.asyncio
-async def test_refresh_revoked_users_populates_from_db(test_db) -> None:  # type: ignore[no-untyped-def]
+async def test_refresh_revoked_users_populates_from_db(test_db: AsyncIOMotorDatabase) -> None:  # type: ignore[type-arg]
     """refresh_revoked_users queries the users collection for disabled accounts."""
+    import utils.user_revocation as mod
     from utils.user_revocation import refresh_revoked_users
 
-    import utils.user_revocation as mod
-
     # Seed two users, one disabled
-    await test_db["users"].insert_many([
-        {"username": "active_user", "email": "a@t.co", "disabled": False},
-        {"username": "disabled_user", "email": "d@t.co", "disabled": True},
-    ])
+    await test_db["users"].insert_many(
+        [
+            {"username": "active_user", "email": "a@t.co", "disabled": False},
+            {"username": "disabled_user", "email": "d@t.co", "disabled": True},
+        ]
+    )
 
     # Patch get_db to return test_db
     import database
 
-    original_client = database._client
+    prev_client = database._client
     database._client = test_db.client
-    original_db = database.get_settings  # not needed but safe
-
     try:
         await refresh_revoked_users()
         assert is_user_revoked("disabled_user") is True
         assert is_user_revoked("active_user") is False
     finally:
-        database._client = original_client
+        database._client = prev_client
         mod._revoked_usernames = frozenset()

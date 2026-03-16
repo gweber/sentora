@@ -11,7 +11,12 @@ from typing import Any
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from domains.compliance.checks.base import not_applicable_result
-from domains.compliance.entities import CheckResult, CheckStatus, ComplianceViolation, ControlSeverity
+from domains.compliance.entities import (
+    CheckResult,
+    CheckStatus,
+    ComplianceViolation,
+    ControlSeverity,
+)
 from utils.dt import utc_now
 
 
@@ -50,15 +55,18 @@ async def execute(
     total_agents = await db["s1_agents"].count_documents(scope_filter or {})
     if total_agents == 0:
         return not_applicable_result(
-            control_id=control_id, framework_id=framework_id,
-            control_name=control_name, category=category,
-            severity=severity, checked_at=now,
+            control_id=control_id,
+            framework_id=framework_id,
+            control_name=control_name,
+            category=category,
+            severity=severity,
+            checked_at=now,
         )
 
     # Get classified app names from app_summaries
     classified_apps: set[str] = set()
     async for doc in db["app_summaries"].find(
-        {"category": {"$ne": None, "$ne": ""}},
+        {"category": {"$nin": [None, ""]}},
         {"normalized_name": 1},
     ):
         classified_apps.add(doc["normalized_name"])
@@ -87,9 +95,7 @@ async def execute(
                         f"{unclassified}/{total_apps} apps unclassified "
                         f"({unclassified_pct:.1f}%, threshold {max_unclassified_pct}%)"
                     ),
-                    remediation=(
-                        "Review and classify unrecognised applications on this endpoint"
-                    ),
+                    remediation=("Review and classify unrecognised applications on this endpoint"),
                 )
             )
 

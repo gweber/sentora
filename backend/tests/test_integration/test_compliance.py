@@ -64,26 +64,76 @@ async def compliance_db(seeded_db: AsyncIOMotorDatabase) -> AsyncIOMotorDatabase
     await seeded_db["s1_agents"].insert_many(agents)
 
     apps = [
-        {"agent_id": "int-agent-1", "normalized_name": "SentinelOne", "version": "23.3.1", "risk_level": "approved", "last_synced_at": now},
-        {"agent_id": "int-agent-1", "normalized_name": "nginx", "version": "1.25", "risk_level": "approved", "last_synced_at": now},
-        {"agent_id": "int-agent-1", "normalized_name": "OpenSSL", "version": "3.1.4", "risk_level": "approved", "last_synced_at": now},
-        {"agent_id": "int-agent-2", "normalized_name": "SentinelOne", "version": "23.3.1", "risk_level": "approved", "last_synced_at": now},
-        {"agent_id": "int-agent-2", "normalized_name": "PostgreSQL", "version": "16.1", "risk_level": "approved", "last_synced_at": now},
-        {"agent_id": "int-agent-2", "normalized_name": "OpenSSL", "version": "3.1.4", "risk_level": "approved", "last_synced_at": now},
+        {
+            "agent_id": "int-agent-1",
+            "normalized_name": "SentinelOne",
+            "version": "23.3.1",
+            "risk_level": "approved",
+            "last_synced_at": now,
+        },
+        {
+            "agent_id": "int-agent-1",
+            "normalized_name": "nginx",
+            "version": "1.25",
+            "risk_level": "approved",
+            "last_synced_at": now,
+        },
+        {
+            "agent_id": "int-agent-1",
+            "normalized_name": "OpenSSL",
+            "version": "3.1.4",
+            "risk_level": "approved",
+            "last_synced_at": now,
+        },
+        {
+            "agent_id": "int-agent-2",
+            "normalized_name": "SentinelOne",
+            "version": "23.3.1",
+            "risk_level": "approved",
+            "last_synced_at": now,
+        },
+        {
+            "agent_id": "int-agent-2",
+            "normalized_name": "PostgreSQL",
+            "version": "16.1",
+            "risk_level": "approved",
+            "last_synced_at": now,
+        },
+        {
+            "agent_id": "int-agent-2",
+            "normalized_name": "OpenSSL",
+            "version": "3.1.4",
+            "risk_level": "approved",
+            "last_synced_at": now,
+        },
     ]
     await seeded_db["s1_installed_apps"].insert_many(apps)
 
-    await seeded_db["s1_sync_runs"].insert_one({
-        "run_id": "int-sync-1",
-        "status": "completed",
-        "completed_at": now - timedelta(minutes=30),
-        "started_at": now - timedelta(minutes=45),
-    })
+    await seeded_db["s1_sync_runs"].insert_one(
+        {
+            "run_id": "int-sync-1",
+            "status": "completed",
+            "completed_at": now - timedelta(minutes=30),
+            "started_at": now - timedelta(minutes=45),
+        }
+    )
 
-    await seeded_db["classification_results"].insert_many([
-        {"agent_id": "int-agent-1", "classification": "correct", "hostname": "srv-web-01", "current_group_id": "g-prod"},
-        {"agent_id": "int-agent-2", "classification": "correct", "hostname": "srv-db-01", "current_group_id": "g-prod"},
-    ])
+    await seeded_db["classification_results"].insert_many(
+        [
+            {
+                "agent_id": "int-agent-1",
+                "classification": "correct",
+                "hostname": "srv-web-01",
+                "current_group_id": "g-prod",
+            },
+            {
+                "agent_id": "int-agent-2",
+                "classification": "correct",
+                "hostname": "srv-db-01",
+                "current_group_id": "g-prod",
+            },
+        ]
+    )
 
     return seeded_db
 
@@ -111,18 +161,14 @@ class TestFrameworkEndpoints:
         self, client: AsyncClient, admin_headers: dict[str, str]
     ) -> None:
         """PUT enable/disable toggles framework state."""
-        resp = await client.put(
-            "/api/v1/compliance/frameworks/soc2/enable", headers=admin_headers
-        )
+        resp = await client.put("/api/v1/compliance/frameworks/soc2/enable", headers=admin_headers)
         assert resp.status_code == 200
 
         resp = await client.get("/api/v1/compliance/frameworks", headers=admin_headers)
         fw = next(f for f in resp.json()["frameworks"] if f["id"] == "soc2")
         assert fw["enabled"] is True
 
-        resp = await client.put(
-            "/api/v1/compliance/frameworks/soc2/disable", headers=admin_headers
-        )
+        resp = await client.put("/api/v1/compliance/frameworks/soc2/disable", headers=admin_headers)
         assert resp.status_code == 200
 
         resp = await client.get("/api/v1/compliance/frameworks", headers=admin_headers)
@@ -145,9 +191,7 @@ class TestFrameworkEndpoints:
         self, client: AsyncClient, admin_headers: dict[str, str]
     ) -> None:
         """GET /frameworks/{id} returns framework metadata and >= 15 controls."""
-        resp = await client.get(
-            "/api/v1/compliance/frameworks/soc2", headers=admin_headers
-        )
+        resp = await client.get("/api/v1/compliance/frameworks/soc2", headers=admin_headers)
         assert resp.status_code == 200
         data = resp.json()
         assert data["id"] == "soc2"
@@ -159,9 +203,7 @@ class TestFrameworkEndpoints:
         self, client: AsyncClient, admin_headers: dict[str, str]
     ) -> None:
         """GET /frameworks/nonexistent returns 404."""
-        resp = await client.get(
-            "/api/v1/compliance/frameworks/nonexistent", headers=admin_headers
-        )
+        resp = await client.get("/api/v1/compliance/frameworks/nonexistent", headers=admin_headers)
         assert resp.status_code == 404
 
 
@@ -179,28 +221,19 @@ class TestComplianceRun:
         admin_headers: dict[str, str],
     ) -> None:
         """Enable a framework, run checks, verify results appear."""
-        await client.put(
-            "/api/v1/compliance/frameworks/soc2/enable", headers=admin_headers
-        )
+        await client.put("/api/v1/compliance/frameworks/soc2/enable", headers=admin_headers)
 
-        resp = await client.post(
-            "/api/v1/compliance/run", headers=admin_headers, json={}
-        )
+        resp = await client.post("/api/v1/compliance/run", headers=admin_headers, json={})
         assert resp.status_code == 200
         data = resp.json()
         assert data["status"] == "completed"
         assert data["controls_evaluated"] >= 15
         assert data["duration_ms"] >= 0
         # passed + failed + warning should sum to controls_evaluated
-        assert (
-            data["passed"] + data["failed"] + data["warning"]
-            <= data["controls_evaluated"]
-        )
+        assert data["passed"] + data["failed"] + data["warning"] <= data["controls_evaluated"]
 
         # Results are queryable
-        resp = await client.get(
-            "/api/v1/compliance/results/latest", headers=admin_headers
-        )
+        resp = await client.get("/api/v1/compliance/results/latest", headers=admin_headers)
         assert resp.status_code == 200
         results = resp.json()
         assert results["total"] >= 15
@@ -210,9 +243,7 @@ class TestComplianceRun:
         self, client: AsyncClient, admin_headers: dict[str, str]
     ) -> None:
         """Run with no enabled frameworks returns 0 controls."""
-        resp = await client.post(
-            "/api/v1/compliance/run", headers=admin_headers, json={}
-        )
+        resp = await client.post("/api/v1/compliance/run", headers=admin_headers, json={})
         assert resp.status_code == 200
         assert resp.json()["controls_evaluated"] == 0
 
@@ -228,9 +259,7 @@ class TestDashboard:
         self, client: AsyncClient, admin_headers: dict[str, str]
     ) -> None:
         """Dashboard with no enabled frameworks returns zeros."""
-        resp = await client.get(
-            "/api/v1/compliance/dashboard", headers=admin_headers
-        )
+        resp = await client.get("/api/v1/compliance/dashboard", headers=admin_headers)
         assert resp.status_code == 200
         data = resp.json()
         assert data["overall_score_percent"] == 0
@@ -331,9 +360,7 @@ class TestSchedule:
         self, client: AsyncClient, admin_headers: dict[str, str]
     ) -> None:
         """GET /schedule returns defaults."""
-        resp = await client.get(
-            "/api/v1/compliance/schedule", headers=admin_headers
-        )
+        resp = await client.get("/api/v1/compliance/schedule", headers=admin_headers)
         assert resp.status_code == 200
         data = resp.json()
         assert data["run_after_sync"] is True
@@ -366,9 +393,7 @@ class TestRBAC:
         self, client: AsyncClient, viewer_headers: dict[str, str]
     ) -> None:
         """Viewers can list frameworks."""
-        resp = await client.get(
-            "/api/v1/compliance/frameworks", headers=viewer_headers
-        )
+        resp = await client.get("/api/v1/compliance/frameworks", headers=viewer_headers)
         assert resp.status_code == 200
 
     @pytest.mark.asyncio
@@ -399,9 +424,7 @@ class TestRBAC:
         self, client: AsyncClient, viewer_headers: dict[str, str]
     ) -> None:
         """Viewers can read the dashboard."""
-        resp = await client.get(
-            "/api/v1/compliance/dashboard", headers=viewer_headers
-        )
+        resp = await client.get("/api/v1/compliance/dashboard", headers=viewer_headers)
         assert resp.status_code == 200
 
     @pytest.mark.asyncio
@@ -422,9 +445,7 @@ class TestViolations:
         self, client: AsyncClient, admin_headers: dict[str, str]
     ) -> None:
         """GET /violations with no data returns empty list."""
-        resp = await client.get(
-            "/api/v1/compliance/violations", headers=admin_headers
-        )
+        resp = await client.get("/api/v1/compliance/violations", headers=admin_headers)
         assert resp.status_code == 200
         data = resp.json()
         assert data["total"] == 0
@@ -434,9 +455,7 @@ class TestViolations:
         self, client: AsyncClient, admin_headers: dict[str, str]
     ) -> None:
         """GET /violations/export returns CSV content type."""
-        resp = await client.get(
-            "/api/v1/compliance/violations/export", headers=admin_headers
-        )
+        resp = await client.get("/api/v1/compliance/violations/export", headers=admin_headers)
         assert resp.status_code == 200
         assert "text/csv" in resp.headers["content-type"]
 
@@ -445,9 +464,7 @@ class TestViolations:
         self, client: AsyncClient, admin_headers: dict[str, str]
     ) -> None:
         """GET /violations/unified with no data returns empty list."""
-        resp = await client.get(
-            "/api/v1/compliance/violations/unified", headers=admin_headers
-        )
+        resp = await client.get("/api/v1/compliance/violations/unified", headers=admin_headers)
         assert resp.status_code == 200
         data = resp.json()
         assert data["total"] == 0
@@ -458,9 +475,7 @@ class TestViolations:
         self, client: AsyncClient, admin_headers: dict[str, str]
     ) -> None:
         """GET /violations/unified returns items with source field."""
-        resp = await client.get(
-            "/api/v1/compliance/violations/unified", headers=admin_headers
-        )
+        resp = await client.get("/api/v1/compliance/violations/unified", headers=admin_headers)
         assert resp.status_code == 200
         # Even if empty, the structure should be correct
         data = resp.json()

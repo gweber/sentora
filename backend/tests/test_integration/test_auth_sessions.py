@@ -21,24 +21,31 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 async def registered_user(client: AsyncClient, test_db: AsyncIOMotorDatabase) -> dict:
     """Register a test user and return credentials + tokens."""
     # Register
-    resp = await client.post("/api/v1/auth/register", json={
-        "username": "sessionuser",
-        "email": "sessionuser@test.com",
-        "password": "TestPass123!",
-    })
+    resp = await client.post(
+        "/api/v1/auth/register",
+        json={
+            "username": "sessionuser",
+            "email": "sessionuser@test.com",
+            "password": "TestPass123!",
+        },
+    )
     assert resp.status_code == 201
     setup = resp.json()
 
     # Verify TOTP to get tokens
     import pyotp
+
     secret = setup["totp_uri"].split("secret=")[1].split("&")[0]
     code = pyotp.TOTP(secret).now()
 
-    resp = await client.post("/api/v1/auth/totp/verify-setup", json={
-        "username": "sessionuser",
-        "password": "TestPass123!",
-        "code": code,
-    })
+    resp = await client.post(
+        "/api/v1/auth/totp/verify-setup",
+        json={
+            "username": "sessionuser",
+            "password": "TestPass123!",
+            "code": code,
+        },
+    )
     assert resp.status_code == 200
     tokens = resp.json()
 
@@ -67,7 +74,9 @@ class TestSessionCreation:
 
     @pytest.mark.asyncio
     async def test_session_has_device_info(
-        self, registered_user: dict, client: AsyncClient,
+        self,
+        registered_user: dict,
+        client: AsyncClient,
     ) -> None:
         """Sessions include IP address and user-agent."""
         resp = await client.get("/api/v1/auth/sessions", headers=registered_user["headers"])
@@ -78,16 +87,22 @@ class TestSessionCreation:
 
     @pytest.mark.asyncio
     async def test_multiple_logins_create_multiple_sessions(
-        self, registered_user: dict, client: AsyncClient,
+        self,
+        registered_user: dict,
+        client: AsyncClient,
     ) -> None:
         """Each login creates a distinct session."""
         import pyotp
+
         code = pyotp.TOTP(registered_user["totp_secret"]).now()
-        resp = await client.post("/api/v1/auth/login", json={
-            "username": "sessionuser",
-            "password": "TestPass123!",
-            "totp_code": code,
-        })
+        resp = await client.post(
+            "/api/v1/auth/login",
+            json={
+                "username": "sessionuser",
+                "password": "TestPass123!",
+                "totp_code": code,
+            },
+        )
         assert resp.status_code == 200
 
         new_tokens = resp.json()
@@ -101,17 +116,23 @@ class TestSessionRevocation:
 
     @pytest.mark.asyncio
     async def test_revoke_single_session(
-        self, registered_user: dict, client: AsyncClient,
+        self,
+        registered_user: dict,
+        client: AsyncClient,
     ) -> None:
         """Revoking a specific session removes it from the list."""
         # Create a second session via login
         import pyotp
+
         code = pyotp.TOTP(registered_user["totp_secret"]).now()
-        resp = await client.post("/api/v1/auth/login", json={
-            "username": "sessionuser",
-            "password": "TestPass123!",
-            "totp_code": code,
-        })
+        resp = await client.post(
+            "/api/v1/auth/login",
+            json={
+                "username": "sessionuser",
+                "password": "TestPass123!",
+                "totp_code": code,
+            },
+        )
         new_tokens = resp.json()
         new_headers = {"Authorization": f"Bearer {new_tokens['access_token']}"}
 
@@ -123,13 +144,16 @@ class TestSessionRevocation:
 
         # Revoke the non-current session
         resp = await client.delete(
-            f"/api/v1/auth/sessions/{non_current[0]['id']}", headers=new_headers,
+            f"/api/v1/auth/sessions/{non_current[0]['id']}",
+            headers=new_headers,
         )
         assert resp.status_code == 204
 
     @pytest.mark.asyncio
     async def test_revoke_other_sessions(
-        self, registered_user: dict, client: AsyncClient,
+        self,
+        registered_user: dict,
+        client: AsyncClient,
     ) -> None:
         """Revoking all other sessions keeps only the current one."""
         resp = await client.delete("/api/v1/auth/sessions", headers=registered_user["headers"])
@@ -141,7 +165,9 @@ class TestSessionRevocation:
 
     @pytest.mark.asyncio
     async def test_cannot_revoke_other_users_session(
-        self, registered_user: dict, client: AsyncClient,
+        self,
+        registered_user: dict,
+        client: AsyncClient,
     ) -> None:
         """Users cannot revoke sessions belonging to other users."""
         resp = await client.delete(
@@ -156,7 +182,9 @@ class TestPasswordChangeRevokeSessions:
 
     @pytest.mark.asyncio
     async def test_password_change_revokes_other_sessions(
-        self, registered_user: dict, client: AsyncClient,
+        self,
+        registered_user: dict,
+        client: AsyncClient,
     ) -> None:
         """Changing password revokes all sessions except current."""
         resp = await client.post(
@@ -171,7 +199,9 @@ class TestPasswordChangeRevokeSessions:
 
     @pytest.mark.asyncio
     async def test_password_change_wrong_current(
-        self, registered_user: dict, client: AsyncClient,
+        self,
+        registered_user: dict,
+        client: AsyncClient,
     ) -> None:
         """Password change fails with incorrect current password."""
         resp = await client.post(
@@ -190,23 +220,28 @@ class TestAdminSessionManagement:
 
     @pytest.mark.asyncio
     async def test_admin_list_user_sessions(
-        self, registered_user: dict, client: AsyncClient,
-        admin_headers: dict, test_db: AsyncIOMotorDatabase,
+        self,
+        registered_user: dict,
+        client: AsyncClient,
+        admin_headers: dict,
+        test_db: AsyncIOMotorDatabase,
     ) -> None:
         """Admin can list sessions for any user."""
         from domains.auth.service import get_password_hash
 
         await test_db["users"].update_one(
             {"username": "testadmin"},
-            {"$set": {
-                "username": "testadmin",
-                "email": "admin@test.com",
-                "hashed_password": get_password_hash("Admin123!"),
-                "role": "admin",
-                "disabled": False,
-                "status": "active",
-                "totp_enabled": False,
-            }},
+            {
+                "$set": {
+                    "username": "testadmin",
+                    "email": "admin@test.com",
+                    "hashed_password": get_password_hash("Admin123!"),
+                    "role": "admin",
+                    "disabled": False,
+                    "status": "active",
+                    "totp_enabled": False,
+                }
+            },
             upsert=True,
         )
 
@@ -220,22 +255,27 @@ class TestAdminSessionManagement:
 
     @pytest.mark.asyncio
     async def test_admin_revoke_user_sessions(
-        self, registered_user: dict, client: AsyncClient,
-        admin_headers: dict, test_db: AsyncIOMotorDatabase,
+        self,
+        registered_user: dict,
+        client: AsyncClient,
+        admin_headers: dict,
+        test_db: AsyncIOMotorDatabase,
     ) -> None:
         """Admin can revoke all sessions for a user."""
         from domains.auth.service import get_password_hash
 
         await test_db["users"].update_one(
             {"username": "testadmin"},
-            {"$set": {
-                "username": "testadmin",
-                "email": "admin@test.com",
-                "hashed_password": get_password_hash("Admin123!"),
-                "role": "admin",
-                "disabled": False,
-                "status": "active",
-            }},
+            {
+                "$set": {
+                    "username": "testadmin",
+                    "email": "admin@test.com",
+                    "hashed_password": get_password_hash("Admin123!"),
+                    "role": "admin",
+                    "disabled": False,
+                    "status": "active",
+                }
+            },
             upsert=True,
         )
 
@@ -267,22 +307,27 @@ class TestAccountLifecycle:
 
     @pytest.mark.asyncio
     async def test_status_change_suspend(
-        self, registered_user: dict, client: AsyncClient,
-        admin_headers: dict, test_db: AsyncIOMotorDatabase,
+        self,
+        registered_user: dict,
+        client: AsyncClient,
+        admin_headers: dict,
+        test_db: AsyncIOMotorDatabase,
     ) -> None:
         """Admin can suspend an active user."""
         from domains.auth.service import get_password_hash
 
         await test_db["users"].update_one(
             {"username": "testadmin"},
-            {"$set": {
-                "username": "testadmin",
-                "email": "admin2@test.com",
-                "hashed_password": get_password_hash("Admin123!"),
-                "role": "admin",
-                "disabled": False,
-                "status": "active",
-            }},
+            {
+                "$set": {
+                    "username": "testadmin",
+                    "email": "admin2@test.com",
+                    "hashed_password": get_password_hash("Admin123!"),
+                    "role": "admin",
+                    "disabled": False,
+                    "status": "active",
+                }
+            },
             upsert=True,
         )
 
@@ -296,25 +341,32 @@ class TestAccountLifecycle:
 
     @pytest.mark.asyncio
     async def test_suspended_user_cannot_login(
-        self, client: AsyncClient, test_db: AsyncIOMotorDatabase,
+        self,
+        client: AsyncClient,
+        test_db: AsyncIOMotorDatabase,
     ) -> None:
         """A suspended user gets 403 on login."""
         from domains.auth.service import get_password_hash
 
-        await test_db["users"].insert_one({
-            "username": "suspendeduser",
-            "email": "suspended@test.com",
-            "hashed_password": get_password_hash("TestPass123!"),
-            "role": "viewer",
-            "disabled": True,
-            "status": "suspended",
-            "totp_enabled": False,
-        })
+        await test_db["users"].insert_one(
+            {
+                "username": "suspendeduser",
+                "email": "suspended@test.com",
+                "hashed_password": get_password_hash("TestPass123!"),
+                "role": "viewer",
+                "disabled": True,
+                "status": "suspended",
+                "totp_enabled": False,
+            }
+        )
 
-        resp = await client.post("/api/v1/auth/login", json={
-            "username": "suspendeduser",
-            "password": "TestPass123!",
-        })
+        resp = await client.post(
+            "/api/v1/auth/login",
+            json={
+                "username": "suspendeduser",
+                "password": "TestPass123!",
+            },
+        )
         assert resp.status_code in (401, 403)
 
 
@@ -335,7 +387,8 @@ class TestTokenHardening:
             session_id="test-session-123",
         )
         payload = jwt.decode(
-            token, settings.jwt_secret_key,
+            token,
+            settings.jwt_secret_key,
             algorithms=[settings.jwt_algorithm],
             audience="sentora-api",
         )

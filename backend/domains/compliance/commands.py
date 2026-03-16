@@ -13,18 +13,18 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from audit.log import audit
 from domains.compliance.checks.registry import is_valid_check_type
+from domains.compliance.engine import run_compliance_checks
 from domains.compliance.entities import (
     CheckResult,
+    CheckStatus,
     CheckType,
     ComplianceSchedule,
     ControlConfiguration,
     ControlSeverity,
     CustomControlDefinition,
 )
-from domains.compliance.engine import run_compliance_checks
 from domains.compliance.frameworks.registry import (
     get_control,
-    get_framework,
     is_valid_framework,
 )
 from domains.compliance.repository import (
@@ -35,7 +35,6 @@ from domains.compliance.repository import (
     upsert_schedule,
 )
 from errors import (
-    ComplianceRunInProgressError,
     ControlNotFoundError,
     CustomControlAlreadyExistsError,
     FrameworkNotFoundError,
@@ -229,9 +228,7 @@ async def create_custom_control(
         )
     existing = await get_custom_control(db, control_id)
     if existing is not None:
-        raise CustomControlAlreadyExistsError(
-            f"Custom control '{control_id}' already exists"
-        )
+        raise CustomControlAlreadyExistsError(f"Custom control '{control_id}' already exists")
 
     now = utc_now()
     custom = CustomControlDefinition(
@@ -314,7 +311,8 @@ async def trigger_compliance_run(
     for r in results:
         if r.status == CheckStatus.failed:
             for v in r.violations:
-                key = f"{r.control_id}:{v.agent_id if hasattr(v, 'agent_id') else getattr(v, 'hostname', '')}"
+                agent_ref = v.agent_id if hasattr(v, "agent_id") else getattr(v, "hostname", "")
+                key = f"{r.control_id}:{agent_ref}"
                 new_violation_keys.add(key)
 
     new_violations = new_violation_keys - prev_violation_keys
@@ -325,10 +323,7 @@ async def trigger_compliance_run(
         domain="compliance",
         action="compliance.run.completed",
         actor=actor,
-        summary=(
-            f"Compliance run {run_id}: {len(results)} controls evaluated "
-            f"in {duration_ms}ms"
-        ),
+        summary=(f"Compliance run {run_id}: {len(results)} controls evaluated in {duration_ms}ms"),
         details={
             "run_id": run_id,
             "controls_evaluated": len(results),
@@ -387,16 +382,20 @@ async def _dispatch_compliance_webhooks(
         from domains.webhooks.service import dispatch_event
 
         # 1. compliance.check.completed
-        await dispatch_event(db, "compliance.check.completed", {
-            "run_id": run_id,
-            "controls_evaluated": len(results),
-            "controls_passed": passed,
-            "controls_failed": failed,
-            "controls_warning": warning,
-            "new_violations": len(new_violations),
-            "resolved_violations": len(resolved_violations),
-            "source": "compliance",
-        })
+        await dispatch_event(
+            db,
+            "compliance.check.completed",
+            {
+                "run_id": run_id,
+                "controls_evaluated": len(results),
+                "controls_passed": passed,
+                "controls_failed": failed,
+                "controls_warning": warning,
+                "new_violations": len(new_violations),
+                "resolved_violations": len(resolved_violations),
+                "source": "compliance",
+            },
+        )
 
         # 2. compliance.violation.new — aggregated by control
         if new_violations:
@@ -407,15 +406,19 @@ async def _dispatch_compliance_webhooks(
 
             for ctrl_id, agents in by_control.items():
                 ctrl_result = next((r for r in results if r.control_id == ctrl_id), None)
-                await dispatch_event(db, "compliance.violation.new", {
-                    "framework": ctrl_result.framework_id if ctrl_result else "",
-                    "control_id": ctrl_id,
-                    "control_name": ctrl_result.control_name if ctrl_result else ctrl_id,
-                    "severity": ctrl_result.severity if ctrl_result else "medium",
-                    "affected_agents": len(agents),
-                    "summary": ctrl_result.evidence_summary if ctrl_result else "",
-                    "source": "compliance",
-                })
+                await dispatch_event(
+                    db,
+                    "compliance.violation.new",
+                    {
+                        "framework": ctrl_result.framework_id if ctrl_result else "",
+                        "control_id": ctrl_id,
+                        "control_name": ctrl_result.control_name if ctrl_result else ctrl_id,
+                        "severity": ctrl_result.severity if ctrl_result else "medium",
+                        "affected_agents": len(agents),
+                        "summary": ctrl_result.evidence_summary if ctrl_result else "",
+                        "source": "compliance",
+                    },
+                )
 
         # 3. compliance.violation.resolved — aggregated by control
         if resolved_violations:
@@ -425,11 +428,15 @@ async def _dispatch_compliance_webhooks(
                 by_control_resolved.setdefault(ctrl_id, []).append(agent_ref)
 
             for ctrl_id, agents in by_control_resolved.items():
-                await dispatch_event(db, "compliance.violation.resolved", {
-                    "control_id": ctrl_id,
-                    "previously_affected": len(agents),
-                    "source": "compliance",
-                })
+                await dispatch_event(
+                    db,
+                    "compliance.violation.resolved",
+                    {
+                        "control_id": ctrl_id,
+                        "previously_affected": len(agents),
+                        "source": "compliance",
+                    },
+                )
 
         # 4. compliance.score.degraded — per-framework score drop detection
         cur_scores: dict[str, tuple[int, int]] = {}
@@ -448,13 +455,17 @@ async def _dispatch_compliance_webhooks(
             prev_score = int(prev_passed / prev_total * 100) if prev_total else 100
 
             if cur_score < _DEFAULT_SCORE_THRESHOLD <= prev_score:
-                await dispatch_event(db, "compliance.score.degraded", {
-                    "framework": fw_id,
-                    "previous_score": prev_score,
-                    "current_score": cur_score,
-                    "threshold": _DEFAULT_SCORE_THRESHOLD,
-                    "source": "compliance",
-                })
+                await dispatch_event(
+                    db,
+                    "compliance.score.degraded",
+                    {
+                        "framework": fw_id,
+                        "previous_score": prev_score,
+                        "current_score": cur_score,
+                        "threshold": _DEFAULT_SCORE_THRESHOLD,
+                        "source": "compliance",
+                    },
+                )
 
     except Exception as exc:
         from loguru import logger
@@ -488,9 +499,7 @@ async def update_schedule(
 
     now = utc_now()
     updated = ComplianceSchedule(
-        run_after_sync=(
-            run_after_sync if run_after_sync is not None else current.run_after_sync
-        ),
+        run_after_sync=(run_after_sync if run_after_sync is not None else current.run_after_sync),
         cron_expression=(
             cron_expression if cron_expression is not None else current.cron_expression
         ),

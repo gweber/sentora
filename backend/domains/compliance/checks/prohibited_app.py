@@ -12,7 +12,12 @@ from typing import Any
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from domains.compliance.checks.base import not_applicable_result
-from domains.compliance.entities import CheckResult, CheckStatus, ComplianceViolation, ControlSeverity
+from domains.compliance.entities import (
+    CheckResult,
+    CheckStatus,
+    ComplianceViolation,
+    ControlSeverity,
+)
 from utils.dt import utc_now
 
 
@@ -48,9 +53,12 @@ async def execute(
     total_agents = await db["s1_agents"].count_documents(scope_filter or {})
     if total_agents == 0:
         return not_applicable_result(
-            control_id=control_id, framework_id=framework_id,
-            control_name=control_name, category=category,
-            severity=severity, checked_at=now,
+            control_id=control_id,
+            framework_id=framework_id,
+            control_name=control_name,
+            category=category,
+            severity=severity,
+            checked_at=now,
         )
 
     # Aggregation: find agents with prohibited apps via classification_results
@@ -62,42 +70,46 @@ async def execute(
         pipeline.append({"$match": scope_filter})
 
     # Stage 2: lookup classification results for each agent
-    pipeline.extend([
-        {
-            "$lookup": {
-                "from": "classification_results",
-                "localField": "s1_agent_id",
-                "foreignField": "agent_id",
-                "as": "classification",
-            }
-        },
-        {"$unwind": {"path": "$classification", "preserveNullAndArrays": True}},
-    ])
+    pipeline.extend(
+        [
+            {
+                "$lookup": {
+                    "from": "classification_results",
+                    "localField": "s1_agent_id",
+                    "foreignField": "agent_id",
+                    "as": "classification",
+                }
+            },
+            {"$unwind": {"path": "$classification", "preserveNullAndArrays": True}},
+        ]
+    )
 
     # Stage 3: lookup installed apps that are flagged as prohibited
     # We check fingerprints for prohibited markers matching installed apps
-    pipeline.extend([
-        {
-            "$lookup": {
-                "from": "s1_installed_apps",
-                "let": {"agent_id": "$s1_agent_id"},
-                "pipeline": [
-                    {"$match": {"$expr": {"$eq": ["$agent_id", "$$agent_id"]}}},
-                    {"$match": {"risk_level": "prohibited"}},
-                    {"$project": {"normalized_name": 1, "version": 1, "agent_id": 1}},
-                ],
-                "as": "prohibited_apps",
-            }
-        },
-        {"$match": {"prohibited_apps": {"$ne": []}}},
-        {
-            "$project": {
-                "s1_agent_id": 1,
-                "hostname": 1,
-                "prohibited_apps": 1,
-            }
-        },
-    ])
+    pipeline.extend(
+        [
+            {
+                "$lookup": {
+                    "from": "s1_installed_apps",
+                    "let": {"agent_id": "$s1_agent_id"},
+                    "pipeline": [
+                        {"$match": {"$expr": {"$eq": ["$agent_id", "$$agent_id"]}}},
+                        {"$match": {"risk_level": "prohibited"}},
+                        {"$project": {"normalized_name": 1, "version": 1, "agent_id": 1}},
+                    ],
+                    "as": "prohibited_apps",
+                }
+            },
+            {"$match": {"prohibited_apps": {"$ne": []}}},
+            {
+                "$project": {
+                    "s1_agent_id": 1,
+                    "hostname": 1,
+                    "prohibited_apps": 1,
+                }
+            },
+        ]
+    )
 
     violations: list[ComplianceViolation] = []
     non_compliant_agents: set[str] = set()
@@ -113,7 +125,9 @@ async def execute(
                 ComplianceViolation(
                     agent_id=agent_id,
                     agent_hostname=hostname,
-                    violation_detail=f"Prohibited application '{app_name}' v{app_version} installed",
+                    violation_detail=(
+                        f"Prohibited application '{app_name}' v{app_version} installed"
+                    ),
                     app_name=app_name,
                     app_version=app_version,
                     remediation=f"Uninstall '{app_name}' from endpoint {hostname}",

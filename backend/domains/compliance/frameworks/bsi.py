@@ -59,9 +59,7 @@ CONTROLS: list[ControlDefinition] = [
         id="BSI-SYS.2.1.A4",
         framework_id=FrameworkId.bsi,
         name="Regelmäßige Datensicherung",
-        description=(
-            "Backup-Software SOLLTE auf allen Clients installiert sein."
-        ),
+        description=("Backup-Software SOLLTE auf allen Clients installiert sein."),
         category="SYS.2.1 — Allgemeiner Client",
         severity=ControlSeverity.medium,
         check_type=CheckType.custom_app_presence,
@@ -74,8 +72,7 @@ CONTROLS: list[ControlDefinition] = [
         framework_id=FrameworkId.bsi,
         name="Einsatz von Virenschutzprogrammen",
         description=(
-            "Auf allen Clients MUSS ein Virenschutzprogramm (SentinelOne) "
-            "aktiv und aktuell sein."
+            "Auf allen Clients MUSS ein Virenschutzprogramm (SentinelOne) aktiv und aktuell sein."
         ),
         category="SYS.2.1 — Allgemeiner Client",
         severity=ControlSeverity.critical,
@@ -149,9 +146,7 @@ CONTROLS: list[ControlDefinition] = [
         id="BSI-APP.6.A1-SYNC",
         framework_id=FrameworkId.bsi,
         name="Software-Inventar — Aktualität",
-        description=(
-            "Das Software-Inventar MUSS regelmäßig aktualisiert werden."
-        ),
+        description=("Das Software-Inventar MUSS regelmäßig aktualisiert werden."),
         category="APP.6 — Allgemeine Software",
         severity=ControlSeverity.high,
         check_type=CheckType.sync_freshness,
@@ -194,8 +189,7 @@ CONTROLS: list[ControlDefinition] = [
         framework_id=FrameworkId.bsi,
         name="Deinstallation nicht benötigter Software",
         description=(
-            "Software die weder Approved noch Required ist SOLLTE von "
-            "Endpoints entfernt werden."
+            "Software die weder Approved noch Required ist SOLLTE von Endpoints entfernt werden."
         ),
         category="APP.6 — Allgemeine Software",
         severity=ControlSeverity.medium,
@@ -240,8 +234,7 @@ CONTROLS: list[ControlDefinition] = [
         framework_id=FrameworkId.bsi,
         name="EDR-Agent Aktualisierung",
         description=(
-            "Der SentinelOne Agent MUSS auf allen Endpoints auf dem "
-            "aktuellen Stand sein."
+            "Der SentinelOne Agent MUSS auf allen Endpoints auf dem aktuellen Stand sein."
         ),
         category="OPS.1.1.3 — Patch-Management",
         severity=ControlSeverity.critical,

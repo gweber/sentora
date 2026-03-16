@@ -87,15 +87,18 @@ async def verify_chain(
     )
 
     # Persist the result
-    await save_verification_result(db, {
-        "status": result.status.value,
-        "verified_entries": result.verified_entries,
-        "chain_valid": result.status == ChainStatus.VALID,
-        "verified_at": utc_now(),
-        "broken_at_sequence": result.broken_at_sequence,
-        "broken_reason": result.broken_reason.value if result.broken_reason else None,
-        "verification_time_ms": result.verification_time_ms,
-    })
+    await save_verification_result(
+        db,
+        {
+            "status": result.status.value,
+            "verified_entries": result.verified_entries,
+            "chain_valid": result.status == ChainStatus.VALID,
+            "verified_at": utc_now(),
+            "broken_at_sequence": result.broken_at_sequence,
+            "broken_reason": result.broken_reason.value if result.broken_reason else None,
+            "verification_time_ms": result.verification_time_ms,
+        },
+    )
 
     logger.info(
         "Chain verification complete: status={}, entries={}, time={}ms",
@@ -109,13 +112,19 @@ async def verify_chain(
         try:
             from domains.webhooks.service import dispatch_event
 
-            await dispatch_event(db, "audit.chain.integrity_failure", {
-                "broken_at_sequence": result.broken_at_sequence,
-                "reason": result.broken_reason.value if result.broken_reason else None,
-                "epoch": result.broken_at_sequence // 1000 if result.broken_at_sequence else None,
-                "verified_entries": result.verified_entries,
-                "source": "audit",
-            })
+            await dispatch_event(
+                db,
+                "audit.chain.integrity_failure",
+                {
+                    "broken_at_sequence": result.broken_at_sequence,
+                    "reason": result.broken_reason.value if result.broken_reason else None,
+                    "epoch": result.broken_at_sequence // 1000
+                    if result.broken_at_sequence
+                    else None,
+                    "verified_entries": result.verified_entries,
+                    "source": "audit",
+                },
+            )
         except Exception as exc:
             logger.warning("Failed to dispatch audit chain integrity webhook: {}", exc)
 
@@ -251,9 +260,8 @@ def _verify_batch(
 
         # Check hash integrity
         entry_prev_hash = entry.get("previous_hash")
-        if not skip_first_prev_check or i > 0:
-            if entry_prev_hash != prev_hash:
-                return (ChainStatus.BROKEN, seq, i, BrokenReason.HASH_MISMATCH)
+        if (not skip_first_prev_check or i > 0) and entry_prev_hash != prev_hash:
+            return (ChainStatus.BROKEN, seq, i, BrokenReason.HASH_MISMATCH)
 
         recomputed = compute_entry_hash(entry, entry_prev_hash)
         stored_hash = entry.get("hash")
@@ -311,8 +319,6 @@ async def list_epochs(
     """
     completed = await get_completed_epochs(db)
     exported = await get_exported_epochs(db)
-    epoch_size = await get_epoch_size(db)
-
     summaries: list[EpochSummary] = []
     for epoch_end in completed:
         epoch_num = epoch_end["epoch"]

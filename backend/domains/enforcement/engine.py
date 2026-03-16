@@ -24,7 +24,6 @@ from domains.enforcement.entities import (
     EnforcementViolation,
 )
 from domains.enforcement.repository import (
-    get_latest_results,
     list_rules,
     store_results,
 )
@@ -129,10 +128,16 @@ async def _check_required(
     total = await db["s1_agents"].count_documents(scope_filter or {})
     if total == 0:
         return EnforcementResult(
-            rule_id=rule.id, rule_name=rule.name, rule_type=rule.type.value,
-            severity=rule.severity.value, checked_at=now,
-            status=CheckStatus.passed, total_agents=0,
-            compliant_agents=0, non_compliant_agents=0, violations=[],
+            rule_id=rule.id,
+            rule_name=rule.name,
+            rule_type=rule.type.value,
+            severity=rule.severity.value,
+            checked_at=now,
+            status=CheckStatus.passed,
+            total_agents=0,
+            compliant_agents=0,
+            non_compliant_agents=0,
+            violations=[],
         )
 
     violations: list[EnforcementViolation] = []
@@ -142,19 +147,28 @@ async def _check_required(
         installed = agent.get("installed_app_names", [])
         has_match = any(_matches_any(app, compiled_patterns) for app in installed)
         if not has_match:
-            violations.append(EnforcementViolation(
-                agent_id=agent["s1_agent_id"],
-                agent_hostname=agent.get("hostname", "unknown"),
-                violation_detail=f"Missing: no application in category '{rule.taxonomy_category_id}'",
-            ))
+            violations.append(
+                EnforcementViolation(
+                    agent_id=agent["s1_agent_id"],
+                    agent_hostname=agent.get("hostname", "unknown"),
+                    violation_detail=(
+                        f"Missing: no application in category '{rule.taxonomy_category_id}'"
+                    ),
+                )
+            )
 
     non_compliant = len(violations)
     return EnforcementResult(
-        rule_id=rule.id, rule_name=rule.name, rule_type=rule.type.value,
-        severity=rule.severity.value, checked_at=now,
+        rule_id=rule.id,
+        rule_name=rule.name,
+        rule_type=rule.type.value,
+        severity=rule.severity.value,
+        checked_at=now,
         status=CheckStatus.passed if non_compliant == 0 else CheckStatus.failed,
-        total_agents=total, compliant_agents=total - non_compliant,
-        non_compliant_agents=non_compliant, violations=violations,
+        total_agents=total,
+        compliant_agents=total - non_compliant,
+        non_compliant_agents=non_compliant,
+        violations=violations,
     )
 
 
@@ -179,10 +193,16 @@ async def _check_forbidden(
     total = await db["s1_agents"].count_documents(scope_filter or {})
     if total == 0:
         return EnforcementResult(
-            rule_id=rule.id, rule_name=rule.name, rule_type=rule.type.value,
-            severity=rule.severity.value, checked_at=now,
-            status=CheckStatus.passed, total_agents=0,
-            compliant_agents=0, non_compliant_agents=0, violations=[],
+            rule_id=rule.id,
+            rule_name=rule.name,
+            rule_type=rule.type.value,
+            severity=rule.severity.value,
+            checked_at=now,
+            status=CheckStatus.passed,
+            total_agents=0,
+            compliant_agents=0,
+            non_compliant_agents=0,
+            violations=[],
         )
 
     violations: list[EnforcementViolation] = []
@@ -192,20 +212,30 @@ async def _check_forbidden(
         installed = agent.get("installed_app_names", [])
         for app in installed:
             if _matches_any(app, compiled_patterns):
-                violations.append(EnforcementViolation(
-                    agent_id=agent["s1_agent_id"],
-                    agent_hostname=agent.get("hostname", "unknown"),
-                    violation_detail=f"Forbidden application '{app}' found (category '{rule.taxonomy_category_id}')",
-                    app_name=app,
-                ))
+                violations.append(
+                    EnforcementViolation(
+                        agent_id=agent["s1_agent_id"],
+                        agent_hostname=agent.get("hostname", "unknown"),
+                        violation_detail=(
+                            f"Forbidden application '{app}' found"
+                            f" (category '{rule.taxonomy_category_id}')"
+                        ),
+                        app_name=app,
+                    )
+                )
 
     non_compliant_agents = len({v.agent_id for v in violations})
     return EnforcementResult(
-        rule_id=rule.id, rule_name=rule.name, rule_type=rule.type.value,
-        severity=rule.severity.value, checked_at=now,
+        rule_id=rule.id,
+        rule_name=rule.name,
+        rule_type=rule.type.value,
+        severity=rule.severity.value,
+        checked_at=now,
         status=CheckStatus.passed if non_compliant_agents == 0 else CheckStatus.failed,
-        total_agents=total, compliant_agents=total - non_compliant_agents,
-        non_compliant_agents=non_compliant_agents, violations=violations,
+        total_agents=total,
+        compliant_agents=total - non_compliant_agents,
+        non_compliant_agents=non_compliant_agents,
+        violations=violations,
     )
 
 
@@ -232,10 +262,16 @@ async def _check_allowlist(
     total = await db["s1_agents"].count_documents(scope_filter or {})
     if total == 0:
         return EnforcementResult(
-            rule_id=rule.id, rule_name=rule.name, rule_type=rule.type.value,
-            severity=rule.severity.value, checked_at=now,
-            status=CheckStatus.passed, total_agents=0,
-            compliant_agents=0, non_compliant_agents=0, violations=[],
+            rule_id=rule.id,
+            rule_name=rule.name,
+            rule_type=rule.type.value,
+            severity=rule.severity.value,
+            checked_at=now,
+            status=CheckStatus.passed,
+            total_agents=0,
+            compliant_agents=0,
+            non_compliant_agents=0,
+            violations=[],
         )
 
     violations: list[EnforcementViolation] = []
@@ -245,20 +281,27 @@ async def _check_allowlist(
         installed = agent.get("installed_app_names", [])
         for app in installed:
             if not _matches_any(app, compiled_patterns):
-                violations.append(EnforcementViolation(
-                    agent_id=agent["s1_agent_id"],
-                    agent_hostname=agent.get("hostname", "unknown"),
-                    violation_detail=f"Unapproved application '{app}' not in allowlist",
-                    app_name=app,
-                ))
+                violations.append(
+                    EnforcementViolation(
+                        agent_id=agent["s1_agent_id"],
+                        agent_hostname=agent.get("hostname", "unknown"),
+                        violation_detail=f"Unapproved application '{app}' not in allowlist",
+                        app_name=app,
+                    )
+                )
 
     non_compliant_agents = len({v.agent_id for v in violations})
     return EnforcementResult(
-        rule_id=rule.id, rule_name=rule.name, rule_type=rule.type.value,
-        severity=rule.severity.value, checked_at=now,
+        rule_id=rule.id,
+        rule_name=rule.name,
+        rule_type=rule.type.value,
+        severity=rule.severity.value,
+        checked_at=now,
         status=CheckStatus.passed if non_compliant_agents == 0 else CheckStatus.failed,
-        total_agents=total, compliant_agents=total - non_compliant_agents,
-        non_compliant_agents=non_compliant_agents, violations=violations,
+        total_agents=total,
+        compliant_agents=total - non_compliant_agents,
+        non_compliant_agents=non_compliant_agents,
+        violations=violations,
     )
 
 
@@ -289,14 +332,24 @@ async def evaluate_rule(
     if not compiled:
         now = utc_now()
         return EnforcementResult(
-            rule_id=rule.id, rule_name=rule.name, rule_type=rule.type.value,
-            severity=rule.severity.value, checked_at=now,
+            rule_id=rule.id,
+            rule_name=rule.name,
+            rule_type=rule.type.value,
+            severity=rule.severity.value,
+            checked_at=now,
             status=CheckStatus.passed,
-            total_agents=0, compliant_agents=0, non_compliant_agents=0,
-            violations=[EnforcementViolation(
-                agent_id="system", agent_hostname="sentora",
-                violation_detail=f"No taxonomy patterns found for category '{rule.taxonomy_category_id}'",
-            )],
+            total_agents=0,
+            compliant_agents=0,
+            non_compliant_agents=0,
+            violations=[
+                EnforcementViolation(
+                    agent_id="system",
+                    agent_hostname="sentora",
+                    violation_detail=(
+                        f"No taxonomy patterns found for category '{rule.taxonomy_category_id}'"
+                    ),
+                )
+            ],
         )
 
     check_fn = _CHECK_DISPATCH[rule.type.value]
@@ -321,6 +374,7 @@ async def run_enforcement_checks(
 
     if rule_id:
         from domains.enforcement.repository import get_rule
+
         rule = await get_rule(db, rule_id)
         rules = [rule] if rule else []
     else:
@@ -339,16 +393,26 @@ async def run_enforcement_checks(
     for idx, result in enumerate(raw_results):
         if isinstance(result, Exception):
             logger.error("Enforcement rule {} failed: {}", rules[idx].id, result)
-            results.append(EnforcementResult(
-                rule_id=rules[idx].id, rule_name=rules[idx].name,
-                rule_type=rules[idx].type.value, severity=rules[idx].severity.value,
-                checked_at=utc_now(), status=CheckStatus.failed,
-                total_agents=0, compliant_agents=0, non_compliant_agents=0,
-                violations=[EnforcementViolation(
-                    agent_id="system", agent_hostname="sentora",
-                    violation_detail=f"Check error: {result}",
-                )],
-            ))
+            results.append(
+                EnforcementResult(
+                    rule_id=rules[idx].id,
+                    rule_name=rules[idx].name,
+                    rule_type=rules[idx].type.value,
+                    severity=rules[idx].severity.value,
+                    checked_at=utc_now(),
+                    status=CheckStatus.failed,
+                    total_agents=0,
+                    compliant_agents=0,
+                    non_compliant_agents=0,
+                    violations=[
+                        EnforcementViolation(
+                            agent_id="system",
+                            agent_hostname="sentora",
+                            violation_detail=f"Check error: {result}",
+                        )
+                    ],
+                )
+            )
         else:
             results.append(result)
 
@@ -357,7 +421,9 @@ async def run_enforcement_checks(
     duration_ms = int((time.monotonic() - start) * 1000)
     logger.info(
         "Enforcement run {} completed: {} rules in {}ms",
-        run_id, len(results), duration_ms,
+        run_id,
+        len(results),
+        duration_ms,
     )
 
     return run_id, results, duration_ms

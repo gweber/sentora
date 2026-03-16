@@ -144,11 +144,25 @@ async def audit(
         chain_active = False
 
     if chain_active:
-        await _write_chained(db, domain=domain, action=action, actor=actor,
-                             status=status, summary=summary, details=details)
+        await _write_chained(
+            db,
+            domain=domain,
+            action=action,
+            actor=actor,
+            status=status,
+            summary=summary,
+            details=details,
+        )
     else:
-        await _write_plain(db, domain=domain, action=action, actor=actor,
-                           status=status, summary=summary, details=details)
+        await _write_plain(
+            db,
+            domain=domain,
+            action=action,
+            actor=actor,
+            status=status,
+            summary=summary,
+            details=details,
+        )
 
 
 async def _write_chained(
@@ -183,11 +197,16 @@ async def _write_chained(
 
         await audit_ws.broadcast(entry)
     except Exception as exc:
-        logger.warning(
-            "Chained audit write failed, falling back to plain write: {}", exc
+        logger.warning("Chained audit write failed, falling back to plain write: {}", exc)
+        await _write_plain(
+            db,
+            domain=domain,
+            action=action,
+            actor=actor,
+            status=status,
+            summary=summary,
+            details=details,
         )
-        await _write_plain(db, domain=domain, action=action, actor=actor,
-                           status=status, summary=summary, details=details)
 
 
 async def _write_plain(

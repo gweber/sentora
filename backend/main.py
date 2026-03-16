@@ -30,13 +30,13 @@ from audit.router import router as audit_router
 from config import get_settings
 from database import DatabaseUnavailableError, close_db, connect_db
 from domains.admin.router import router as admin_router
-from domains.api_keys.router import router as api_keys_router
 
 # Domain routers
 from domains.agents.apps_router import router as apps_router
 from domains.agents.groups_router import router as groups_router
 from domains.agents.router import router as agents_router
 from domains.agents.sites_router import router as sites_router
+from domains.api_keys.router import router as api_keys_router
 from domains.auth.router import router as auth_router
 from domains.classification.router import router as classification_router
 from domains.compliance.router import router as compliance_router

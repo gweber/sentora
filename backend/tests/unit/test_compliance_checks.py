@@ -6,12 +6,13 @@ Uses a real MongoDB test database per TESTING.md requirements.
 
 from __future__ import annotations
 
+from datetime import timedelta
+
 import pytest
 import pytest_asyncio
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from utils.dt import utc_now
-from datetime import timedelta
 
 
 @pytest_asyncio.fixture(scope="function")
@@ -72,41 +73,111 @@ async def seeded_agents(test_db: AsyncIOMotorDatabase) -> AsyncIOMotorDatabase: 
 
     # Installed apps
     apps = [
-        {"agent_id": "agent-1", "normalized_name": "SentinelOne", "version": "23.3.1", "risk_level": "approved", "last_synced_at": now},
-        {"agent_id": "agent-1", "normalized_name": "Microsoft Office", "version": "365", "risk_level": "approved", "last_synced_at": now},
-        {"agent_id": "agent-1", "normalized_name": "Chrome", "version": "120.0", "risk_level": "approved", "last_synced_at": now},
-        {"agent_id": "agent-2", "normalized_name": "SentinelOne", "version": "23.1.0", "risk_level": "approved", "last_synced_at": now},
-        {"agent_id": "agent-2", "normalized_name": "uTorrent", "version": "3.5", "risk_level": "prohibited", "last_synced_at": now},
-        {"agent_id": "agent-2", "normalized_name": "VLC", "version": "3.0.20", "risk_level": "approved", "last_synced_at": now},
-        {"agent_id": "agent-3", "normalized_name": "SentinelOne", "version": "23.3.1", "risk_level": "approved", "last_synced_at": now},
-        {"agent_id": "agent-3", "normalized_name": "Chrome", "version": "120.0", "risk_level": "approved", "last_synced_at": now},
-        {"agent_id": "agent-3", "normalized_name": "Slack", "version": "4.35", "risk_level": "approved", "last_synced_at": now},
+        {
+            "agent_id": "agent-1",
+            "normalized_name": "SentinelOne",
+            "version": "23.3.1",
+            "risk_level": "approved",
+            "last_synced_at": now,
+        },
+        {
+            "agent_id": "agent-1",
+            "normalized_name": "Microsoft Office",
+            "version": "365",
+            "risk_level": "approved",
+            "last_synced_at": now,
+        },
+        {
+            "agent_id": "agent-1",
+            "normalized_name": "Chrome",
+            "version": "120.0",
+            "risk_level": "approved",
+            "last_synced_at": now,
+        },
+        {
+            "agent_id": "agent-2",
+            "normalized_name": "SentinelOne",
+            "version": "23.1.0",
+            "risk_level": "approved",
+            "last_synced_at": now,
+        },
+        {
+            "agent_id": "agent-2",
+            "normalized_name": "uTorrent",
+            "version": "3.5",
+            "risk_level": "prohibited",
+            "last_synced_at": now,
+        },
+        {
+            "agent_id": "agent-2",
+            "normalized_name": "VLC",
+            "version": "3.0.20",
+            "risk_level": "approved",
+            "last_synced_at": now,
+        },
+        {
+            "agent_id": "agent-3",
+            "normalized_name": "SentinelOne",
+            "version": "23.3.1",
+            "risk_level": "approved",
+            "last_synced_at": now,
+        },
+        {
+            "agent_id": "agent-3",
+            "normalized_name": "Chrome",
+            "version": "120.0",
+            "risk_level": "approved",
+            "last_synced_at": now,
+        },
+        {
+            "agent_id": "agent-3",
+            "normalized_name": "Slack",
+            "version": "4.35",
+            "risk_level": "approved",
+            "last_synced_at": now,
+        },
     ]
     await test_db["s1_installed_apps"].insert_many(apps)
 
     # Sync run
-    await test_db["s1_sync_runs"].insert_one({
-        "run_id": "sync-1",
-        "status": "completed",
-        "completed_at": now - timedelta(hours=1),
-        "started_at": now - timedelta(hours=2),
-    })
+    await test_db["s1_sync_runs"].insert_one(
+        {
+            "run_id": "sync-1",
+            "status": "completed",
+            "completed_at": now - timedelta(hours=1),
+            "started_at": now - timedelta(hours=2),
+        }
+    )
 
     # Classification results
-    await test_db["classification_results"].insert_many([
-        {"agent_id": "agent-1", "classification": "correct", "hostname": "workstation-1", "current_group_id": "g1"},
-        {"agent_id": "agent-3", "classification": "correct", "hostname": "workstation-3", "current_group_id": "g1"},
-    ])
+    await test_db["classification_results"].insert_many(
+        [
+            {
+                "agent_id": "agent-1",
+                "classification": "correct",
+                "hostname": "workstation-1",
+                "current_group_id": "g1",
+            },
+            {
+                "agent_id": "agent-3",
+                "classification": "correct",
+                "hostname": "workstation-3",
+                "current_group_id": "g1",
+            },
+        ]
+    )
 
     # App summaries (for unclassified threshold)
-    await test_db["app_summaries"].insert_many([
-        {"normalized_name": "SentinelOne", "category": "Security", "agent_count": 3},
-        {"normalized_name": "Chrome", "category": "Browser", "agent_count": 2},
-        {"normalized_name": "Microsoft Office", "category": "Productivity", "agent_count": 1},
-        {"normalized_name": "Slack", "category": "Communication", "agent_count": 1},
-        {"normalized_name": "VLC", "category": "Media", "agent_count": 1},
-        # uTorrent intentionally NOT in app_summaries (unclassified)
-    ])
+    await test_db["app_summaries"].insert_many(
+        [
+            {"normalized_name": "SentinelOne", "category": "Security", "agent_count": 3},
+            {"normalized_name": "Chrome", "category": "Browser", "agent_count": 2},
+            {"normalized_name": "Microsoft Office", "category": "Productivity", "agent_count": 1},
+            {"normalized_name": "Slack", "category": "Communication", "agent_count": 1},
+            {"normalized_name": "VLC", "category": "Media", "agent_count": 1},
+            # uTorrent intentionally NOT in app_summaries (unclassified)
+        ]
+    )
 
     return test_db
 
@@ -139,7 +210,10 @@ class TestProhibitedAppCheck:
         assert "uTorrent" in result.violations[0].violation_detail
 
     @pytest.mark.asyncio
-    async def test_passes_when_no_prohibited_apps(self, seeded_agents: AsyncIOMotorDatabase) -> None:  # type: ignore[type-arg]
+    async def test_passes_when_no_prohibited_apps(
+        self,
+        seeded_agents: AsyncIOMotorDatabase,  # type: ignore[type-arg]
+    ) -> None:
         """Scoped to PCI-CDE agents (agent-1, agent-3) — no prohibited apps — pass."""
         from domains.compliance.checks.prohibited_app import execute
 

@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
@@ -22,6 +23,7 @@ from domains.compliance.checks.registry import get_executor
 from domains.compliance.entities import (
     CheckResult,
     CheckStatus,
+    ControlConfiguration,
     ControlSeverity,
 )
 from domains.compliance.frameworks.registry import (
@@ -84,10 +86,7 @@ async def resolve_active_controls(
     framework_configs = await get_all_framework_configs(db)
 
     # Determine which frameworks to evaluate
-    if framework_id:
-        framework_ids = [framework_id]
-    else:
-        framework_ids = get_all_framework_ids()
+    framework_ids = [framework_id] if framework_id else get_all_framework_ids()
 
     # Load all control configs in one query
     control_configs = await get_all_control_configs(db, framework_id)
@@ -118,9 +117,7 @@ async def resolve_active_controls(
 
             # Resolve severity
             severity = (
-                config.severity_override
-                if config and config.severity_override
-                else defn.severity
+                config.severity_override if config and config.severity_override else defn.severity
             )
 
             # Resolve scope
@@ -162,9 +159,7 @@ async def resolve_active_controls(
                 merged_params.update(config.parameters_override)
 
             severity = (
-                config.severity_override
-                if config and config.severity_override
-                else custom.severity
+                config.severity_override if config and config.severity_override else custom.severity
             )
             scope_tags = (
                 config.scope_tags_override
@@ -288,7 +283,7 @@ async def run_compliance_checks(
 
 
 async def _execute_check(
-    executor: Any,
+    executor: Callable[..., Any],
     db: AsyncIOMotorDatabase,  # type: ignore[type-arg]
     *,
     ctrl: ResolvedControl,

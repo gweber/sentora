@@ -58,10 +58,7 @@ CONTROLS: list[ControlDefinition] = [
         id="HIPAA-308a1-SYNC",
         framework_id=FrameworkId.hipaa,
         name="Risk Analysis — Data Currency",
-        description=(
-            "Software inventory data must be current to support ongoing "
-            "risk analysis."
-        ),
+        description=("Software inventory data must be current to support ongoing risk analysis."),
         category="§164.308 — Administrative Safeguards",
         severity=ControlSeverity.high,
         check_type=CheckType.sync_freshness,
@@ -155,8 +152,7 @@ CONTROLS: list[ControlDefinition] = [
         framework_id=FrameworkId.hipaa,
         name="Audit Controls — Software Change Tracking",
         description=(
-            "An audit trail of software inventory changes must be "
-            "maintained for ePHI endpoints."
+            "An audit trail of software inventory changes must be maintained for ePHI endpoints."
         ),
         category="§164.312 — Technical Safeguards",
         severity=ControlSeverity.high,
@@ -171,8 +167,7 @@ CONTROLS: list[ControlDefinition] = [
         framework_id=FrameworkId.hipaa,
         name="Integrity Controls — Unauthorised Changes",
         description=(
-            "Detect unauthorised software modifications on ePHI endpoints "
-            "through delta detection."
+            "Detect unauthorised software modifications on ePHI endpoints through delta detection."
         ),
         category="§164.312 — Technical Safeguards",
         severity=ControlSeverity.high,

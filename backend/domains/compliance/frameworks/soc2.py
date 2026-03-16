@@ -82,8 +82,7 @@ CONTROLS: list[ControlDefinition] = [
         framework_id=FrameworkId.soc2,
         name="No Prohibited Software",
         description=(
-            "No applications classified as Prohibited may be installed "
-            "on managed endpoints."
+            "No applications classified as Prohibited may be installed on managed endpoints."
         ),
         category="CC6 — Access Controls",
         severity=ControlSeverity.critical,
@@ -184,8 +183,7 @@ CONTROLS: list[ControlDefinition] = [
         framework_id=FrameworkId.soc2,
         name="Data Freshness",
         description=(
-            "Software inventory data must be refreshed within the "
-            "configured sync window."
+            "Software inventory data must be refreshed within the configured sync window."
         ),
         category="A1 — Availability",
         severity=ControlSeverity.high,
@@ -199,8 +197,7 @@ CONTROLS: list[ControlDefinition] = [
         framework_id=FrameworkId.soc2,
         name="Asset Classification Coverage",
         description=(
-            "All managed endpoints must have classification results "
-            "to support risk assessment."
+            "All managed endpoints must have classification results to support risk assessment."
         ),
         category="CC3 — Risk Assessment",
         severity=ControlSeverity.medium,
@@ -242,8 +239,7 @@ CONTROLS: list[ControlDefinition] = [
         framework_id=FrameworkId.soc2,
         name="Prohibited Software Enforcement",
         description=(
-            "Continuous enforcement that no prohibited software is "
-            "present on any managed endpoint."
+            "Continuous enforcement that no prohibited software is present on any managed endpoint."
         ),
         category="CC9 — Risk Mitigation",
         severity=ControlSeverity.critical,

@@ -42,7 +42,6 @@ from domains.enforcement.repository import (
 )
 from utils.dt import utc_now
 
-
 # ---------------------------------------------------------------------------
 # Rule CRUD
 # ---------------------------------------------------------------------------
@@ -329,16 +328,20 @@ async def trigger_check(
     try:
         from domains.webhooks.service import dispatch_event
 
-        await dispatch_event(db, "enforcement.check.completed", {
-            "run_id": run_id,
-            "rules_checked": len(results),
-            "rules_passed": passed,
-            "rules_failed": failed,
-            "total_violations": total_violations,
-            "new_violations": len(new_violations),
-            "resolved_violations": len(resolved_violations),
-            "source": "enforcement",
-        })
+        await dispatch_event(
+            db,
+            "enforcement.check.completed",
+            {
+                "run_id": run_id,
+                "rules_checked": len(results),
+                "rules_passed": passed,
+                "rules_failed": failed,
+                "total_violations": total_violations,
+                "new_violations": len(new_violations),
+                "resolved_violations": len(resolved_violations),
+                "source": "enforcement",
+            },
+        )
     except Exception as exc:
         logger.warning("Failed to dispatch enforcement.check.completed webhook: {}", exc)
 
@@ -507,9 +510,7 @@ async def list_current_violations(
     Returns:
         ViolationListResponse with paginated data.
     """
-    violations, total = await get_all_current_violations(
-        db, severity, page, page_size
-    )
+    violations, total = await get_all_current_violations(db, severity, page, page_size)
     return ViolationListResponse(
         violations=[
             ViolationDetailResponse(

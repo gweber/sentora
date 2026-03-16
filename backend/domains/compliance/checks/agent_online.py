@@ -12,7 +12,12 @@ from typing import Any
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from domains.compliance.checks.base import not_applicable_result
-from domains.compliance.entities import CheckResult, CheckStatus, ComplianceViolation, ControlSeverity
+from domains.compliance.entities import (
+    CheckResult,
+    CheckStatus,
+    ComplianceViolation,
+    ControlSeverity,
+)
 from utils.dt import utc_now
 
 
@@ -49,9 +54,12 @@ async def execute(
     total_agents = await db["s1_agents"].count_documents(scope_filter or {})
     if total_agents == 0:
         return not_applicable_result(
-            control_id=control_id, framework_id=framework_id,
-            control_name=control_name, category=category,
-            severity=severity, checked_at=now,
+            control_id=control_id,
+            framework_id=framework_id,
+            control_name=control_name,
+            category=category,
+            severity=severity,
+            checked_at=now,
         )
 
     # Build the stale-agent filter
@@ -72,8 +80,7 @@ async def execute(
                 agent_id=agent["s1_agent_id"],
                 agent_hostname=agent.get("hostname", "unknown"),
                 violation_detail=(
-                    f"Agent offline since {last_active_str} "
-                    f"(>{max_offline_days} days)"
+                    f"Agent offline since {last_active_str} (>{max_offline_days} days)"
                 ),
                 remediation=(
                     f"Investigate endpoint {agent.get('hostname', 'unknown')} — "

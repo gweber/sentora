@@ -13,7 +13,12 @@ from typing import Any
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from domains.compliance.checks.base import not_applicable_result
-from domains.compliance.entities import CheckResult, CheckStatus, ComplianceViolation, ControlSeverity
+from domains.compliance.entities import (
+    CheckResult,
+    CheckStatus,
+    ComplianceViolation,
+    ControlSeverity,
+)
 from utils.dt import utc_now
 
 
@@ -68,9 +73,12 @@ async def execute(
     total_agents = await db["s1_agents"].count_documents(scope_filter or {})
     if total_agents == 0:
         return not_applicable_result(
-            control_id=control_id, framework_id=framework_id,
-            control_name=control_name, category=category,
-            severity=severity, checked_at=now,
+            control_id=control_id,
+            framework_id=framework_id,
+            control_name=control_name,
+            category=category,
+            severity=severity,
+            checked_at=now,
         )
 
     # Convert glob-style pattern to regex (simple * → .*)
@@ -93,9 +101,7 @@ async def execute(
                 ComplianceViolation(
                     agent_id=agent_id,
                     agent_hostname=hostname,
-                    violation_detail=(
-                        f"Required application matching '{app_pattern}' not found"
-                    ),
+                    violation_detail=(f"Required application matching '{app_pattern}' not found"),
                     app_name=app_pattern,
                     remediation=f"Install an application matching '{app_pattern}' on {hostname}",
                 )

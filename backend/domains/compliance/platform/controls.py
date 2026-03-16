@@ -217,7 +217,8 @@ async def soc2_cc3_1_risk_assessment(db: AsyncIOMotorDatabase) -> ControlResult:
         summary = "No agents synced — asset inventory not populated"
     elif classified >= agents * 0.5:
         status = ControlStatus.passing
-        summary = f"{classified}/{agents} agents classified ({classified * 100 // agents}% coverage)"
+        pct = classified * 100 // agents
+        summary = f"{classified}/{agents} agents classified ({pct}% coverage)"
     else:
         status = ControlStatus.warning
         summary = f"Only {classified}/{agents} agents classified — coverage below 50%"
@@ -307,7 +308,9 @@ async def iso_a6_people_controls(db: AsyncIOMotorDatabase) -> ControlResult:  # 
     )
 
     status = ControlStatus.passing if total > 0 else ControlStatus.warning
-    summary = f"{total} users, {disabled} disabled, {sso} SSO-provisioned. User disable/enable audited"
+    summary = (
+        f"{total} users, {disabled} disabled, {sso} SSO-provisioned. User disable/enable audited"
+    )
 
     return ControlResult(
         control_id="iso-a6",

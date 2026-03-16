@@ -9,7 +9,6 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 from audit.chain.hasher import (
-    GENESIS_SENTINEL,
     compute_entry_hash,
     compute_export_hash,
 )

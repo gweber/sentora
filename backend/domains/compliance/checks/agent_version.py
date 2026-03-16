@@ -12,7 +12,12 @@ from typing import Any
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from domains.compliance.checks.base import not_applicable_result
-from domains.compliance.entities import CheckResult, CheckStatus, ComplianceViolation, ControlSeverity
+from domains.compliance.entities import (
+    CheckResult,
+    CheckStatus,
+    ComplianceViolation,
+    ControlSeverity,
+)
 from utils.dt import utc_now
 
 
@@ -68,9 +73,12 @@ async def execute(
 
     if total_agents == 0:
         return not_applicable_result(
-            control_id=control_id, framework_id=framework_id,
-            control_name=control_name, category=category,
-            severity=severity, checked_at=now,
+            control_id=control_id,
+            framework_id=framework_id,
+            control_name=control_name,
+            category=category,
+            severity=severity,
+            checked_at=now,
         )
 
     min_version_str: str | None = parameters.get("min_version")
@@ -80,11 +88,13 @@ async def execute(
         pipeline: list[dict[str, Any]] = []
         if scope_filter:
             pipeline.append({"$match": scope_filter})
-        pipeline.extend([
-            {"$group": {"_id": "$agent_version", "count": {"$sum": 1}}},
-            {"$sort": {"count": -1}},
-            {"$limit": 1},
-        ])
+        pipeline.extend(
+            [
+                {"$group": {"_id": "$agent_version", "count": {"$sum": 1}}},
+                {"$sort": {"count": -1}},
+                {"$limit": 1},
+            ]
+        )
         cursor = db["s1_agents"].aggregate(pipeline)
         top = await cursor.to_list(length=1)
         if top and top[0]["_id"]:
@@ -119,8 +129,7 @@ async def execute(
                     agent_id=agent["s1_agent_id"],
                     agent_hostname=agent.get("hostname", "unknown"),
                     violation_detail=(
-                        f"Agent version {agent_version_str} is below "
-                        f"minimum {min_version_str}"
+                        f"Agent version {agent_version_str} is below minimum {min_version_str}"
                     ),
                     remediation=(
                         f"Update SentinelOne agent on {agent.get('hostname', 'unknown')} "

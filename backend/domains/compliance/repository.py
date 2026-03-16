@@ -15,20 +15,16 @@ from __future__ import annotations
 from dataclasses import asdict
 from typing import Any
 
-from bson import ObjectId
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from domains.compliance.entities import (
     CheckResult,
-    CheckStatus,
     ComplianceSchedule,
-    ComplianceViolation,
     ControlConfiguration,
     ControlSeverity,
     CustomControlDefinition,
 )
 from utils.dt import utc_now
-
 
 # ---------------------------------------------------------------------------
 # Framework configuration
@@ -103,9 +99,7 @@ async def get_all_framework_configs(
     Reads from the ``compliance_framework_config`` collection.
     """
     result: dict[str, bool] = {}
-    async for doc in db["compliance_framework_config"].find(
-        {}, {"framework_id": 1, "enabled": 1}
-    ):
+    async for doc in db["compliance_framework_config"].find({}, {"framework_id": 1, "enabled": 1}):
         result[doc["framework_id"]] = doc["enabled"]
     return result
 
@@ -142,9 +136,7 @@ async def get_control_config(
         framework_id=doc["framework_id"],
         enabled=doc.get("enabled", True),
         severity_override=(
-            ControlSeverity(doc["severity_override"])
-            if doc.get("severity_override")
-            else None
+            ControlSeverity(doc["severity_override"]) if doc.get("severity_override") else None
         ),
         parameters_override=doc.get("parameters_override", {}),
         scope_tags_override=doc.get("scope_tags_override"),
@@ -393,17 +385,19 @@ async def get_latest_results(
     if framework_id:
         pipeline.append({"$match": {"framework_id": framework_id}})
 
-    pipeline.extend([
-        {"$sort": {"checked_at": -1}},
-        {
-            "$group": {
-                "_id": "$control_id",
-                "doc": {"$first": "$$ROOT"},
-            }
-        },
-        {"$replaceRoot": {"newRoot": "$doc"}},
-        {"$sort": {"framework_id": 1, "category": 1, "control_id": 1}},
-    ])
+    pipeline.extend(
+        [
+            {"$sort": {"checked_at": -1}},
+            {
+                "$group": {
+                    "_id": "$control_id",
+                    "doc": {"$first": "$$ROOT"},
+                }
+            },
+            {"$replaceRoot": {"newRoot": "$doc"}},
+            {"$sort": {"framework_id": 1, "category": 1, "control_id": 1}},
+        ]
+    )
 
     results: list[dict[str, Any]] = []
     async for doc in db["compliance_results"].aggregate(pipeline):
@@ -481,30 +475,34 @@ async def get_all_current_violations(
     if framework_id:
         pipeline.append({"$match": {"framework_id": framework_id}})
 
-    pipeline.extend([
-        {"$sort": {"checked_at": -1}},
-        {"$group": {"_id": "$control_id", "doc": {"$first": "$$ROOT"}}},
-        {"$replaceRoot": {"newRoot": "$doc"}},
-        {"$match": {"status": {"$in": ["fail", "warning"]}}},
-    ])
+    pipeline.extend(
+        [
+            {"$sort": {"checked_at": -1}},
+            {"$group": {"_id": "$control_id", "doc": {"$first": "$$ROOT"}}},
+            {"$replaceRoot": {"newRoot": "$doc"}},
+            {"$match": {"status": {"$in": ["fail", "warning"]}}},
+        ]
+    )
 
     if severity:
         pipeline.append({"$match": {"severity": severity}})
 
     # Unwind violations for pagination
-    pipeline.extend([
-        {"$unwind": "$violations"},
-        {
-            "$project": {
-                "control_id": 1,
-                "framework_id": 1,
-                "control_name": 1,
-                "severity": 1,
-                "checked_at": 1,
-                "violation": "$violations",
-            }
-        },
-    ])
+    pipeline.extend(
+        [
+            {"$unwind": "$violations"},
+            {
+                "$project": {
+                    "control_id": 1,
+                    "framework_id": 1,
+                    "control_name": 1,
+                    "severity": 1,
+                    "checked_at": 1,
+                    "violation": "$violations",
+                }
+            },
+        ]
+    )
 
     # Count total
     count_pipeline = pipeline + [{"$count": "total"}]
@@ -513,28 +511,32 @@ async def get_all_current_violations(
 
     # Paginate
     skip = (page - 1) * page_size
-    pipeline.extend([
-        {"$sort": {"severity": 1, "checked_at": -1}},
-        {"$skip": skip},
-        {"$limit": page_size},
-    ])
+    pipeline.extend(
+        [
+            {"$sort": {"severity": 1, "checked_at": -1}},
+            {"$skip": skip},
+            {"$limit": page_size},
+        ]
+    )
 
     violations: list[dict[str, Any]] = []
     async for doc in db["compliance_results"].aggregate(pipeline):
         v = doc["violation"]
-        violations.append({
-            "control_id": doc["control_id"],
-            "framework_id": doc["framework_id"],
-            "control_name": doc["control_name"],
-            "severity": doc["severity"],
-            "checked_at": doc["checked_at"].isoformat() if doc.get("checked_at") else "",
-            "agent_id": v.get("agent_id", ""),
-            "agent_hostname": v.get("agent_hostname", ""),
-            "violation_detail": v.get("violation_detail", ""),
-            "app_name": v.get("app_name"),
-            "app_version": v.get("app_version"),
-            "remediation": v.get("remediation", ""),
-        })
+        violations.append(
+            {
+                "control_id": doc["control_id"],
+                "framework_id": doc["framework_id"],
+                "control_name": doc["control_name"],
+                "severity": doc["severity"],
+                "checked_at": doc["checked_at"].isoformat() if doc.get("checked_at") else "",
+                "agent_id": v.get("agent_id", ""),
+                "agent_hostname": v.get("agent_hostname", ""),
+                "violation_detail": v.get("violation_detail", ""),
+                "app_name": v.get("app_name"),
+                "app_version": v.get("app_version"),
+                "remediation": v.get("remediation", ""),
+            }
+        )
 
     return violations, total
 
