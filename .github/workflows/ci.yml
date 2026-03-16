@@ -350,7 +350,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=frontend
 
       - name: Trivy — container vulnerability scan (backend)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@0.35.0
         with:
           image-ref: sentora-backend:ci
           format: table
@@ -359,7 +359,7 @@ jobs:
           ignore-unfixed: true
 
       - name: Trivy — container vulnerability scan (frontend)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@0.35.0
         with:
           image-ref: sentora-frontend:ci
           format: table
