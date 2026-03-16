@@ -1,0 +1,89 @@
+name: Bug Report
+description: Report a defect or unexpected behavior in Sentora.
+title: "[Bug]: "
+labels:
+  - bug
+  - needs-triage
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for taking the time to report a bug. Please fill in as much detail as possible — incomplete reports are harder to reproduce and fix.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: A clear and concise description of what the bug is. Include what you expected to happen and what actually happened.
+      placeholder: |
+        Expected: After clicking Sync Now, the agent count on the Dashboard updates to reflect the current number of agents in SentinelOne.
+        Actual: The Dashboard shows 0 agents after sync completes, even though the sync progress bar reached 100%.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: Provide a numbered list of steps that reliably reproduce the problem.
+      placeholder: |
+        1. Open the Sentora UI at http://localhost:3000
+        2. Click "Sync Now" in the top navigation
+        3. Wait for the sync progress bar to reach 100%
+        4. Click "Close"
+        5. Observe the Dashboard — agent count shows 0
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      description: Which part of Sentora is affected?
+      options:
+        - Sync
+        - Fingerprint Editor
+        - Classification
+        - Taxonomy / Catalog
+        - Dashboard
+        - API
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: |
+        Describe your environment. Include:
+        - Sentora version or commit SHA
+        - Deployment method (Docker Compose / dev mode)
+        - Host OS and Docker version
+        - Browser and version (if UI issue)
+        - Approximate number of agents in your S1 environment
+      placeholder: |
+        - Sentora: v1.2.0 (or git commit abc1234)
+        - Deployment: Docker Compose
+        - Host OS: Ubuntu 22.04
+        - Docker: 24.0.7
+        - Browser: Chrome 120 (if applicable)
+        - S1 agent count: ~3,000
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant Logs
+      description: |
+        Paste any relevant log output here. To collect backend logs:
+        ```
+        docker compose logs backend --tail 100
+        ```
+        For the full sync log, check the Sync History view in the UI.
+      render: shell
+    validations:
+      required: false

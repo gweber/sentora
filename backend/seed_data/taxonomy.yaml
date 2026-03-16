@@ -1,0 +1,238 @@
+scada_hmi:
+  display: "SCADA / HMI / Process Control"
+  entries:
+    - name: "Siemens WinCC"
+      patterns: ["siemens*wincc", "wincc*"]
+      industry: [manufacturing, process_control]
+    - name: "Siemens TIA Portal"
+      patterns: ["siemens*tia*portal", "tia portal*", "totally integrated automation*"]
+      industry: [manufacturing, automation]
+    - name: "Siemens STEP 7"
+      patterns: ["siemens*step*7", "step 7*", "simatic*step*"]
+      industry: [manufacturing, plc_programming]
+    - name: "Rockwell FactoryTalk"
+      patterns: ["factorytalk*", "rockwell*factorytalk"]
+      industry: [manufacturing, process_control]
+    - name: "Rockwell RSLogix / Studio 5000"
+      patterns: ["rslogix*", "rockwell*rslogix", "studio 5000*"]
+      industry: [manufacturing, plc_programming]
+    - name: "Schneider Citect"
+      patterns: ["citect*", "schneider*citect"]
+      industry: [manufacturing, process_control]
+    - name: "Schneider EcoStruxure"
+      patterns: ["ecostruxure*", "schneider*ecostruxure"]
+      industry: [manufacturing, building_automation]
+    - name: "Wonderware / AVEVA InTouch"
+      patterns: ["wonderware*intouch", "intouch*", "aveva*intouch"]
+      industry: [manufacturing, process_control]
+    - name: "AVEVA Edge (InduSoft)"
+      patterns: ["aveva*edge", "indusoft*"]
+      industry: [manufacturing, edge_computing]
+    - name: "Ignition (Inductive Automation)"
+      patterns: ["ignition*inductive*", "inductive automation*"]
+      industry: [manufacturing, scada]
+    - name: "GE iFIX"
+      patterns: ["ge*ifix", "ifix*", "proficy*ifix"]
+      industry: [manufacturing, process_control]
+    - name: "GE Cimplicity"
+      patterns: ["cimplicity*", "ge*cimplicity", "proficy*cimplicity"]
+      industry: [manufacturing, process_control]
+    - name: "COPA-DATA zenon"
+      patterns: ["zenon*", "copa*data*zenon"]
+      industry: [manufacturing, energy, pharma]
+    - name: "Mitsubishi MELSOFT / GX Works"
+      patterns: ["melsoft*", "gx works*", "mitsubishi*melsoft"]
+      industry: [manufacturing, plc_programming]
+    - name: "ABB Ability Symphony Plus"
+      patterns: ["symphony*plus*", "abb*symphony"]
+      industry: [manufacturing, process_control]
+    - name: "Beckhoff TwinCAT"
+      patterns: ["twincat*", "beckhoff*twincat"]
+      industry: [manufacturing, plc_programming, motion_control]
+    - name: "Phoenix Contact PLCnext"
+      patterns: ["plcnext*", "phoenix*contact*plcnext"]
+      industry: [manufacturing, plc_programming]
+    - name: "Emerson DeltaV"
+      patterns: ["deltav*", "emerson*deltav"]
+      industry: [manufacturing, process_control]
+
+labeling_barcode:
+  display: "Labeling / Barcode / Printing"
+  entries:
+    - name: "BarTender (Seagull Scientific)"
+      patterns: ["bartender*", "seagull*bartender"]
+      industry: [manufacturing, logistics, pharma]
+    - name: "NiceLabel (Loftware)"
+      patterns: ["nicelabel*", "loftware*nicelabel"]
+      industry: [manufacturing, logistics]
+    - name: "Loftware Spectrum"
+      patterns: ["loftware*spectrum*", "loftware*"]
+      industry: [manufacturing, logistics]
+    - name: "ZebraDesigner"
+      patterns: ["zebradesigner*", "zebra*designer"]
+      industry: [manufacturing, logistics]
+    - name: "Codesoft (TEKLYNX)"
+      patterns: ["codesoft*", "teklynx*codesoft"]
+      industry: [manufacturing, logistics]
+    - name: "TEKLYNX LabelView"
+      patterns: ["labelview*", "teklynx*labelview"]
+      industry: [manufacturing, logistics]
+
+water_treatment_environmental:
+  display: "Water Treatment / Environmental Monitoring"
+  entries:
+    - name: "Hach WIMS"
+      patterns: ["hach*wims", "wims*"]
+      industry: [water_treatment]
+    - name: "Hach Claros"
+      patterns: ["hach*claros", "claros*"]
+      industry: [water_treatment]
+    - name: "Endress+Hauser FieldCare"
+      patterns: ["fieldcare*", "endress*hauser*fieldcare"]
+      industry: [water_treatment, process_control]
+    - name: "Prominent Dulcometer"
+      patterns: ["dulcometer*", "prominent*dulcometer"]
+      industry: [water_treatment]
+    - name: "Siemens SIWA"
+      patterns: ["siemens*siwa", "siwa*"]
+      industry: [water_treatment]
+    - name: "Bentley WaterGEMS"
+      patterns: ["watergems*", "bentley*watergems"]
+      industry: [water_treatment, infrastructure]
+    - name: "Aqua Designer"
+      patterns: ["aqua*designer*"]
+      industry: [water_treatment]
+    - name: "OPC Server (generic)"
+      patterns: ["opc*server*", "kepware*", "matrikon*opc", "softing*opc"]
+      industry: [water_treatment, manufacturing, process_control]
+
+mes_production:
+  display: "MES / Production Planning"
+  entries:
+    - name: "SAP ME/MII"
+      patterns: ["sap*manufacturing*execution", "sap*me*", "sap*mii*"]
+      industry: [manufacturing]
+    - name: "MPDV Hydra"
+      patterns: ["mpdv*hydra", "hydra*mes"]
+      industry: [manufacturing]
+    - name: "Forcam Force"
+      patterns: ["forcam*force*", "forcam*"]
+      industry: [manufacturing]
+    - name: "Cronetwork"
+      patterns: ["cronetwork*", "industrie*informatik*cronetwork"]
+      industry: [manufacturing]
+    - name: "FASTSUITE (CENIT)"
+      patterns: ["fastsuite*", "cenit*fastsuite"]
+      industry: [manufacturing, robotics]
+    - name: "Aegis FactoryLogix"
+      patterns: ["factorylogix*", "aegis*factorylogix"]
+      industry: [manufacturing, electronics]
+    - name: "GE Proficy"
+      patterns: ["proficy*plant*", "ge*proficy*plant"]
+      industry: [manufacturing]
+    - name: "AVEVA MES"
+      patterns: ["aveva*mes*", "wonderware*mes"]
+      industry: [manufacturing]
+    - name: "Siemens Opcenter"
+      patterns: ["opcenter*", "siemens*opcenter"]
+      industry: [manufacturing]
+
+cad_cam_engineering:
+  display: "CAD / CAM / Engineering"
+  entries:
+    - name: "AutoCAD"
+      patterns: ["autocad*", "autodesk*autocad"]
+      industry: [engineering]
+    - name: "SolidWorks"
+      patterns: ["solidworks*", "dassault*solidworks"]
+      industry: [engineering, manufacturing]
+    - name: "Autodesk Inventor"
+      patterns: ["autodesk*inventor*", "inventor professional*"]
+      industry: [engineering, manufacturing]
+    - name: "CATIA"
+      patterns: ["catia*", "dassault*catia"]
+      industry: [engineering, aerospace]
+    - name: "Siemens NX"
+      patterns: ["siemens*nx*", "unigraphics*"]
+      industry: [engineering, manufacturing]
+    - name: "Mastercam"
+      patterns: ["mastercam*"]
+      industry: [manufacturing, cnc]
+    - name: "EPLAN"
+      patterns: ["eplan*"]
+      industry: [engineering, electrical]
+    - name: "Altium Designer"
+      patterns: ["altium*designer*"]
+      industry: [engineering, electronics]
+    - name: "KiCad"
+      patterns: ["kicad*"]
+      industry: [engineering, electronics]
+    - name: "Fusion 360"
+      patterns: ["autodesk*fusion*", "fusion 360*"]
+      industry: [engineering, manufacturing]
+    - name: "Creo (PTC)"
+      patterns: ["creo*", "ptc*creo", "pro/engineer*"]
+      industry: [engineering, manufacturing]
+
+quality_management:
+  display: "Quality Assurance / QMS"
+  entries:
+    - name: "Babtec"
+      patterns: ["babtec*"]
+      industry: [manufacturing, quality]
+    - name: "CAQ AG"
+      patterns: ["caq*"]
+      industry: [manufacturing, quality]
+    - name: "IBS QMS"
+      patterns: ["ibs*qms*"]
+      industry: [manufacturing, quality]
+    - name: "Minitab"
+      patterns: ["minitab*"]
+      industry: [manufacturing, quality, statistics]
+    - name: "InfinityQS"
+      patterns: ["infinityqs*", "infinity*qs"]
+      industry: [manufacturing, quality]
+    - name: "ZEISS CALYPSO"
+      patterns: ["calypso*", "zeiss*calypso"]
+      industry: [manufacturing, quality, metrology]
+    - name: "Hexagon PC-DMIS"
+      patterns: ["pc-dmis*", "pcdmis*", "hexagon*pc-dmis"]
+      industry: [manufacturing, quality, metrology]
+    - name: "Renishaw MODUS"
+      patterns: ["modus*", "renishaw*modus"]
+      industry: [manufacturing, quality, metrology]
+
+erp_business:
+  display: "ERP / Business Systems"
+  entries:
+    - name: "SAP GUI"
+      patterns: ["sap*gui*", "sapgui*", "sap*logon*"]
+      industry: [enterprise]
+    - name: "SAP Business One"
+      patterns: ["sap*business*one*"]
+      industry: [enterprise, smb]
+    - name: "Microsoft Dynamics"
+      patterns: ["dynamics*365*", "microsoft*dynamics*", "dynamics*nav*", "dynamics*ax*"]
+      industry: [enterprise]
+    - name: "Sage"
+      patterns: ["sage*100*", "sage*300*", "sage*x3*"]
+      industry: [enterprise]
+    - name: "Infor"
+      patterns: ["infor*ln*", "infor*m3*", "infor*cloudsuit*"]
+      industry: [enterprise, manufacturing]
+
+remote_access_industrial:
+  display: "Remote Access / Industrial Networking"
+  entries:
+    - name: "Siemens SINEMA"
+      patterns: ["sinema*", "siemens*sinema"]
+      industry: [manufacturing, networking]
+    - name: "HMS Anybus"
+      patterns: ["anybus*", "hms*anybus"]
+      industry: [manufacturing, networking]
+    - name: "MOXA MXstudio"
+      patterns: ["mxstudio*", "moxa*mxstudio"]
+      industry: [manufacturing, networking]
+    - name: "Kepware KEPServerEX"
+      patterns: ["kepserverex*", "kepware*"]
+      industry: [manufacturing, connectivity]

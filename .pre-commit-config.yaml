@@ -1,0 +1,66 @@
+repos:
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        args:
+          - --exclude-files=\.env\.example$
+          - --exclude-files=package-lock\.json$
+          - --exclude-files=\.pyc$
+          - --exclude-files=coverage/
+          - --exclude-files=dist/
+          - --exclude-files=__tests__/
+          - --exclude-files=backend/tests/
+          - --exclude-files=frontend/e2e/
+          - --exclude-files=docs/
+          - --exclude-secrets=test_token_placeholder
+          - --exclude-secrets=build_placeholder
+          - --exclude-secrets=ci-test-secret-key
+          - --exclude-secrets=docker-build-test-key
+          - --exclude-secrets=e2e-test-secret-key
+          - --exclude-secrets=e2e-placeholder-token
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.6
+    hooks:
+      - id: ruff
+        args: [--fix]
+        files: ^backend/
+      - id: ruff-format
+        files: ^backend/
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-added-large-files
+        args: [--maxkb=500]
+      - id: check-merge-conflict
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: no-commit-to-branch
+        args: [--branch, main]
+
+  - repo: local
+    hooks:
+      - id: mypy-backend
+        name: mypy backend
+        entry: mypy backend/ --ignore-missing-imports
+        language: system
+        pass_filenames: false
+        always_run: true
+        types: [python]
+
+      - id: vue-tsc-build
+        name: vue-tsc build check
+        entry: bash -c 'cd frontend && npx vue-tsc -b 2>&1 | grep "error TS" && exit 1 || exit 0'
+        language: system
+        pass_filenames: false
+        always_run: true
+
+      - id: hasher-sync
+        name: audit chain hasher identity
+        entry: diff backend/audit/chain/hasher.py tools/sentora_verify/hasher.py
+        language: system
+        pass_filenames: false
+        always_run: true

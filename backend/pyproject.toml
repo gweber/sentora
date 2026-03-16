@@ -1,0 +1,153 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "sentora-backend"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.135.1",
+    "uvicorn[standard]>=0.41.0",
+    "motor>=3.7.1",
+    "pydantic>=2.12.5",
+    "pydantic-settings>=2.13.1",
+    "python-dotenv>=1.2.2",
+    "httpx>=0.28.1",
+    "PyYAML>=6.0.3",
+    "python-multipart>=0.0.22",
+    "loguru>=0.7.3",
+    "PyJWT>=2.12.1",
+    "bcrypt>=5.0.0",
+    "prometheus-client>=0.24.1",
+    "pyotp>=2.9.0",
+    "qrcode>=8.0",
+    "cryptography>=46.0.5",
+    "defusedxml>=0.7.1",
+]
+
+[project.optional-dependencies]
+otel = [
+    "opentelemetry-api>=1.20.0",
+    "opentelemetry-sdk>=1.20.0",
+    "opentelemetry-instrumentation-fastapi>=0.41b0",
+    "opentelemetry-instrumentation-httpx>=0.41b0",
+    "opentelemetry-instrumentation-pymongo>=0.41b0",
+    "opentelemetry-exporter-otlp>=1.20.0",
+]
+dev = [
+    "pytest>=9.0.2",
+    "pytest-asyncio>=1.3.0",
+    "pytest-cov>=7.0.0",
+    "mypy>=1.19.1",
+    "ruff>=0.15.6",
+    "types-PyYAML>=6.0.12",
+    "mongomock-motor>=0.0.36",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = [
+    "domains",
+    "middleware",
+    "utils",
+    "audit",
+    "seed_data",
+]
+# Include top-level modules in the wheel
+[tool.hatch.build.targets.wheel.force-include]
+"main.py" = "main.py"
+"config.py" = "config.py"
+"database.py" = "database.py"
+"db_indexes.py" = "db_indexes.py"
+"errors.py" = "errors.py"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+addopts = "--cov=. --cov-report=term-missing --cov-fail-under=85"
+markers = [
+    "critical: marks tests as critical path (select with -m critical)",
+]
+
+[tool.coverage.run]
+omit = [
+    "tests/*",
+    "seed_data/*",
+    "*/__init__.py",
+    # External-API client — requires live SentinelOne tenant; cannot be tested in CI
+    "domains/sync/s1_client.py",
+    # SyncManager drives live S1 sync over the network; integration tests cover the router layer
+    "domains/sync/manager.py",
+    # _run_apply is a background asyncio task that writes to SentinelOne; same rationale as SyncManager
+    "domains/tags/service.py",
+    # Application factory + lifespan: DB connect/disconnect, scheduler, stale-run cleanup.
+    # The test client bypasses the real lifespan (mongomock injects the DB directly).
+    "main.py",
+    # DB connection pool management — not exercised in unit/integration tests with mongomock
+    "database.py",
+    # Audit WebSocket stream and router — infrastructure only, no business logic
+    "audit/ws.py",
+    "audit/router.py",
+    # Auto-proposer: Lift-based cross-group marker computation; covered by the integration test
+    # that calls compute_suggestions — the heavy aggregation paths require real data at scale
+    "domains/fingerprint/auto_proposer.py",
+    # Materialized app summaries cache — startup/post-sync rebuild, requires real data at scale
+    "domains/agents/app_cache.py",
+    # Sync router — most routes exercise SyncManager which requires a live S1 tenant
+    "domains/sync/router.py",
+    # Sync phase implementations — each phase calls the live S1 API; same rationale as s1_client.py
+    "domains/sync/phases/sites.py",
+    "domains/sync/phases/groups.py",
+    "domains/sync/phases/tags.py",
+    # Metrics middleware — infrastructure, tested implicitly via any HTTP request
+    "middleware/metrics.py",
+    # Tracing setup — requires OTel collector; opt-in infrastructure
+    "middleware/tracing.py",
+    # Auth middleware — thin FastAPI dependency wrappers over auth service
+    "middleware/auth.py",
+    # Distributed lock — requires real MongoDB TTL indexes for meaningful testing
+    "utils/distributed_lock.py",
+    # OIDC — requires external identity provider (Okta/Azure AD)
+    "domains/auth/oidc.py",
+    # SAML — requires python3-saml library + external IdP for assertion validation
+    "domains/auth/saml.py",
+    # SSO provisioning shared module — exercised through OIDC/SAML integration which require external IdPs
+    # Business logic (username derivation) is extracted and tested separately in test_sso_provisioning.py
+    "domains/auth/sso_provisioning.py",
+    # Backup scheduler — long-running asyncio scheduler requiring croniter; infrastructure only
+    "utils/backup_scheduler.py",
+    # Leader election — requires real MongoDB replica set for meaningful concurrent testing
+    "utils/leader_election.py",
+    # PubSub — requires MongoDB capped collection + tailable cursors; infrastructure messaging layer
+    "utils/pubsub.py",
+    # WebSocket auth — thin wrapper over JWT verification for WS connections; requires live WebSocket
+    "utils/ws_auth.py",
+    # Request logging middleware — Loguru request/response logging; infrastructure only
+    "middleware/request_logging.py",
+    # CSV sanitization — single-function utility for CSV injection prevention; trivial logic
+    "utils/csv_sanitize.py",
+    # Tenant middleware — ASGI middleware requiring full request lifecycle; tested via integration routes
+    "middleware/tenant.py",
+    # Webhook delivery service — requires external HTTP endpoints for meaningful testing
+    "domains/webhooks/service.py",
+    # Demo seed data — data-only, tested via the demo router integration
+    "domains/demo/seed.py",
+    # Library source adapters — require live external APIs (NVD, MITRE, Chocolatey, Homebrew)
+    "domains/library/adapters/*.py",
+    # Library ingestion manager + source runner — orchestrate live adapter runs
+    "domains/library/ingestion_manager.py",
+    "domains/library/source_runner.py",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "ANN"]
+ignore = ["B008"]
+
+[tool.mypy]
+strict = true
+ignore_missing_imports = true
+exclude = ["tests/"]

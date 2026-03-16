@@ -1,0 +1,171 @@
+/* ── Google Fonts ── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300..700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@import "tailwindcss";
+
+/* ── Light theme (default) ── */
+:root {
+  --brand-primary: #6366f1;
+  --brand-primary-rgb: 99, 102, 241;
+  --brand-primary-light: #818cf8;
+  --brand-primary-dark: #4f46e5;
+
+  --surface: #ffffff;
+  --surface-alt: #f9fafb;
+  --surface-hover: #f3f4f6;
+  --surface-inset: #f1f5f9;
+  --border: #e5e7eb;
+  --border-light: #f3f4f6;
+  --text-1: #111827;
+  --text-2: #4b5563;
+  --text-3: #94a3b8;
+  --heading: #1f2937;
+  --input-bg: #f9fafb;
+  --input-border: #e5e7eb;
+  --input-focus: #818cf8;
+  --badge-bg: #f3f4f6;
+  --badge-text: #6b7280;
+  --error-bg: #fef2f2;
+  --error-border: #fecaca;
+  --error-text: #b91c1c;
+  --success-bg: #f0fdf4;
+  --success-border: #bbf7d0;
+  --success-text: #15803d;
+  --accent-bg: rgba(139, 92, 246, 0.1);
+  --accent-text: #7c3aed;
+  --accent-muted: rgba(139, 92, 246, 0.15);
+  --info-bg: rgba(99, 102, 241, 0.08);
+  --info-text: #4f46e5;
+  --warn-bg: #fffbeb;
+  --warn-border: #fde68a;
+  --warn-text: #b45309;
+  --status-ok-bg: rgba(16, 185, 129, 0.08);
+  --status-ok-text: #059669;
+  --status-warn-bg: rgba(245, 158, 11, 0.08);
+  --status-warn-text: #d97706;
+  --status-error-bg: rgba(239, 68, 68, 0.08);
+  --status-error-text: #dc2626;
+  --status-neutral-bg: var(--badge-bg);
+  --status-neutral-text: var(--badge-text);
+  --scope-account-bg: rgba(99, 102, 241, 0.08);
+  --scope-account-text: #6366f1;
+  --scope-site-bg: rgba(20, 184, 166, 0.08);
+  --scope-site-text: #0d9488;
+  --scope-group-bg: rgba(14, 165, 233, 0.08);
+  --scope-group-text: #0284c7;
+}
+
+/* ── Dark theme ── */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --surface: #111827;
+    --surface-alt: #0f172a;
+    --surface-hover: #1e293b;
+    --surface-inset: #1e293b;
+    --border: #374151;
+    --border-light: #1f2937;
+    --text-1: #f1f5f9;
+    --text-2: #94a3b8;
+    --text-3: #64748b;
+    --heading: #e2e8f0;
+    --input-bg: #1e293b;
+    --input-border: #374151;
+    --input-focus: #818cf8;
+    --badge-bg: #1e293b;
+    --badge-text: #94a3b8;
+    --error-bg: #450a0a;
+    --error-border: #7f1d1d;
+    --error-text: #fca5a5;
+    --success-bg: #052e16;
+    --success-border: #166534;
+    --success-text: #86efac;
+    --accent-bg: rgba(139, 92, 246, 0.12);
+    --accent-text: #a78bfa;
+    --accent-muted: rgba(139, 92, 246, 0.2);
+    --info-bg: rgba(99, 102, 241, 0.12);
+    --info-text: #818cf8;
+    --warn-bg: rgba(245, 158, 11, 0.1);
+    --warn-border: rgba(245, 158, 11, 0.25);
+    --warn-text: #fbbf24;
+    --status-ok-bg: rgba(16, 185, 129, 0.12);
+    --status-ok-text: #34d399;
+    --status-warn-bg: rgba(245, 158, 11, 0.12);
+    --status-warn-text: #fbbf24;
+    --status-error-bg: rgba(239, 68, 68, 0.12);
+    --status-error-text: #f87171;
+    --status-neutral-bg: var(--badge-bg);
+    --status-neutral-text: var(--badge-text);
+    --scope-account-bg: rgba(99, 102, 241, 0.12);
+    --scope-account-text: #a5b4fc;
+    --scope-site-bg: rgba(20, 184, 166, 0.12);
+    --scope-site-text: #5eead4;
+    --scope-group-bg: rgba(14, 165, 233, 0.12);
+    --scope-group-text: #7dd3fc;
+  }
+}
+
+/* ── Design tokens ── */
+@theme {
+  --font-family-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-family-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+/* ── Base ── */
+html { font-size: 14px; }
+
+body {
+  font-family: var(--font-family-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: var(--surface-alt);
+  color: var(--text-1);
+}
+
+/* ── Scrollbars ── */
+* { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-3); }
+
+/* ── Selection ── */
+::selection { background: rgba(var(--brand-primary-rgb), 0.2); }
+
+/* ── Focus ring ── */
+*:focus-visible { outline: 2px solid var(--brand-primary); outline-offset: 2px; }
+
+/* ── Shimmer skeleton ── */
+@keyframes shimmer {
+  from { background-position: -600px 0; }
+  to   { background-position:  600px 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, var(--surface-inset) 25%, var(--border) 50%, var(--surface-inset) 75%);
+  background-size: 1200px 100%;
+  animation: shimmer 1.6s infinite linear;
+  border-radius: 6px;
+}
+
+/* ── Pulse dot ── */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.3; }
+}
+.pulse-dot { animation: pulse-dot 2s ease-in-out infinite; }
+
+/* ── Theme-aware hover ── */
+.hover-surface:hover { background: var(--surface-hover); }
+.text-muted { color: var(--text-3); }
+.border-muted { border-color: var(--border); }
+
+/* ── Theme-aware neutral badge (replaces hardcoded bg-gray-100 text-gray-500) ── */
+.badge-neutral {
+  background: var(--surface-hover);
+  color: var(--text-3);
+  border-color: var(--border);
+}
+.badge-neutral-muted {
+  background: var(--surface-alt);
+  color: var(--text-3);
+  border-color: var(--border-light);
+}
