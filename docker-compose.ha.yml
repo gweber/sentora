@@ -1,0 +1,124 @@
+# Sentora — High-Availability MongoDB Override
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.ha.yml up -d
+#
+# This override replaces the single-node MongoDB with a 3-node replica set (rs0).
+# The backend connects via the replica set connection string automatically.
+#
+# First-time setup: wait ~15s for mongo-rs-init to configure the replica set,
+# then restart the backend if it started before the replica set was ready:
+#   docker compose -f docker-compose.yml -f docker-compose.ha.yml restart backend
+
+services:
+
+  # Override: disable the default single-node mongo
+  mongo:
+    profiles: [disabled]
+
+  # ── Replica Set Node 1 (Primary candidate) ────────────────────────────────
+  mongo1:
+    image: mongo:7
+    restart: unless-stopped
+    command: ["--replSet", "rs0", "--bind_ip_all"]
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo1_data:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: sentora
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-sentora_dev_password}
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # ── Replica Set Node 2 ────────────────────────────────────────────────────
+  mongo2:
+    image: mongo:7
+    restart: unless-stopped
+    command: ["--replSet", "rs0", "--bind_ip_all"]
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongo2_data:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: sentora
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-sentora_dev_password}
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # ── Replica Set Node 3 ────────────────────────────────────────────────────
+  mongo3:
+    image: mongo:7
+    restart: unless-stopped
+    command: ["--replSet", "rs0", "--bind_ip_all"]
+    ports:
+      - "27019:27017"
+    volumes:
+      - mongo3_data:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: sentora
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-sentora_dev_password}
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # ── Replica Set Initializer (runs once) ────────────────────────────────────
+  mongo-rs-init:
+    image: mongo:7
+    depends_on:
+      mongo1:
+        condition: service_healthy
+      mongo2:
+        condition: service_healthy
+      mongo3:
+        condition: service_healthy
+    restart: "no"
+    entrypoint: >
+      mongosh --host mongo1:27017 --eval '
+        rs.initiate({
+          _id: "rs0",
+          members: [
+            { _id: 0, host: "mongo1:27017", priority: 2 },
+            { _id: 1, host: "mongo2:27017", priority: 1 },
+            { _id: 2, host: "mongo3:27017", priority: 1 }
+          ]
+        });
+        // Wait for primary election
+        while (!rs.isMaster().ismaster) { sleep(1000); }
+        print("Replica set rs0 initialized successfully");
+      '
+
+  # Override: backend connects to replica set
+  backend:
+    depends_on:
+      mongo1:
+        condition: service_healthy
+      mongo2:
+        condition: service_healthy
+      mongo3:
+        condition: service_healthy
+    environment:
+      MONGO_URI: mongodb://sentora:${MONGO_PASSWORD:-sentora_dev_password}@mongo1:27017,mongo2:27017,mongo3:27017/?replicaSet=rs0&authSource=admin
+      MONGO_DB: ${MONGO_DB:-sentora}
+      APP_ENV: ${APP_ENV:-production}
+      MONGO_READ_PREFERENCE: ${MONGO_READ_PREFERENCE:-primaryPreferred}
+      MONGO_WRITE_CONCERN_W: ${MONGO_WRITE_CONCERN_W:-majority}
+
+volumes:
+  mongo1_data:
+    driver: local
+  mongo2_data:
+    driver: local
+  mongo3_data:
+    driver: local

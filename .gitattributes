@@ -1,0 +1,27 @@
+# Auto-detect text files and normalise line endings to LF on commit.
+* text=auto
+
+# Explicitly declare text files to always normalise.
+*.py    text diff=python
+*.ts    text
+*.vue   text
+*.js    text
+*.json  text
+*.md    text
+*.yml   text
+*.yaml  text
+*.toml  text
+*.cfg   text
+*.txt   text
+*.html  text
+*.css   text
+*.sh    text eol=lf
+
+# Binary files — do not diff or normalise.
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.woff  binary
+*.woff2 binary

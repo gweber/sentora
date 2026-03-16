@@ -1,0 +1,63 @@
+name: Feature Request
+description: Propose a new feature or enhancement for Sentora.
+title: "[Feature]: "
+labels:
+  - enhancement
+  - needs-triage
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for suggesting an improvement to Sentora. Clear feature requests help the maintainers understand the problem and evaluate the proposal. Please complete all required sections.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: |
+        Describe the problem or limitation you are experiencing. Focus on the "what" and "why", not the solution.
+        A good problem statement starts with "Currently..." or "When I try to...".
+      placeholder: |
+        Currently, when I want to share classification results with my security team, I have to manually take screenshots of the Dashboard or copy data out of the UI row by row. There is no way to export a structured report without using the raw API.
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: |
+        Describe the feature or change you would like to see. Include any relevant details about how it should work from a user perspective.
+      placeholder: |
+        Add a "Generate Report" button to the Dashboard and Anomalies views that produces a PDF or Excel export. The report should include: group-level classification summary, per-agent verdict table, and a timestamp of the data snapshot used.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      description: Which area of the product does this feature relate to?
+      options:
+        - Sync
+        - Fingerprint Editor
+        - Classification
+        - Taxonomy / Catalog
+        - Dashboard
+        - API
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: |
+        Have you considered any workarounds or alternative approaches? If so, describe them and explain why you think the proposed solution is better.
+      placeholder: |
+        I considered using the existing CSV export via the API endpoint, but it requires API key setup and scripting knowledge that is beyond most end users. A one-click export from the UI would be more accessible.
+    validations:
+      required: false
