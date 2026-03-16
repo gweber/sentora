@@ -113,7 +113,7 @@ class TestRoleEscalation:
         from domains.auth.service import get_password_hash
 
         # Seed the testadmin user so the endpoint can find them
-        await test_db["users"].insert_one(
+        await test_db["users"].insert_one(  # type: ignore[index]
             {
                 "username": "testadmin",
                 "email": "testadmin@test.com",
@@ -144,7 +144,7 @@ class TestRoleEscalation:
         from domains.auth.service import get_password_hash
 
         # Seed user directly as viewer to avoid first-user auto-admin
-        await test_db["users"].insert_one(
+        await test_db["users"].insert_one(  # type: ignore[index]
             {
                 "username": "role_check_user",
                 "email": "role_check@test.com",
@@ -161,7 +161,7 @@ class TestRoleEscalation:
             headers=admin_headers,
         )
         # Verify role is still viewer
-        doc = await test_db["users"].find_one({"username": "role_check_user"})
+        doc = await test_db["users"].find_one({"username": "role_check_user"})  # type: ignore[index]
         assert doc["role"] == "viewer"
 
 
@@ -202,7 +202,7 @@ class TestSuperAdminProtection:
         # Create a super_admin user in the DB
         from domains.auth.service import get_password_hash
 
-        await test_db["users"].insert_one(
+        await test_db["users"].insert_one(  # type: ignore[index]
             {
                 "username": "protected_sa",
                 "email": "sa@test.com",
@@ -228,7 +228,7 @@ class TestSuperAdminProtection:
         """super_admin can delete another super_admin."""
         from domains.auth.service import get_password_hash
 
-        await test_db["users"].insert_one(
+        await test_db["users"].insert_one(  # type: ignore[index]
             {
                 "username": "deletable_sa",
                 "email": "deletable_sa@test.com",

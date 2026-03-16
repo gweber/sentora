@@ -102,6 +102,7 @@ async def enforcement_seeded(seeded_db: AsyncIOMotorDatabase) -> AsyncIOMotorDat
     return seeded_db
 
 
+@pytest.mark.usefixtures("enforcement_seeded")
 class TestRuleCRUD:
     """Tests for enforcement rule CRUD operations."""
 

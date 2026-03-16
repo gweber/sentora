@@ -60,7 +60,7 @@ async def test_create_tenant_disabled(client: AsyncClient, super_admin_headers: 
 @pytest.mark.asyncio
 async def test_create_and_list_tenants(client: AsyncClient, super_admin_headers: dict) -> None:
     """Create a tenant and verify it appears in the list."""
-    with _enable_multi_tenancy():
+    with _enable_multi_tenancy():  # type: ignore[attr-defined]
         create_resp = await client.post(
             "/api/v1/tenants/",
             json={"name": "Acme Corp", "slug": "acme"},
@@ -86,7 +86,7 @@ async def test_create_and_list_tenants(client: AsyncClient, super_admin_headers:
 @pytest.mark.asyncio
 async def test_get_tenant_by_slug(client: AsyncClient, super_admin_headers: dict) -> None:
     """Get a tenant by slug returns the tenant."""
-    with _enable_multi_tenancy():
+    with _enable_multi_tenancy():  # type: ignore[attr-defined]
         await client.post(
             "/api/v1/tenants/",
             json={"name": "Beta Inc", "slug": "beta"},
@@ -100,7 +100,7 @@ async def test_get_tenant_by_slug(client: AsyncClient, super_admin_headers: dict
 @pytest.mark.asyncio
 async def test_get_tenant_not_found(client: AsyncClient, super_admin_headers: dict) -> None:
     """Get nonexistent tenant returns 404."""
-    with _enable_multi_tenancy():
+    with _enable_multi_tenancy():  # type: ignore[attr-defined]
         resp = await client.get("/api/v1/tenants/nonexistent", headers=super_admin_headers)
         assert resp.status_code == 404
 
@@ -108,7 +108,7 @@ async def test_get_tenant_not_found(client: AsyncClient, super_admin_headers: di
 @pytest.mark.asyncio
 async def test_create_duplicate_slug(client: AsyncClient, super_admin_headers: dict) -> None:
     """Creating tenant with duplicate slug returns 409."""
-    with _enable_multi_tenancy():
+    with _enable_multi_tenancy():  # type: ignore[attr-defined]
         await client.post(
             "/api/v1/tenants/",
             json={"name": "Gamma", "slug": "gamma"},
@@ -126,7 +126,7 @@ async def test_create_duplicate_slug(client: AsyncClient, super_admin_headers: d
 @pytest.mark.asyncio
 async def test_update_tenant(client: AsyncClient, super_admin_headers: dict) -> None:
     """Patch a tenant's name."""
-    with _enable_multi_tenancy():
+    with _enable_multi_tenancy():  # type: ignore[attr-defined]
         await client.post(
             "/api/v1/tenants/",
             json={"name": "Delta Corp", "slug": "delta"},
@@ -144,7 +144,7 @@ async def test_update_tenant(client: AsyncClient, super_admin_headers: dict) -> 
 @pytest.mark.asyncio
 async def test_update_tenant_empty_body(client: AsyncClient, super_admin_headers: dict) -> None:
     """Patch with empty body returns 400."""
-    with _enable_multi_tenancy():
+    with _enable_multi_tenancy():  # type: ignore[attr-defined]
         await client.post(
             "/api/v1/tenants/",
             json={"name": "Epsilon", "slug": "epsilon"},
@@ -161,7 +161,7 @@ async def test_update_tenant_empty_body(client: AsyncClient, super_admin_headers
 @pytest.mark.asyncio
 async def test_delete_tenant(client: AsyncClient, super_admin_headers: dict) -> None:
     """Delete a tenant removes it from the registry."""
-    with _enable_multi_tenancy():
+    with _enable_multi_tenancy():  # type: ignore[attr-defined]
         await client.post(
             "/api/v1/tenants/",
             json={"name": "Zeta", "slug": "zeta"},
@@ -178,7 +178,7 @@ async def test_delete_tenant(client: AsyncClient, super_admin_headers: dict) -> 
 @pytest.mark.asyncio
 async def test_delete_tenant_not_found(client: AsyncClient, super_admin_headers: dict) -> None:
     """Delete nonexistent tenant returns 404."""
-    with _enable_multi_tenancy():
+    with _enable_multi_tenancy():  # type: ignore[attr-defined]
         resp = await client.delete("/api/v1/tenants/nonexistent", headers=super_admin_headers)
         assert resp.status_code == 404
 
@@ -189,7 +189,7 @@ async def test_delete_tenant_not_found(client: AsyncClient, super_admin_headers:
 @pytest.mark.asyncio
 async def test_tenant_requires_super_admin(client: AsyncClient, admin_headers: dict) -> None:
     """Admin role (not super_admin) cannot access tenant endpoints."""
-    with _enable_multi_tenancy():
+    with _enable_multi_tenancy():  # type: ignore[attr-defined]
         resp = await client.get("/api/v1/tenants/", headers=admin_headers)
         assert resp.status_code == 403
 

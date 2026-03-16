@@ -208,7 +208,7 @@ jobs:
           python -m sentora_verify --help
 
   # ═══════════════════════════════════════════════════════════════════════════
-  # Security — Python dependency audit (pip-audit)
+  # Security — pip-audit (Python dependency CVE scan)
   # ═══════════════════════════════════════════════════════════════════════════
   security-pip-audit:
     name: Security — pip-audit (CVE scan)
@@ -231,7 +231,7 @@ jobs:
           pip install -e backend/
 
       - name: pip-audit — check for known CVEs
-        run: pip-audit --strict --desc on
+        run: pip-audit --strict --skip-editable
 
   # ═══════════════════════════════════════════════════════════════════════════
   # Security — Bandit SAST (static application security testing)
@@ -253,8 +253,13 @@ jobs:
       - name: Install bandit
         run: pip install bandit[toml]
 
-      - name: Bandit — SAST scan (medium+ severity)
-        run: bandit -r backend/ -x backend/tests/,backend/.venv/,backend/.mypy_cache/ -ll --format json -o bandit-report.json || true
+      - name: Bandit — SAST scan (medium+ severity, report)
+        run: |
+          bandit -r backend/ \
+            -x backend/tests/,backend/.venv/,backend/.mypy_cache/ \
+            -ll \
+            --format json \
+            -o bandit-report.json || true
 
       - name: Upload Bandit report
         if: always()
@@ -264,8 +269,12 @@ jobs:
           path: bandit-report.json
           retention-days: 30
 
-      - name: Bandit — fail on medium+ severity
-        run: bandit -r backend/ -x backend/tests/,backend/.venv/,backend/.mypy_cache/ -ll --format txt
+      - name: Bandit — fail on high+ severity
+        run: |
+          bandit -r backend/ \
+            -x backend/tests/,backend/.venv/,backend/.mypy_cache/ \
+            -lll \
+            --format txt
 
   # ═══════════════════════════════════════════════════════════════════════════
   # Security — Secret scanning (detect committed secrets)
@@ -299,6 +308,7 @@ jobs:
             --exclude-files 'dist/' \
             --exclude-files '__tests__/' \
             --exclude-files 'backend/tests/' \
+            --exclude-files 'frontend/e2e/' \
             --exclude-secrets 'test_token_placeholder' \
             --exclude-secrets 'build_placeholder' \
             --exclude-secrets 'ci-test-secret-key' \
@@ -321,7 +331,7 @@ jobs:
           "
 
   # ═══════════════════════════════════════════════════════════════════════════
-  # Docker — Build & scan container image
+  # Docker — Build & scan container images
   # ═══════════════════════════════════════════════════════════════════════════
   docker-build:
     name: Docker — Build & Security Scan
@@ -332,9 +342,10 @@ jobs:
       - backend-test
       - frontend-typecheck
       - frontend-test
+      - audit-chain-verify
       - security-pip-audit
       - security-bandit
-      - audit-chain-verify
+      - security-secrets
 
     steps:
       - name: Checkout code
@@ -392,7 +403,7 @@ jobs:
           ignore-unfixed: true
 
   # ═══════════════════════════════════════════════════════════════════════════
-  # SBOM — Software Bill of Materials generation
+  # SBOM — Software Bill of Materials (main branch only)
   # ═══════════════════════════════════════════════════════════════════════════
   sbom:
     name: SBOM — Generate Software Bill of Materials

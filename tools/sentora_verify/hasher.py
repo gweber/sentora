@@ -16,7 +16,6 @@ import hashlib
 import json
 from typing import Any
 
-
 #: Sentinel value used as ``previous_hash`` for the genesis entry.
 GENESIS_SENTINEL = "GENESIS"
 
@@ -95,7 +94,7 @@ def _normalize_timestamp(ts: Any) -> str:  # noqa: ANN401
     # String input — parse, normalise, re-format
     s = str(ts)
     # Handle common ISO suffixes: +00:00, Z, or no suffix
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     for fmt in (
         "%Y-%m-%dT%H:%M:%S.%f%z",

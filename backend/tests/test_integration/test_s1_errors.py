@@ -15,7 +15,7 @@ Each test:
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Callable
+from collections.abc import AsyncGenerator, Callable
 from typing import Never
 from unittest.mock import patch
 
@@ -58,7 +58,7 @@ def _make_admin_token() -> str:
 
 
 @pytest_asyncio.fixture(scope="function")
-async def authed_client(seeded_db: AsyncIOMotorDatabase) -> AsyncClient:
+async def authed_client(seeded_db: AsyncIOMotorDatabase) -> AsyncGenerator[AsyncClient, None]:  # type: ignore[type-arg]
     """Provide an authenticated HTTPX test client with admin JWT and
     S1 config that bypasses the fail-fast guard.
     """
@@ -152,7 +152,7 @@ def _make_raiser(exc: BaseException) -> Callable[..., Never]:
     async def _raise(*args: object, **kwargs: object) -> Never:
         raise exc
 
-    return _raise
+    return _raise  # type: ignore[return-value]
 
 
 # ===========================================================================

@@ -220,7 +220,7 @@ async def get_completed_epochs(db: AsyncIOMotorDatabase) -> list[dict[str, Any]]
     Returns:
         List of dicts with epoch summary data.
     """
-    pipeline = [
+    pipeline: list[dict[str, Any]] = [
         {"$match": {"is_epoch_end": True, "sequence": {"$exists": True}}},
         {"$sort": {"epoch": 1}},
         {

@@ -311,7 +311,9 @@ async def get_latest_check_results(
     for r in results:
         checked_at = r.get("checked_at")
         checked_str = (
-            checked_at.isoformat() if hasattr(checked_at, "isoformat") else str(checked_at or "")
+            checked_at.isoformat()
+            if checked_at is not None and hasattr(checked_at, "isoformat")
+            else str(checked_at or "")
         )
         if checked_str and (last_checked is None or checked_str > last_checked):
             last_checked = checked_str
@@ -380,7 +382,7 @@ async def get_control_trend(
                 status=h.get("status", ""),
                 checked_at=(
                     checked_at.isoformat()
-                    if hasattr(checked_at, "isoformat")
+                    if checked_at is not None and hasattr(checked_at, "isoformat")
                     else str(checked_at or "")
                 ),
                 total_endpoints=h.get("total_endpoints", 0),

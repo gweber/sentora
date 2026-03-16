@@ -287,6 +287,8 @@ async def rotate_refresh_token(
 
     if not all([token_id, family_id, username, role]):
         raise ValueError("Refresh token missing required claims")
+    assert isinstance(username, str)
+    assert isinstance(role, str)
 
     # Atomically mark the token as used (prevents race conditions)
     stored = await db["refresh_tokens"].find_one_and_update(

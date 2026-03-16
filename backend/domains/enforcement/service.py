@@ -286,15 +286,15 @@ async def trigger_check(
 
     run_id, results, duration_ms = await run_enforcement_checks(db, rule_id)
 
-    passed = sum(1 for r in results if r.status == CheckStatus.passed)
-    failed = sum(1 for r in results if r.status == CheckStatus.failed)
-    total_violations = sum(len(r.violations) for r in results)
+    passed = sum(1 for er in results if er.status == CheckStatus.passed)
+    failed = sum(1 for er in results if er.status == CheckStatus.failed)
+    total_violations = sum(len(er.violations) for er in results)
 
     # Detect new violations
     new_violation_keys: set[str] = set()
-    for r in results:
-        for v in r.violations:
-            key = f"{r.rule_id}:{v.agent_id}"
+    for er in results:
+        for v in er.violations:
+            key = f"{er.rule_id}:{v.agent_id}"
             new_violation_keys.add(key)
 
     new_violations = new_violation_keys - prev_violation_keys
@@ -560,7 +560,11 @@ def _rule_to_response(rule: EnforcementRule) -> EnforcementRuleResponse:
 def _result_doc_to_response(doc: dict[str, Any]) -> EnforcementResultResponse:
     """Convert a result document to a response DTO."""
     checked = doc.get("checked_at")
-    checked_str = checked.isoformat() if hasattr(checked, "isoformat") else str(checked or "")
+    checked_str = (
+        checked.isoformat()
+        if checked is not None and hasattr(checked, "isoformat")
+        else str(checked or "")
+    )
     return EnforcementResultResponse(
         rule_id=doc.get("rule_id", ""),
         rule_name=doc.get("rule_name", ""),

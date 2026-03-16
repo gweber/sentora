@@ -682,7 +682,7 @@ def _bulk_insert(collection: object, docs: list[dict], label: str) -> None:
     for start in range(0, total, batch_size):
         batch = docs[start : start + batch_size]
         ops = [InsertOne(d) for d in batch]
-        collection.bulk_write(ops, ordered=False)
+        collection.bulk_write(ops, ordered=False)  # type: ignore[attr-defined]
         inserted += len(batch)
         print(f"  {label}: {inserted:,}/{total:,} inserted")
 

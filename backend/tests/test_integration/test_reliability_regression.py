@@ -218,7 +218,7 @@ class TestLogFormatSafety:
 
         # Only scan project source directories, not installed packages or venv
         source_dirs = ["domains", "middleware", "utils", "audit"]
-        py_files = []
+        py_files: list[pathlib.Path] = []
         for src in source_dirs:
             src_path = backend_dir / src
             if src_path.is_dir():

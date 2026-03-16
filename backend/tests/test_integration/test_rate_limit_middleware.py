@@ -46,7 +46,7 @@ class TestRateLimitMiddleware:
         assert resp.body is not None
         import json
 
-        body = json.loads(resp.body.decode())
+        body = json.loads(resp.body.decode())  # type: ignore[union-attr]
         assert "detail" in body
         assert "Too many requests" in body["detail"]
 

@@ -420,13 +420,13 @@ async def list_unified_violations(
             db, severity, page=page, page_size=page_size
         )
         total += enforcement_result.total
-        for v in enforcement_result.violations:
+        for v in enforcement_result.violations:  # type: ignore[assignment]
             all_violations.append(
                 UnifiedViolationResponse(
                     source="enforcement",
-                    control_id=v.rule_id,
-                    control_name=v.rule_name,
-                    framework_id=v.rule_type,
+                    control_id=v.rule_id,  # type: ignore[attr-defined]
+                    control_name=v.rule_name,  # type: ignore[attr-defined]
+                    framework_id=v.rule_type,  # type: ignore[attr-defined]
                     severity=v.severity,
                     agent_id=v.agent_id,
                     agent_hostname=v.agent_hostname,

@@ -242,7 +242,7 @@ async def run_compliance_checks(
 
     results: list[CheckResult] = []
     for idx, result in enumerate(raw_results):
-        if isinstance(result, Exception):
+        if isinstance(result, BaseException):
             ctrl = controls[idx]
             logger.error(
                 "Check {} failed with error: {}",

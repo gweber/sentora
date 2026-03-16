@@ -67,15 +67,20 @@ async def test_refresh_revoked_users_populates_from_db(test_db: AsyncIOMotorData
         ]
     )
 
-    # Patch get_db to return test_db
+    # Patch get_db to return test_db (not just the client — get_db reads settings.mongo_db)
     import database
+    from config import get_settings
 
     prev_client = database._client
     database._client = test_db.client
+    settings = get_settings()
+    prev_mongo_db = settings.mongo_db
+    object.__setattr__(settings, "mongo_db", test_db.name)
     try:
         await refresh_revoked_users()
         assert is_user_revoked("disabled_user") is True
         assert is_user_revoked("active_user") is False
     finally:
         database._client = prev_client
+        object.__setattr__(settings, "mongo_db", prev_mongo_db)
         mod._revoked_usernames = frozenset()

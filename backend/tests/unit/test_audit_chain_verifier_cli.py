@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
+from typing import Any
 
 # Add tools/ to path so we can import the standalone verifier
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "tools"))
@@ -60,7 +61,7 @@ class TestVerifyEpoch:
 
     def test_empty_entries(self) -> None:
         """Empty entries list fails verification."""
-        data = {"export_metadata": {}, "entries": []}
+        data: dict[str, Any] = {"export_metadata": {}, "entries": []}
         result = verify_epoch(data)
         assert not result.valid
         assert "No entries" in result.message

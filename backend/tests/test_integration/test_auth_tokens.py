@@ -224,7 +224,7 @@ class TestDisabledUser:
         """A disabled user gets 403 on login."""
         await _register_only(client, "disableduser", "Password1234")
         # Manually disable in DB
-        await test_db["users"].update_one(
+        await test_db["users"].update_one(  # type: ignore[index]
             {"username": "disableduser"},
             {"$set": {"disabled": True}},
         )
@@ -289,7 +289,7 @@ class TestAdminUserManagement:
         from domains.auth.service import get_password_hash
 
         # Seed user directly as viewer to avoid first-user auto-admin issues
-        await test_db["users"].insert_one(
+        await test_db["users"].insert_one(  # type: ignore[index]
             {
                 "username": "roleuser1",
                 "email": "roleuser1@test.com",
@@ -365,7 +365,7 @@ class TestAdminUserManagement:
         from domains.auth.service import get_password_hash
 
         # Seed user directly as viewer to avoid first-user auto-admin issues
-        await test_db["users"].insert_one(
+        await test_db["users"].insert_one(  # type: ignore[index]
             {
                 "username": "deleteuser1",
                 "email": "deleteuser1@test.com",

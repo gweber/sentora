@@ -142,10 +142,10 @@ class TestClassifierVerdicts:
         from domains.fingerprint.repository import list_all
 
         for fp_doc in fingerprint_docs:
-            await db["fingerprints"].insert_one(fp_doc)
+            await db["fingerprints"].insert_one(fp_doc)  # type: ignore[index]
 
-        fingerprints = await list_all(db)
-        return await classify_single_agent(db, agent_doc, fingerprints)
+        fingerprints = await list_all(db)  # type: ignore[arg-type]
+        return await classify_single_agent(db, agent_doc, fingerprints)  # type: ignore[arg-type]
 
     async def test_misclassified_verdict(self, test_db: AsyncIOMotorDatabase) -> None:
         """Agent in group A whose apps match group B fingerprint → misclassified."""
@@ -179,9 +179,9 @@ class TestClassifierVerdicts:
             "created_by": "user",
         }
         result = await self._classify(test_db, agent, [fp])
-        assert result.classification == "misclassified"
-        assert result.suggested_group_id == "grp_correct"
-        assert len(result.anomaly_reasons) >= 1
+        assert result.classification == "misclassified"  # type: ignore[attr-defined]
+        assert result.suggested_group_id == "grp_correct"  # type: ignore[attr-defined]
+        assert len(result.anomaly_reasons) >= 1  # type: ignore[attr-defined]
 
     async def test_ambiguous_verdict_small_gap(self, test_db: AsyncIOMotorDatabase) -> None:
         """When two fingerprints score similarly, verdict is ambiguous."""
@@ -237,7 +237,7 @@ class TestClassifierVerdicts:
             "created_by": "user",
         }
         result = await self._classify(test_db, agent, [fp_a, fp_b])
-        assert result.classification == "ambiguous"
+        assert result.classification == "ambiguous"  # type: ignore[attr-defined]
 
     async def test_unclassifiable_no_match(self, test_db: AsyncIOMotorDatabase) -> None:
         """Agent with no matching apps → unclassifiable."""
@@ -271,7 +271,7 @@ class TestClassifierVerdicts:
             "created_by": "user",
         }
         result = await self._classify(test_db, agent, [fp])
-        assert result.classification == "unclassifiable"
+        assert result.classification == "unclassifiable"  # type: ignore[attr-defined]
 
     async def test_unclassifiable_no_fingerprints(self, test_db: AsyncIOMotorDatabase) -> None:
         """No fingerprints at all → unclassifiable."""

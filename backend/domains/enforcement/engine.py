@@ -391,7 +391,7 @@ async def run_enforcement_checks(
 
     results: list[EnforcementResult] = []
     for idx, result in enumerate(raw_results):
-        if isinstance(result, Exception):
+        if isinstance(result, BaseException):
             logger.error("Enforcement rule {} failed: {}", rules[idx].id, result)
             results.append(
                 EnforcementResult(

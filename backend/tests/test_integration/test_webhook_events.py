@@ -122,7 +122,7 @@ class TestEnforcementWebhookEvents:
 
             await _dispatch_violation_webhook(
                 test_db,
-                [MockResult()],
+                [MockResult()],  # type: ignore[list-item]
                 {"rule1:a1"},
                 "new",
             )

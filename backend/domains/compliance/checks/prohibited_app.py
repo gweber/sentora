@@ -80,7 +80,7 @@ async def execute(
                     "as": "classification",
                 }
             },
-            {"$unwind": {"path": "$classification", "preserveNullAndArrays": True}},
+            {"$unwind": {"path": "$classification", "preserveNullAndEmptyArrays": True}},
         ]
     )
 

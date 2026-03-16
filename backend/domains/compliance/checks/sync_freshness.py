@@ -18,7 +18,7 @@ from domains.compliance.entities import (
     ComplianceViolation,
     ControlSeverity,
 )
-from utils.dt import utc_now
+from utils.dt import ensure_utc, utc_now
 
 
 async def execute(
@@ -76,7 +76,7 @@ async def execute(
         compliant = 0
         total = 1
     else:
-        completed_at = latest_sync["completed_at"]
+        completed_at = ensure_utc(latest_sync["completed_at"])
         if completed_at >= cutoff:
             status = CheckStatus.passed
             summary = (

@@ -41,6 +41,7 @@ class TestDistributedLockOwnership:
 
         # Get the current expires_at for Worker A's lock
         lock_doc = await test_db["distributed_locks"].find_one({"_id": "test_lock_ownership"})
+        assert lock_doc is not None
         original_expires = lock_doc["expires_at"]
         original_owner = lock_doc["owner_id"]
 
@@ -55,6 +56,7 @@ class TestDistributedLockOwnership:
 
         # Verify Worker A's lock is unchanged
         lock_doc = await test_db["distributed_locks"].find_one({"_id": "test_lock_ownership"})
+        assert lock_doc is not None
         assert lock_doc["owner_id"] == original_owner
         assert lock_doc["expires_at"] == original_expires
 
@@ -104,6 +106,7 @@ class TestLeaderElectionTtl:
             }
         )
         doc = await test_db["leader_election"].find_one({"_id": "test_leader"})
+        assert doc is not None
         assert isinstance(doc["expires_at"], datetime), (
             f"expires_at is {type(doc['expires_at'])}, expected datetime"
         )

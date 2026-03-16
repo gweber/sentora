@@ -94,7 +94,7 @@ async def provision_sso_user(
     first_user_role = await claim_first_user(db, username)
     if first_user_role != UserRole.viewer:
         # First user — use the elevated role
-        role = first_user_role
+        role: UserRole = first_user_role
     else:
         # Non-first user — use the SSO provider's default role
         try:

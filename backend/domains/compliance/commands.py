@@ -302,17 +302,17 @@ async def trigger_compliance_run(
     run_id, results, duration_ms = await run_compliance_checks(db, framework_id)
 
     # Compute run summary
-    passed = sum(1 for r in results if r.status == CheckStatus.passed)
-    failed = sum(1 for r in results if r.status == CheckStatus.failed)
-    warning = sum(1 for r in results if r.status == CheckStatus.warning)
+    passed = sum(1 for cr in results if cr.status == CheckStatus.passed)
+    failed = sum(1 for cr in results if cr.status == CheckStatus.failed)
+    warning = sum(1 for cr in results if cr.status == CheckStatus.warning)
 
     # Detect new and resolved violations
     new_violation_keys: set[str] = set()
-    for r in results:
-        if r.status == CheckStatus.failed:
-            for v in r.violations:
+    for cr in results:
+        if cr.status == CheckStatus.failed:
+            for v in cr.violations:
                 agent_ref = v.agent_id if hasattr(v, "agent_id") else getattr(v, "hostname", "")
-                key = f"{r.control_id}:{agent_ref}"
+                key = f"{cr.control_id}:{agent_ref}"
                 new_violation_keys.add(key)
 
     new_violations = new_violation_keys - prev_violation_keys

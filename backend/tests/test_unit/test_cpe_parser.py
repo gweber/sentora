@@ -74,7 +74,7 @@ class TestCpeToPatterns:
         patterns = cpe_to_patterns("cpe:2.3:a:vendor:abc:*:*:*:*:*:*:*:*")
         # "abc" is only 3 chars — should skip broad pattern
         assert len(patterns) == 1
-        assert "*vendor*abc*" in patterns[0]["pattern"]
+        assert "*vendor*abc*" in patterns[0]["pattern"]  # type: ignore[operator]
 
     def test_invalid_cpe_returns_empty(self) -> None:
         patterns = cpe_to_patterns("not-a-cpe")
