@@ -71,7 +71,7 @@ class ClassificationOverviewResponse(BaseModel):
         misclassified: Agents whose verdict is ``"misclassified"``.
         ambiguous: Agents whose verdict is ``"ambiguous"``.
         unclassifiable: Agents whose verdict is ``"unclassifiable"``.
-        groups_count: Number of distinct groups present in ``s1_agents``.
+        groups_count: Number of distinct groups present in ``agents``.
         last_computed_at: ISO-8601 timestamp of the most recent classification
             result, or ``None`` if no results exist yet.
     """

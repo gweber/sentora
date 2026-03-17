@@ -147,9 +147,9 @@ class FingerprintSuggestion(BaseModel):
 
     Attributes:
         id: Unique suggestion identifier (string ObjectId).
-        group_id: SentinelOne group ID this suggestion targets.
+        group_id: Source group ID this suggestion targets.
         normalized_name: Lowercase normalised app name (as stored in
-            ``s1_installed_apps``).
+            ``installed_apps``).
         display_name: Human-readable version of the app name.
         score: TF-IDF relevance score (higher is more distinctive).
         group_coverage: Fraction of agents *in* the group that have this app

@@ -15,6 +15,9 @@ const { execute: guardedExecute } = useAsyncAction()
 const activeTab = ref<string>('')
 const showCustomModal = ref(false)
 
+const disableReasonInput = ref<Record<string, string>>({})
+const showDisablePrompt = ref<string | null>(null)
+
 const customForm = ref<CreateCustomControlRequest>({
   id: 'custom-',
   framework_id: '',
@@ -54,11 +57,33 @@ async function handleToggleFramework(frameworkId: string, enabled: boolean) {
 }
 
 async function handleToggleControl(controlId: string, enabled: boolean) {
-  await guardedExecute(async () => {
-    await store.configureControl(controlId, { enabled })
-  if (!store.error) {
-    toast.show(`Control ${controlId} ${enabled ? 'enabled' : 'disabled'}`)
+  if (!enabled) {
+    showDisablePrompt.value = controlId
+    return
   }
+  await guardedExecute(async () => {
+    await store.configureControl(controlId, { enabled, disable_reason: null })
+    if (!store.error) {
+      toast.show(`Control ${controlId} enabled`)
+    }
+    if (activeTab.value) {
+      await store.fetchFrameworkDetail(activeTab.value)
+    }
+  })
+}
+
+async function confirmDisable(controlId: string) {
+  const reason = disableReasonInput.value[controlId] || ''
+  await guardedExecute(async () => {
+    await store.configureControl(controlId, {
+      enabled: false,
+      disable_reason: reason || null,
+    })
+    if (!store.error) {
+      toast.show(`Control ${controlId} disabled`)
+    }
+    showDisablePrompt.value = null
+    delete disableReasonInput.value[controlId]
     if (activeTab.value) {
       await store.fetchFrameworkDetail(activeTab.value)
     }
@@ -245,6 +270,35 @@ onUnmounted(() => document.removeEventListener('keydown', onKeydown))
                 >
                 <div class="w-9 h-5 bg-[var(--surface-hover)] peer-checked:bg-[var(--brand-primary)] rounded-full transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-4"></div>
               </label>
+            </div>
+            <!-- Disable reason display -->
+            <div v-if="!ctrl.enabled && ctrl.disable_reason" class="mt-2 text-xs px-2 py-1 rounded" style="background: var(--surface-inset); color: var(--text-3);">
+              Exclusion reason: {{ ctrl.disable_reason }}
+            </div>
+            <!-- Disable reason prompt -->
+            <div v-if="showDisablePrompt === ctrl.id" class="mt-2 p-2 rounded-lg" style="background: var(--surface-inset); border: 1px solid var(--border);">
+              <label class="text-xs font-medium" style="color: var(--text-3);">
+                Reason for disabling (optional — recommended for Statement of Applicability)
+              </label>
+              <input
+                v-model="disableReasonInput[ctrl.id]"
+                class="w-full mt-1 px-3 py-1.5 rounded text-sm"
+                style="background: var(--surface); border: 1px solid var(--border); color: var(--text-1);"
+                placeholder="e.g. Not applicable — no endpoints process cardholder data"
+                @keyup.enter="confirmDisable(ctrl.id)"
+              >
+              <div class="flex justify-end gap-2 mt-2">
+                <button
+                  class="px-3 py-1 rounded text-xs"
+                  style="background: var(--surface-hover); color: var(--text-2);"
+                  @click="showDisablePrompt = null"
+                >Cancel</button>
+                <button
+                  class="px-3 py-1 rounded text-xs text-white"
+                  style="background: var(--brand-primary);"
+                  @click="confirmDisable(ctrl.id)"
+                >Disable</button>
+              </div>
             </div>
           </div>
         </div>

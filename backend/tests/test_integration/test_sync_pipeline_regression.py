@@ -159,14 +159,14 @@ class TestCheckpointResume:
             "error": "Rate limit exceeded",
             "updated_at": utc_now().isoformat(),
         }
-        await test_db["s1_sync_checkpoint"].replace_one(
+        await test_db["sync_checkpoint"].replace_one(
             {"_id": "phase:agents"},
             checkpoint_data,
             upsert=True,
         )
 
         # Load it back
-        doc = await test_db["s1_sync_checkpoint"].find_one({"_id": "phase:agents"})
+        doc = await test_db["sync_checkpoint"].find_one({"_id": "phase:agents"})
         assert doc is not None
         assert doc["status"] == "failed"
         assert doc["synced"] == 500
@@ -177,7 +177,7 @@ class TestCheckpointResume:
         test_db: AsyncIOMotorDatabase,
     ) -> None:
         """A completed checkpoint is cleared so resume doesn't re-run."""
-        await test_db["s1_sync_checkpoint"].replace_one(
+        await test_db["sync_checkpoint"].replace_one(
             {"_id": "phase:sites"},
             {"_id": "phase:sites", "status": "completed", "synced": 10, "total": 10},
             upsert=True,

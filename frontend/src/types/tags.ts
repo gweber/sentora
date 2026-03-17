@@ -27,7 +27,7 @@ export interface TagRule {
 }
 
 export interface TagPreviewAgent {
-  s1_agent_id: string
+  source_id: string
   hostname: string
   group_name: string
   site_name: string
@@ -66,9 +66,10 @@ export interface TagPatternCreateRequest {
   source?: 'manual' | 'seed'
 }
 
-/** S1 tag from the synced s1_tags collection */
-export interface S1Tag {
-  s1_tag_id: string
+/** Source tag from the synced source_tags collection */
+export interface SourceTag {
+  source_id: string
+  source: string
   name: string
   description: string | null
   type: string
@@ -79,7 +80,7 @@ export interface S1Tag {
   synced_at: string
 }
 
-export interface S1TagsResponse {
-  tags: S1Tag[]
+export interface SourceTagsResponse {
+  tags: SourceTag[]
   total: number
 }

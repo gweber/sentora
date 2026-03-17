@@ -24,6 +24,8 @@ dependencies = [
     "qrcode>=8.0",
     "cryptography>=46.0.5",
     "defusedxml>=0.7.1",
+    "boto3>=1.37.0",
+    "crowdstrike-falconpy>=1.4.0",
 ]
 
 [project.optional-dependencies]
@@ -39,6 +41,8 @@ dev = [
     "pytest>=9.0.2",
     "pytest-asyncio>=1.3.0",
     "pytest-cov>=7.0.0",
+    "pytest-xdist>=3.5.0",
+    "pytest-timeout>=2.3.0",
     "mypy>=1.19.1",
     "ruff>=0.15.6",
     "types-PyYAML>=6.0.12",
@@ -64,9 +68,15 @@ packages = [
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
-addopts = "--cov=. --cov-report=term-missing --cov-fail-under=85"
+addopts = "--cov=. --cov-report=term-missing --cov-fail-under=85 --strict-markers -ra --tb=short"
+timeout = 30
+timeout_method = "signal"
 markers = [
     "critical: marks tests as critical path (select with -m critical)",
+    "unit: Pure unit tests, no DB required",
+    "integration: Integration tests requiring MongoDB",
+    "slow: Tests that take >5 seconds individually",
+    "compliance: Compliance framework tests",
 ]
 
 [tool.coverage.run]
@@ -74,11 +84,11 @@ omit = [
     "tests/*",
     "seed_data/*",
     "*/__init__.py",
-    # External-API client — requires live SentinelOne tenant; cannot be tested in CI
+    # External-API client — requires live EDR tenant; cannot be tested in CI
     "domains/sync/s1_client.py",
-    # SyncManager drives live S1 sync over the network; integration tests cover the router layer
+    # SyncManager drives live sync over the network; integration tests cover the router layer
     "domains/sync/manager.py",
-    # _run_apply is a background asyncio task that writes to SentinelOne; same rationale as SyncManager
+    # _run_apply is a background asyncio task that writes to source EDR; same rationale as SyncManager
     "domains/tags/service.py",
     # Application factory + lifespan: DB connect/disconnect, scheduler, stale-run cleanup.
     # The test client bypasses the real lifespan (mongomock injects the DB directly).
@@ -93,12 +103,21 @@ omit = [
     "domains/fingerprint/auto_proposer.py",
     # Materialized app summaries cache — startup/post-sync rebuild, requires real data at scale
     "domains/agents/app_cache.py",
-    # Sync router — most routes exercise SyncManager which requires a live S1 tenant
+    # Sync router — most routes exercise SyncManager which requires a live EDR tenant
     "domains/sync/router.py",
-    # Sync phase implementations — each phase calls the live S1 API; same rationale as s1_client.py
+    # Sync phase implementations — each phase calls the live source API
     "domains/sync/phases/sites.py",
     "domains/sync/phases/groups.py",
     "domains/sync/phases/tags.py",
+    # Source adapter base/registry — thin infrastructure, no business logic
+    "domains/sources/base.py",
+    "domains/sources/registry.py",
+    # CrowdStrike client + phase runners — require live CrowdStrike Falcon tenant
+    "domains/sources/crowdstrike/client.py",
+    "domains/sources/crowdstrike/adapter.py",
+    "domains/sources/crowdstrike/sync_agents.py",
+    "domains/sources/crowdstrike/sync_apps.py",
+    "domains/sources/crowdstrike/sync_groups.py",
     # Metrics middleware — infrastructure, tested implicitly via any HTTP request
     "middleware/metrics.py",
     # Tracing setup — requires OTel collector; opt-in infrastructure

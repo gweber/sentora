@@ -16,7 +16,7 @@ export interface FleetStats {
   total_agents: number
   total_groups: number
   total_sites: number
-  network_status: Record<string, number>
+  agent_status: Record<string, number>
   os_distribution: Record<string, number>
   machine_type: Record<string, number>
   stale_7d: number

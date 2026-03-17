@@ -1,7 +1,7 @@
 # Sentora
 
-> Endpoint compliance monitoring platform for SentinelOne.
-> Turns raw agent inventory into audit-ready evidence across SOC 2, PCI DSS, HIPAA, and BSI IT-Grundschutz.
+> Multi-EDR endpoint compliance monitoring platform.
+> Turns raw agent inventory into audit-ready evidence across SOC 2, PCI DSS, HIPAA, BSI IT-Grundschutz, DORA, ISO 27001, NIST CSF 2.0, NIS2, and CIS Controls v8.
 
 [![CI](https://github.com/gweber/sentora/actions/workflows/ci.yml/badge.svg)](https://github.com/gweber/sentora/actions/workflows/ci.yml)
 [![Security Scan](https://github.com/gweber/sentora/actions/workflows/security-scan.yml/badge.svg)](https://github.com/gweber/sentora/actions/workflows/security-scan.yml)
@@ -21,15 +21,15 @@
 
 ## What is Sentora?
 
-Sentora connects to your SentinelOne management console, pulls the complete application inventory across your agent fleet, and normalizes it using deterministic fingerprint-based classification. On top of that normalized inventory, it continuously monitors compliance posture across SOC 2 Type II, PCI DSS 4.0.1, HIPAA, and BSI IT-Grundschutz — 61 controls in total. Enforcement rules let you define which software is required, forbidden, or allowed on which endpoints, with violations surfaced in a unified feed and pushed via webhooks. Every action is recorded in a forensic audit trail backed by a SHA-256 hash-chain that is cryptographically tamper-evident, exportable to cold storage, and verifiable with an air-gapped CLI tool.
+Sentora connects to your EDR management console (SentinelOne and CrowdStrike Falcon today, Defender next), pulls the complete application inventory across your agent fleet, and normalizes it using deterministic fingerprint-based classification. On top of that normalized inventory, it continuously monitors compliance posture across SOC 2 Type II, PCI DSS 4.0.1, HIPAA, BSI IT-Grundschutz, DORA, ISO 27001, NIST CSF 2.0, NIS2, and CIS Controls v8 — 142 controls in total. Enforcement rules let you define which software is required, forbidden, or allowed on which endpoints, with violations surfaced in a unified feed and pushed via webhooks. Every action is recorded in a forensic audit trail backed by a SHA-256 hash-chain that is cryptographically tamper-evident, exportable to cold storage, and verifiable with an air-gapped CLI tool.
 
 ---
 
 ## Highlights
 
-**Compliance Monitoring** — Continuous posture monitoring across SOC 2 Type II, PCI DSS 4.0.1, HIPAA Security Rule, and BSI IT-Grundschutz. 61 pre-built controls across 10 check types, evaluated automatically after every sync. Unified violations feed with CSV export for auditor delivery.
+**Compliance Monitoring** — Continuous posture monitoring across SOC 2 Type II, PCI DSS 4.0.1, HIPAA Security Rule, BSI IT-Grundschutz, and DORA. 81 pre-built controls across 11 check types, evaluated automatically after every sync. Unified violations feed with CSV export for auditor delivery.
 
-**Enforcement Rules** — Define software policies as Required, Forbidden, or Allowlist. Scope rules to specific SentinelOne groups or agent tags. Webhook alerts fire on every new violation for immediate PSA/ITSM integration.
+**Enforcement Rules** — Define software policies as Required, Forbidden, or Allowlist. Scope rules to specific groups or agent tags. Webhook alerts fire on every new violation for immediate PSA/ITSM integration.
 
 **Software Fingerprinting** — TF-IDF-based marker suggestions and discriminative lift scoring for automatic fingerprint proposals across all groups. Hierarchical taxonomy, deterministic scoring, human-readable confidence signals. No black-box ML.
 
@@ -43,11 +43,11 @@ Sentora connects to your SentinelOne management console, pulls the complete appl
 
 ## The Problem
 
-Your SentinelOne console shows thousands of raw application entries with inconsistent naming across OS versions and locales. Sentora normalizes, classifies, and audits them automatically.
+Your EDR console shows thousands of raw application entries with inconsistent naming across OS versions and locales. Sentora normalizes, classifies, and audits them automatically.
 
 Auditors need evidence that only approved software runs on regulated endpoints. Sentora generates that evidence continuously — not once a quarter from a manually cleaned spreadsheet.
 
-You need to prove compliance across SOC 2, PCI DSS, HIPAA, or BSI IT-Grundschutz. Sentora monitors 61 controls after every sync and surfaces violations the moment they occur.
+You need to prove compliance across SOC 2, PCI DSS, HIPAA, BSI IT-Grundschutz, or DORA. Sentora monitors 142 controls after every sync and surfaces violations the moment they occur.
 
 ---
 
@@ -59,8 +59,8 @@ You need to prove compliance across SOC 2, PCI DSS, HIPAA, or BSI IT-Grundschutz
 | ------------------------------------- | -------------------------------- |
 | Docker                                | 24+                              |
 | Docker Compose                        | v2 (bundled with Docker Desktop) |
-| SentinelOne Management Console access | Any supported version            |
-| SentinelOne API token                 | Read-only scope is sufficient    |
+| EDR console access (SentinelOne)      | Any supported version            |
+| EDR API token                         | Read-only scope is sufficient    |
 
 ### Deploy
 
@@ -108,7 +108,7 @@ cd frontend && npm run typecheck
 
 | Category       | Features                                                                                              |
 | -------------- | ----------------------------------------------------------------------------------------------------- |
-| Compliance     | SOC 2 Type II, PCI DSS 4.0.1, HIPAA, BSI IT-Grundschutz (61 controls, 10 check types)                 |
+| Compliance     | SOC 2 Type II, PCI DSS 4.0.1, HIPAA, BSI IT-Grundschutz, DORA, ISO 27001 (142 controls, 11 check types) |
 | Enforcement    | Required / Forbidden / Allowlist rules, scoped by group and tag                                       |
 | Fingerprinting | TF-IDF suggestions, lift-based auto-proposer, hierarchical taxonomy                                   |
 | Audit          | SHA-256 hash-chain, epoch segmentation, air-gapped CLI verifier, cold-storage export                  |
@@ -129,7 +129,7 @@ For the full architecture including C4 diagrams, see [Architecture Overview](doc
 
 ## Use Cases
 
-**Regulatory Compliance** — Regulated industries (finance, healthcare, critical infrastructure) must prove endpoint software compliance. Sentora automates evidence collection across SOC 2, PCI DSS, HIPAA, and BSI IT-Grundschutz, reducing manual audit preparation from weeks to minutes.
+**Regulatory Compliance** — Regulated industries (finance, healthcare, critical infrastructure) must prove endpoint software compliance. Sentora automates evidence collection across SOC 2, PCI DSS, HIPAA, BSI IT-Grundschutz, DORA, ISO 27001, NIST CSF 2.0, NIS2, and CIS Controls v8, reducing manual audit preparation from weeks to minutes.
 
 **BSI IT-Grundschutz** — German organizations subject to BSI IT-Grundschutz can leverage Sentora's 16 automated controls for endpoint software compliance — a capability not available in general-purpose GRC tools.
 
@@ -173,7 +173,7 @@ Demo data includes 3 sites, 6 groups, 135 agents with realistic hostnames and OS
 | [Data Flow](docs/architecture/data-flow.md)                       | Sync flow, classification flow, WebSocket lifecycle                                          |
 | [Domain Model](docs/architecture/domain-model.md)                 | Entity relationships and cross-context policies                                              |
 | [Data Model](docs/data-model.md)                                  | Complete MongoDB collection definitions with fields and indexes                              |
-| [ADRs](docs/adr/)                                                 | 21 Architecture Decision Records (MongoDB, TF-IDF, CQRS, auth, compliance, audit chain, ...) |
+| [ADRs](docs/adr/)                                                 | 29 Architecture Decision Records                                                                 |
 | **Deployment**                                                    |                                                                                              |
 | [Docker](docs/deployment/docker.md)                               | Docker Compose quick start and production hardening                                          |
 | [Environment Variables](docs/deployment/environment-variables.md) | Complete `.env` reference with defaults and descriptions                                     |
@@ -186,7 +186,8 @@ Demo data includes 3 sites, 6 groups, 135 agents with realistic hostnames and OS
 | [Scaling](docs/guides/scaling.md)                                 | Guidance for large fleets (10k+ agents)                                                      |
 | [Ingestion Sources](docs/guides/ingestion-sources.md)             | NIST CPE, MITRE, Chocolatey, Homebrew library adapters                                       |
 | **Compliance & Security**                                         |                                                                                              |
-| [Compliance Monitoring](docs/COMPLIANCE.md)                       | SOC 2, PCI DSS, HIPAA, BSI IT-Grundschutz monitoring                                         |
+| [Compliance Monitoring](docs/COMPLIANCE.md)                       | SOC 2, PCI DSS, HIPAA, BSI IT-Grundschutz, DORA monitoring                                   |
+| [Compliance Handbook](docs/COMPLIANCE_HANDBOOK.md)                | Operator reference: control details, configuration, troubleshooting                          |
 | [Enforcement](docs/ENFORCEMENT.md)                                | Required / Forbidden / Allowlist software policy rules                                       |
 | [Audit Chain](docs/security/audit-chain.md)                       | Forensic hash-chain architecture, verification, and threat model                             |
 | [Audit Chain API](docs/api/audit-chain.md)                        | REST API and CLI tool reference for audit chain                                              |
@@ -216,7 +217,7 @@ Demo data includes 3 sites, 6 groups, 135 agents with realistic hostnames and OS
 - [x] Webhook notifications (HMAC-signed)
 - [x] Multi-tenant deployment with database-per-tenant isolation
 - [x] Forensic audit hash-chain with air-gapped CLI verifier
-- [x] Compliance monitoring — SOC 2, PCI DSS, HIPAA, BSI IT-Grundschutz (61 controls)
+- [x] Compliance monitoring — SOC 2, PCI DSS, HIPAA, BSI IT-Grundschutz, DORA (142 controls)
 - [x] Enforcement rules — Required / Forbidden / Allowlist
 - [x] API-key authentication with granular scopes and key rotation
 
@@ -225,7 +226,10 @@ Demo data includes 3 sites, 6 groups, 135 agents with realistic hostnames and OS
 - [ ] CrowdStrike Falcon connector
 - [ ] Microsoft Defender for Endpoint connector
 - [ ] PDF compliance reports with white-label branding
-- [ ] NIST CSF 2.0 framework support
+- [x] ISO/IEC 27001:2022 framework support (16 Annex A controls)
+- [x] NIST CSF 2.0 framework support (15 controls)
+- [x] NIS2 (EU 2022/2555) framework support (13 controls)
+- [x] CIS Controls v8 framework support (14 safeguards)
 - [ ] Scheduled compliance report delivery (email/webhook)
 - [ ] CLI tool for CI/CD integration (`sentora-cli`)
 - [ ] SCIM user provisioning

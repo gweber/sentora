@@ -21,23 +21,23 @@ class TestNormalizeAppName:
         assert normalize_app_name("Adobe Reader") == "adobe reader"
 
     def test_removes_trademark(self) -> None:
-        # NFKD decomposes ™ to "TM" before the regex runs, so output contains "tm"
-        result = normalize_app_name("Windows™ Defender")
+        # NFKD decomposes TM to "TM" before the regex runs, so output contains "tm"
+        result = normalize_app_name("Windows\u2122 Defender")
         assert "windows" in result
         assert "defender" in result
 
     def test_removes_registered(self) -> None:
-        assert normalize_app_name("Acrobat® Reader") == "acrobat reader"
+        assert normalize_app_name("Acrobat\u00ae Reader") == "acrobat reader"
 
     def test_removes_copyright(self) -> None:
-        assert normalize_app_name("My App©") == "my app"
+        assert normalize_app_name("My App\u00a9") == "my app"
 
     def test_collapses_whitespace(self) -> None:
         assert normalize_app_name("  hello   world  ") == "hello world"
 
     def test_strips_accents(self) -> None:
-        result = normalize_app_name("Björn")
-        assert "ö" not in result or "o" in result  # ö decomposes → o + combining
+        result = normalize_app_name("Bj\u00f6rn")
+        assert "\u00f6" not in result or "o" in result  # o decomposes -> o + combining
 
     def test_empty_string(self) -> None:
         assert normalize_app_name("") == ""
@@ -57,16 +57,18 @@ class TestNormalizeSite:
             "accountName": "Acme Corp",
         }
         result = normalize_site(s1_site)
-        assert result["s1_site_id"] == "site-1"
+        assert result["source"] == "sentinelone"
+        assert result["source_id"] == "site-1"
         assert result["name"] == "HQ"
         assert result["state"] == "active"
         assert result["site_type"] == "Paid"
         assert result["account_id"] == "acc-1"
         assert result["account_name"] == "Acme Corp"
+        assert "_id" in result
 
     def test_missing_fields_default_to_empty_string(self) -> None:
         result = normalize_site({})
-        assert result["s1_site_id"] == ""
+        assert result["source_id"] == ""
         assert result["name"] == ""
 
 
@@ -86,11 +88,13 @@ class TestNormalizeGroup:
         }
         site_map = {"site-1": "HQ Site"}
         result = normalize_group(s1_group, site_map)
-        assert result["s1_group_id"] == "grp-1"
+        assert result["source"] == "sentinelone"
+        assert result["source_id"] == "grp-1"
         assert result["name"] == "SCADA"
         assert result["agent_count"] == 5
         assert result["site_name"] == "HQ Site"
         assert result["filter_name"] == "scada_filter"
+        assert "_id" in result
 
     def test_empty_description_becomes_none(self) -> None:
         result = normalize_group({"description": ""})
@@ -125,12 +129,14 @@ class TestNormalizeAgent:
             "tags": {},
         }
         result = normalize_agent(s1_agent, {"grp-1": "SCADA Floor"})
-        assert result["s1_agent_id"] == "agent-1"
+        assert result["source"] == "sentinelone"
+        assert result["source_id"] == "agent-1"
         assert result["hostname"] == "DESKTOP-01"
         assert result["os_type"] == "windows"
         assert result["os_version"] == "Windows 10 19045"
         assert result["group_name"] == "SCADA Floor"
-        assert result["network_status"] == "connected"
+        assert result["agent_status"] == "online"
+        assert "_id" in result
 
     def test_extracts_ip_from_network_interfaces(self) -> None:
         s1_agent = {
@@ -188,13 +194,17 @@ class TestNormalizeApp:
             "createdAt": _NOW,
         }
         result = normalize_app(s1_app, _NOW)
-        assert result["id"] == "app-1"
+        assert result["source"] == "sentinelone"
+        assert result["source_id"] == "app-1"
         assert result["agent_id"] == "agent-1"
         assert result["name"] == "Siemens WinCC"
         assert result["normalized_name"] == "siemens wincc"
         assert result["version"] == "8.0"
         assert result["synced_at"] == _NOW
         assert result["last_synced_at"] == _NOW
+        assert result["source_updated_at"] == _NOW
+        assert result["source_created_at"] == _NOW
+        assert "_id" in result
 
     def test_empty_name_normalizes_to_empty(self) -> None:
         result = normalize_app({"name": ""}, _NOW)

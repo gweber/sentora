@@ -383,7 +383,7 @@ class TestPatternPreview:
         test_db: AsyncIOMotorDatabase,
         admin_headers: dict,  # type: ignore[type-arg]
     ) -> None:
-        """Pattern preview should find apps in app_summaries and agents in s1_agents."""
+        """Pattern preview should find apps in app_summaries and agents in agents collection."""
         # Insert an app summary that matches the pattern
         await test_db["app_summaries"].insert_one(
             {
@@ -394,9 +394,10 @@ class TestPatternPreview:
             }
         )
         # Insert an agent that has the matching app installed
-        await test_db["s1_agents"].insert_one(
+        await test_db["agents"].insert_one(
             {
-                "s1_agent_id": "agent-preview-1",
+                "source": "sentinelone",
+                "source_id": "agent-preview-1",
                 "hostname": "preview-host",
                 "group_name": "Test",
                 "group_id": "g1",

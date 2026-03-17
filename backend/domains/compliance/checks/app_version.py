@@ -17,6 +17,7 @@ from domains.compliance.entities import (
     ComplianceViolation,
     ControlSeverity,
 )
+from domains.sources.collections import AGENTS, INSTALLED_APPS
 from utils.dt import utc_now
 
 
@@ -55,7 +56,7 @@ async def execute(
     now = utc_now()
     max_outdated_pct: float = parameters.get("max_outdated_percent", 20)
 
-    total_agents = await db["s1_agents"].count_documents(scope_filter or {})
+    total_agents = await db[AGENTS].count_documents(scope_filter or {})
     if total_agents == 0:
         return not_applicable_result(
             control_id=control_id,
@@ -68,8 +69,8 @@ async def execute(
 
     # Build scoped agent IDs
     agent_ids: list[str] = []
-    async for doc in db["s1_agents"].find(scope_filter or {}, {"s1_agent_id": 1}):
-        agent_ids.append(doc["s1_agent_id"])
+    async for doc in db[AGENTS].find(scope_filter or {}, {"source_id": 1}):
+        agent_ids.append(doc["source_id"])
 
     if not agent_ids:
         return not_applicable_result(
@@ -117,7 +118,7 @@ async def execute(
     # Resolve hostnames for violation reporting
     hostname_map: dict[str, str] = {}
 
-    async for app_doc in db["s1_installed_apps"].aggregate(pipeline):
+    async for app_doc in db[INSTALLED_APPS].aggregate(pipeline):
         app_name = app_doc["_id"]
         top_version = app_doc["top_version"]
 
@@ -145,11 +146,11 @@ async def execute(
 
     # Batch-resolve hostnames
     if hostname_map:
-        async for agent_doc in db["s1_agents"].find(
-            {"s1_agent_id": {"$in": list(hostname_map.keys())}},
-            {"s1_agent_id": 1, "hostname": 1},
+        async for agent_doc in db[AGENTS].find(
+            {"source_id": {"$in": list(hostname_map.keys())}},
+            {"source_id": 1, "hostname": 1},
         ):
-            hostname_map[agent_doc["s1_agent_id"]] = agent_doc.get("hostname", "unknown")
+            hostname_map[agent_doc["source_id"]] = agent_doc.get("hostname", "unknown")
 
         for violation in violations:
             violation.agent_hostname = hostname_map.get(violation.agent_id, "unknown")

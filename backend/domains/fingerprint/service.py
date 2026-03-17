@@ -20,6 +20,7 @@ from domains.fingerprint.dto import (
 )
 from domains.fingerprint.entities import Fingerprint, FingerprintMarker
 from domains.fingerprint.entities import FingerprintSuggestion as FingerprintSuggestionEntity
+from domains.sources.collections import GROUPS, SITES
 from errors import (
     FingerprintAlreadyExistsError,
     FingerprintNotFoundError,
@@ -64,9 +65,9 @@ async def _resolve_group_meta(
     db: AsyncIOMotorDatabase,  # type: ignore[type-arg]
     group_id: str,
 ) -> tuple[str, str, str]:
-    """Return (group_name, site_name, account_name) from s1_groups + s1_sites."""
-    group_doc = await db["s1_groups"].find_one(
-        {"s1_group_id": group_id}, {"name": 1, "site_id": 1, "site_name": 1}
+    """Return (group_name, site_name, account_name) from groups + sites."""
+    group_doc = await db[GROUPS].find_one(
+        {"source_id": group_id}, {"name": 1, "site_id": 1, "site_name": 1}
     )
     if not group_doc:
         return "", "", ""
@@ -75,7 +76,7 @@ async def _resolve_group_meta(
     site_id = group_doc.get("site_id", "")
     account_name = ""
     if site_id:
-        site_doc = await db["s1_sites"].find_one({"s1_site_id": site_id}, {"account_name": 1})
+        site_doc = await db[SITES].find_one({"source_id": site_id}, {"account_name": 1})
         if site_doc:
             account_name = str(site_doc.get("account_name") or "")
     return group_name, site_name, account_name
@@ -118,7 +119,7 @@ async def create_fingerprint(
 
     Args:
         db: Motor database handle.
-        group_id: SentinelOne group ID.
+        group_id: Group ID.
 
     Returns:
         The newly created fingerprint as a response DTO.
@@ -338,7 +339,7 @@ async def import_fingerprints(
 
     for item in items:
         # Verify that the group exists in the database
-        group_doc = await db["s1_groups"].find_one({"s1_group_id": item.group_id}, {"_id": 1})
+        group_doc = await db[GROUPS].find_one({"source_id": item.group_id}, {"_id": 1})
         if group_doc is None:
             logger.warning("Import skipped: group_id '{}' not found in database", item.group_id)
             skipped += 1

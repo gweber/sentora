@@ -7,6 +7,8 @@ from typing import Any
 
 from loguru import logger
 
+from domains.sources.collections import AGENTS, INSTALLED_APPS, SYNC_META
+
 from ..phase_runner import PhaseRunner
 
 
@@ -52,7 +54,7 @@ class AppsPhaseRunner(PhaseRunner):
 
         # Determine mode automatically
         if mode == "auto":
-            meta = await db["s1_sync_meta"].find_one({"_id": "global"})
+            meta = await db[SYNC_META].find_one({"_id": "global"})
             max_app_id = meta.get("max_app_id") if meta else None
             is_full = max_app_id is None
             mode = "full" if is_full else "incremental"
@@ -81,7 +83,7 @@ class AppsPhaseRunner(PhaseRunner):
                 "Apps — resuming from id {} ({} already synced)", checkpoint["last_id"], apps_synced
             )
         elif not is_full:
-            meta_doc = await db["s1_sync_meta"].find_one({"_id": "global"})
+            meta_doc = await db[SYNC_META].find_one({"_id": "global"})
             max_app_id = meta_doc.get("max_app_id") if meta_doc else None
             if max_app_id:
                 resume_cursor = make_app_cursor(int(max_app_id))
@@ -141,7 +143,7 @@ class AppsPhaseRunner(PhaseRunner):
                     )
 
                     if len(buf) >= BATCH:
-                        await db["s1_installed_apps"].bulk_write(buf, ordered=False)
+                        await db[INSTALLED_APPS].bulk_write(buf, ordered=False)
                         apps_synced += len(buf)
                         buf.clear()
                         resume_cursor = (
@@ -202,14 +204,14 @@ class AppsPhaseRunner(PhaseRunner):
 
         # Flush remaining buffer
         if buf:
-            await db["s1_installed_apps"].bulk_write(buf, ordered=False)
+            await db[INSTALLED_APPS].bulk_write(buf, ordered=False)
             apps_synced += len(buf)
 
         # Persist high-water mark and timestamp
         meta_update: dict[str, str] = {"apps_synced_at": sync_started_at}
         if max_app_id_seen:
             meta_update["max_app_id"] = str(max_app_id_seen)
-        await db["s1_sync_meta"].update_one(
+        await db[SYNC_META].update_one(
             {"_id": "global"},
             {"$set": meta_update},
             upsert=True,
@@ -219,12 +221,12 @@ class AppsPhaseRunner(PhaseRunner):
 
         # Full sync: soft-delete stale, reactivate returning
         if is_full:
-            stale = await db["s1_installed_apps"].update_many(
+            stale = await db[INSTALLED_APPS].update_many(
                 {"last_synced_at": {"$lt": sync_started_at}, "active": {"$ne": False}},
                 {"$set": {"active": False}},
             )
             logger.info("Apps — soft-deleted {} stale records", stale.modified_count)
-            reactivated = await db["s1_installed_apps"].update_many(
+            reactivated = await db[INSTALLED_APPS].update_many(
                 {"last_synced_at": {"$gte": sync_started_at}, "active": False},
                 {"$set": {"active": True}},
             )
@@ -262,20 +264,20 @@ class AppsPhaseRunner(PhaseRunner):
                 {"$group": {"_id": "$agent_id", "names": {"$addToSet": "$normalized_name"}}},
             ]
             ops: list = []
-            async for grp in db["s1_installed_apps"].aggregate(pipeline, allowDiskUse=True):
+            async for grp in db[INSTALLED_APPS].aggregate(pipeline, allowDiskUse=True):
                 if not grp.get("_id"):
                     continue
                 ops.append(
                     UpdateOne(
-                        {"s1_agent_id": grp["_id"]},
+                        {"source_id": grp["_id"]},
                         {"$set": {"installed_app_names": [n for n in grp["names"] if n]}},
                     )
                 )
                 if len(ops) >= 1000:
-                    await db["s1_agents"].bulk_write(ops, ordered=False)
+                    await db[AGENTS].bulk_write(ops, ordered=False)
                     ops.clear()
             if ops:
-                await db["s1_agents"].bulk_write(ops, ordered=False)
+                await db[AGENTS].bulk_write(ops, ordered=False)
             logger.info(
                 "Apps — denorm done for {} agents",
                 len(agent_ids) if agent_ids is not None else "all",

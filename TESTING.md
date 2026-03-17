@@ -84,6 +84,7 @@ backend/tests/
 │   ├── test_tag_matcher.py                  # Tag rule pattern matching against app names
 │   ├── test_db_indexes.py                   # ensure_all_indexes() runs and is idempotent
 │   ├── test_compliance_checks.py            # Compliance check type evaluation logic
+│   ├── test_dora_framework.py              # DORA framework definition validation (20 controls, 5 categories)
 │   ├── test_enforcement_engine.py           # Enforcement rule evaluation logic
 │   ├── test_sso_provisioning.py             # OIDC/SAML subject-based user provisioning
 │   ├── test_user_revocation.py              # User revocation cache refresh and disabled-user rejection

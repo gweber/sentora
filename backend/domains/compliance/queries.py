@@ -149,6 +149,7 @@ async def get_framework_detail(
                     else list(defn.scope_groups)
                 ),
                 enabled=cc.enabled if cc else True,
+                disable_reason=cc.disable_reason if cc else None,
                 hipaa_type=defn.hipaa_type.value if defn.hipaa_type else None,
                 bsi_level=defn.bsi_level.value if defn.bsi_level else None,
                 remediation=defn.remediation,
@@ -189,6 +190,7 @@ async def get_framework_detail(
                     else list(custom.scope_groups)
                 ),
                 enabled=cc.enabled if cc else True,
+                disable_reason=cc.disable_reason if cc else None,
                 remediation=custom.remediation,
                 is_custom=True,
             )

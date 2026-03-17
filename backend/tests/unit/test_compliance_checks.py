@@ -33,7 +33,8 @@ async def seeded_agents(test_db: AsyncIOMotorDatabase) -> AsyncIOMotorDatabase: 
     # Agents
     agents = [
         {
-            "s1_agent_id": "agent-1",
+            "source": "sentinelone",
+            "source_id": "agent-1",
             "hostname": "workstation-1",
             "agent_version": "23.3.1.500",
             "last_active": now - timedelta(hours=1),
@@ -45,7 +46,8 @@ async def seeded_agents(test_db: AsyncIOMotorDatabase) -> AsyncIOMotorDatabase: 
             "synced_at": now,
         },
         {
-            "s1_agent_id": "agent-2",
+            "source": "sentinelone",
+            "source_id": "agent-2",
             "hostname": "workstation-2",
             "agent_version": "23.1.0.100",
             "last_active": now - timedelta(days=14),
@@ -57,7 +59,8 @@ async def seeded_agents(test_db: AsyncIOMotorDatabase) -> AsyncIOMotorDatabase: 
             "synced_at": now,
         },
         {
-            "s1_agent_id": "agent-3",
+            "source": "sentinelone",
+            "source_id": "agent-3",
             "hostname": "workstation-3",
             "agent_version": "23.3.1.500",
             "last_active": now - timedelta(minutes=30),
@@ -69,7 +72,7 @@ async def seeded_agents(test_db: AsyncIOMotorDatabase) -> AsyncIOMotorDatabase: 
             "synced_at": now,
         },
     ]
-    await test_db["s1_agents"].insert_many(agents)
+    await test_db["agents"].insert_many(agents)
 
     # Installed apps
     apps = [
@@ -137,10 +140,10 @@ async def seeded_agents(test_db: AsyncIOMotorDatabase) -> AsyncIOMotorDatabase: 
             "last_synced_at": now,
         },
     ]
-    await test_db["s1_installed_apps"].insert_many(apps)
+    await test_db["installed_apps"].insert_many(apps)
 
     # Sync run
-    await test_db["s1_sync_runs"].insert_one(
+    await test_db["sync_runs"].insert_one(
         {
             "run_id": "sync-1",
             "status": "completed",
@@ -560,8 +563,8 @@ class TestCustomAppPresenceCheck:
         assert result.non_compliant_endpoints == 1
 
     @pytest.mark.asyncio
-    async def test_no_pattern_returns_error(self, seeded_agents: AsyncIOMotorDatabase) -> None:  # type: ignore[type-arg]
-        """Missing app_pattern returns error status."""
+    async def test_no_pattern_returns_not_applicable(self, seeded_agents: AsyncIOMotorDatabase) -> None:  # type: ignore[type-arg]
+        """Missing app_pattern returns not_applicable status."""
         from domains.compliance.checks.custom_app_presence import execute
 
         result = await execute(
@@ -574,4 +577,4 @@ class TestCustomAppPresenceCheck:
             parameters={"app_pattern": "", "must_exist": True},
             scope_filter={},
         )
-        assert result.status.value == "error"
+        assert result.status.value == "not_applicable"

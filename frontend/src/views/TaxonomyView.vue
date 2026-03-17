@@ -173,11 +173,34 @@ async function toggleEntryPreview(entry: SoftwareEntry) {
 
 // ── Category selection from sidebar ───────────────────────────────────────────
 
+const showingUniversal = ref(false)
+const universalEntries = ref<SoftwareEntry[]>([])
+const loadingUniversal = ref(false)
+
 async function onCategorySelected(cat: CategorySummary) {
+  showingUniversal.value = false
   selectedCategory.value = cat
   previewEntryId.value = null
   previewData.value = null
   await taxStore.fetchEntriesByCategory(cat.key)
+}
+
+async function showUniversalEntries() {
+  showingUniversal.value = true
+  selectedCategory.value = null
+  previewEntryId.value = null
+  previewData.value = null
+  loadingUniversal.value = true
+  try {
+    const cats = await taxonomyApi.listCategories()
+    const all: SoftwareEntry[] = []
+    await Promise.all(cats.categories.map(async (cat) => {
+      const res = await taxonomyApi.getEntriesByCategory(cat.key)
+      all.push(...res.entries.filter((e) => e.is_universal))
+    }))
+    universalEntries.value = all.sort((a, b) => a.name.localeCompare(b.name))
+  } catch { /* ignore */ }
+  finally { loadingUniversal.value = false }
 }
 </script>
 
@@ -185,17 +208,78 @@ async function onCategorySelected(cat: CategorySummary) {
   <div class="flex h-full overflow-hidden">
 
     <!-- ── Left: Category sidebar ─────────────────────────────────────────── -->
-    <CategorySidebar
-      title="Categories"
-      searchable
-      :active-key="selectedCategory?.key ?? null"
-      @select="onCategorySelected"
-    />
+    <div class="flex flex-col shrink-0" style="width: 240px; border-right: 1px solid var(--border); background: var(--surface);">
+      <!-- Universal virtual category -->
+      <button
+        class="flex items-center gap-2 mx-3 mt-3 mb-1 px-3 py-2 rounded-lg text-[12px] font-medium transition-colors"
+        :style="showingUniversal
+          ? 'background: var(--accent-bg); color: var(--accent-text); border: 1px solid var(--accent-muted);'
+          : 'color: var(--text-2); border: 1px solid transparent;'"
+        @click="showUniversalEntries"
+      >
+        <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064" />
+        </svg>
+        Universal Exclusions
+        <span v-if="universalEntries.length" class="ml-auto text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style="background: var(--accent-muted); color: var(--accent-text);">{{ universalEntries.length }}</span>
+      </button>
+      <div style="border-bottom: 1px solid var(--border-light);" class="mx-3 mb-1"></div>
+      <CategorySidebar
+        title="Categories"
+        searchable
+        :active-key="showingUniversal ? null : (selectedCategory?.key ?? null)"
+        @select="onCategorySelected"
+      />
+    </div>
 
     <!-- ── Right: Entries ─────────────────────────────────────────────────── -->
     <main class="flex-1 overflow-y-auto p-6">
 
-      <div v-if="!selectedCategory"
+      <!-- Universal entries view -->
+      <div v-if="showingUniversal" class="space-y-4">
+        <div>
+          <h2 class="text-[15px] font-semibold" style="color: var(--heading);">Universal Exclusions</h2>
+          <p class="text-[12px] mt-0.5" style="color: var(--text-3);">
+            Software excluded from fingerprint scoring because it appears on most agents.
+            {{ universalEntries.length }} entries across all categories.
+          </p>
+        </div>
+        <div v-if="loadingUniversal" class="space-y-2">
+          <div v-for="i in 5" :key="i" class="skeleton h-12 rounded-lg"></div>
+        </div>
+        <div v-else-if="universalEntries.length === 0" class="text-[13px] py-8 text-center" style="color: var(--text-3);">
+          No entries are marked as universal. Use the "Mark Universal" button on any taxonomy entry.
+        </div>
+        <div v-else class="space-y-2">
+          <div
+            v-for="entry in universalEntries" :key="entry.id"
+            class="flex items-center justify-between px-4 py-3 rounded-lg"
+            style="background: var(--surface); border: 1px solid var(--border);"
+          >
+            <div class="min-w-0">
+              <div class="flex items-center gap-2">
+                <span class="text-[13px] font-semibold" style="color: var(--heading);">{{ entry.name }}</span>
+                <span class="text-[10px] font-medium px-1.5 py-0.5 rounded" style="background: var(--accent-bg); color: var(--accent-text);">{{ entry.category_display }}</span>
+              </div>
+              <div v-if="entry.patterns?.length" class="flex flex-wrap gap-1 mt-1">
+                <span v-for="p in entry.patterns" :key="p" class="text-[10px] font-mono px-1.5 py-0.5 rounded" style="background: var(--surface-inset); color: var(--text-3);">{{ p }}</span>
+              </div>
+            </div>
+            <button
+              class="flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium transition-colors shrink-0 ml-3"
+              style="color: var(--error-text);"
+              :title="`Remove '${entry.name}' from universal exclusions`"
+              @click="handleToggleUniversal(entry)"
+            >
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+              Remove
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Empty state -->
+      <div v-else-if="!selectedCategory"
         class="flex items-center justify-center h-full text-[13px]" style="color: var(--text-3);">
         Select a category to see entries.
       </div>
@@ -247,7 +331,7 @@ async function onCategorySelected(cat: CategorySummary) {
                   <span v-if="entry.publisher" class="text-[11px]" style="color: var(--text-3);">{{ entry.publisher }}</span>
                   <span
                     v-if="entry.is_universal"
-                    class="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-[var(--brand-primary-light)] text-[var(--brand-primary)] border border-[var(--brand-primary-light)]"
+                    class="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-[var(--surface-inset)] text-[var(--info-text)] border border-[var(--brand-primary-light)]"
                   >
                     Universal
                   </span>
@@ -272,10 +356,11 @@ async function onCategorySelected(cat: CategorySummary) {
                 <!-- Inline preview panel (per entry, all patterns) -->
                 <div
                   v-if="previewEntryId === entry.id"
-                  class="mt-2 rounded-lg border border-[var(--brand-primary-light)] bg-[var(--brand-primary-light)] p-3"
+                  class="mt-2 rounded-lg p-3"
+                  style="background: var(--info-bg); border: 1px solid var(--border);"
                 >
                   <!-- Loading -->
-                  <div v-if="previewLoading" class="text-[11px] text-[var(--brand-primary)] flex items-center gap-1.5">
+                  <div v-if="previewLoading" class="text-[11px] text-[var(--info-text)] flex items-center gap-1.5">
                     <svg class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
                       <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
                       <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
@@ -292,7 +377,7 @@ async function onCategorySelected(cat: CategorySummary) {
                   <template v-else>
                     <!-- Stats row -->
                     <div class="flex items-center gap-3 mb-2.5">
-                      <span class="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-[var(--brand-primary-light)] text-[var(--brand-primary)]">
+                      <span class="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-[var(--surface-inset)] text-[var(--info-text)]">
                         {{ previewData.total_apps }} app{{ previewData.total_apps !== 1 ? 's' : '' }}
                       </span>
                       <span class="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-[var(--success-bg)] text-[var(--success-text)]">
@@ -303,16 +388,16 @@ async function onCategorySelected(cat: CategorySummary) {
                     <!-- Matched apps table -->
                     <div class="overflow-y-auto max-h-[180px] mb-2">
                       <table class="w-full text-[11px]">
-                        <thead class="bg-[var(--brand-primary-light)] sticky top-0">
+                        <thead class="bg-[var(--surface-inset)] sticky top-0">
                           <tr>
-                            <th scope="col" class="text-left px-2 py-1 font-semibold text-[var(--brand-primary)]">App Name</th>
-                            <th scope="col" class="text-left px-2 py-1 font-semibold text-[var(--brand-primary)]">Publisher</th>
-                            <th scope="col" class="text-right px-2 py-1 font-semibold text-[var(--brand-primary)]">Agents</th>
+                            <th scope="col" class="text-left px-2 py-1 font-semibold text-[var(--info-text)]">App Name</th>
+                            <th scope="col" class="text-left px-2 py-1 font-semibold text-[var(--info-text)]">Publisher</th>
+                            <th scope="col" class="text-right px-2 py-1 font-semibold text-[var(--info-text)]">Agents</th>
                           </tr>
                         </thead>
-                        <tbody class="divide-y divide-[var(--brand-primary-light)]">
-                          <tr v-for="m in previewData.app_matches" :key="m.normalized_name" class="hover:bg-[var(--brand-primary-light)]">
-                            <td class="px-2 py-1 font-medium" style="color: var(--text-2);">{{ m.display_name }}</td>
+                        <tbody class="divide-y divide-[var(--border-light)]">
+                          <tr v-for="m in previewData.app_matches" :key="m.normalized_name" class="hover:bg-[var(--surface-inset)]">
+                            <td class="px-2 py-1 font-medium"><router-link :to="`/apps/${encodeURIComponent(m.normalized_name)}`" class="hover:underline" style="color: var(--info-text);">{{ m.display_name }}</router-link></td>
                             <td class="px-2 py-1" style="color: var(--text-3);">{{ m.publisher || '—' }}</td>
                             <td class="px-2 py-1 text-right font-mono" style="color: var(--text-2);">{{ m.agent_count }}</td>
                           </tr>
@@ -322,14 +407,14 @@ async function onCategorySelected(cat: CategorySummary) {
 
                     <!-- Group breakdown -->
                     <div v-if="previewData.group_counts.length > 0">
-                      <p class="text-[10px] font-semibold text-[var(--brand-primary)] uppercase tracking-wide mb-1">By Group</p>
+                      <p class="text-[10px] font-semibold text-[var(--info-text)] uppercase tracking-wide mb-1">By Group</p>
                       <div class="flex flex-wrap gap-1.5">
                         <span
                           v-for="g in previewData.group_counts"
                           :key="g.group_name"
                           class="text-[10px] px-1.5 py-0.5 rounded border border-[var(--brand-primary-light)]" style="background: var(--surface); color: var(--text-2);"
                         >
-                          {{ g.group_name }} <span class="font-semibold text-[var(--brand-primary)]">{{ g.agent_count }}</span>
+                          {{ g.group_name }} <span class="font-semibold text-[var(--info-text)]">{{ g.agent_count }}</span>
                         </span>
                       </div>
                     </div>
@@ -347,7 +432,7 @@ async function onCategorySelected(cat: CategorySummary) {
                 <button
                   class="p-1.5 rounded-md transition-colors"
                   :class="previewEntryId === entry.id
-                    ? 'bg-[var(--brand-primary-light)] text-[var(--brand-primary)]'
+                    ? 'bg-[var(--surface-inset)] text-[var(--info-text)]'
                     : ''"
                   :style="previewEntryId === entry.id ? '' : 'color: var(--text-3);'"
                   :title="previewEntryId === entry.id ? 'Hide preview' : 'Preview matches'"
@@ -361,18 +446,18 @@ async function onCategorySelected(cat: CategorySummary) {
 
                 <!-- Toggle universal -->
                 <button
-                  :title="entry.is_universal ? 'Remove universal flag' : 'Mark as universal'"
-                  class="p-1.5 rounded-md transition-colors"
-                  :class="entry.is_universal
-                    ? 'bg-[var(--brand-primary-light)] text-[var(--brand-primary)] hover:bg-[var(--brand-primary-light)]'
-                    : ''"
-                  :style="entry.is_universal ? '' : 'color: var(--text-3);'"
+                  :title="entry.is_universal ? 'Remove universal flag — app will be included in fingerprint scoring' : 'Mark as universal — app will be excluded from fingerprint scoring'"
+                  class="flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium transition-colors"
+                  :style="entry.is_universal
+                    ? 'background: var(--accent-bg); color: var(--accent-text); border: 1px solid var(--accent-muted);'
+                    : 'color: var(--text-3); border: 1px solid transparent;'"
                   @click="handleToggleUniversal(entry)"
                 >
                   <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                       d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064" />
                   </svg>
+                  {{ entry.is_universal ? 'Universal' : 'Mark Universal' }}
                 </button>
 
                 <!-- Edit -->
@@ -550,7 +635,7 @@ async function onCategorySelected(cat: CategorySummary) {
               <input
                 v-model="form.is_universal"
                 type="checkbox"
-                class="w-4 h-4 rounded border-gray-300 text-[var(--brand-primary)] focus:ring-[var(--brand-primary)]"
+                class="w-4 h-4 rounded border-[var(--border)] text-[var(--info-text)] focus:ring-[var(--brand-primary)]"
               />
               <span class="text-[13px]" style="color: var(--text-2);">
                 Universal

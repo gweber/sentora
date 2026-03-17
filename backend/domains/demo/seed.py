@@ -2,7 +2,7 @@
 
 Creates fake sites, groups, agents, installed apps, fingerprints, and
 classification results so the UI can be demonstrated without a live
-SentinelOne connection.
+data source connection.
 
 This module is idempotent: if demo data already exists (checked via
 a marker document), the seed is skipped.
@@ -15,6 +15,7 @@ from typing import Any
 from loguru import logger
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
+from domains.sources.collections import AGENTS, GROUPS, INSTALLED_APPS, SITES, SYNC_META
 from utils.dt import utc_now
 
 _DEMO_MARKER = {"_id": "demo_seed", "seeded": True}
@@ -41,7 +42,7 @@ async def seed_demo_data(db: AsyncIOMotorDatabase) -> dict[str, Any]:  # type: i
     # ── Sites ────────────────────────────────────────────────────────────────
     sites = [
         {
-            "s1_site_id": "site-hq",
+            "source_id": "site-hq",
             "name": "HQ — San Francisco",
             "account_id": "acct-1",
             "account_name": "Acme Corp",
@@ -50,7 +51,7 @@ async def seed_demo_data(db: AsyncIOMotorDatabase) -> dict[str, Any]:  # type: i
             "_demo": True,
         },
         {
-            "s1_site_id": "site-eu",
+            "source_id": "site-eu",
             "name": "EU — Frankfurt",
             "account_id": "acct-1",
             "account_name": "Acme Corp",
@@ -59,7 +60,7 @@ async def seed_demo_data(db: AsyncIOMotorDatabase) -> dict[str, Any]:  # type: i
             "_demo": True,
         },
         {
-            "s1_site_id": "site-asia",
+            "source_id": "site-asia",
             "name": "APAC — Singapore",
             "account_id": "acct-1",
             "account_name": "Acme Corp",
@@ -68,13 +69,13 @@ async def seed_demo_data(db: AsyncIOMotorDatabase) -> dict[str, Any]:  # type: i
             "_demo": True,
         },
     ]
-    await db["s1_sites"].insert_many(sites)
+    await db[SITES].insert_many(sites)
     counts["sites"] = len(sites)
 
     # ── Groups ───────────────────────────────────────────────────────────────
     groups = [
         {
-            "s1_group_id": "grp-eng",
+            "source_id": "grp-eng",
             "name": "Engineering",
             "site_id": "site-hq",
             "site_name": "HQ — San Francisco",
@@ -83,7 +84,7 @@ async def seed_demo_data(db: AsyncIOMotorDatabase) -> dict[str, Any]:  # type: i
             "_demo": True,
         },
         {
-            "s1_group_id": "grp-finance",
+            "source_id": "grp-finance",
             "name": "Finance",
             "site_id": "site-hq",
             "site_name": "HQ — San Francisco",
@@ -92,7 +93,7 @@ async def seed_demo_data(db: AsyncIOMotorDatabase) -> dict[str, Any]:  # type: i
             "_demo": True,
         },
         {
-            "s1_group_id": "grp-scada",
+            "source_id": "grp-scada",
             "name": "SCADA / OT",
             "site_id": "site-eu",
             "site_name": "EU — Frankfurt",
@@ -101,7 +102,7 @@ async def seed_demo_data(db: AsyncIOMotorDatabase) -> dict[str, Any]:  # type: i
             "_demo": True,
         },
         {
-            "s1_group_id": "grp-lab",
+            "source_id": "grp-lab",
             "name": "QA Lab",
             "site_id": "site-eu",
             "site_name": "EU — Frankfurt",
@@ -110,7 +111,7 @@ async def seed_demo_data(db: AsyncIOMotorDatabase) -> dict[str, Any]:  # type: i
             "_demo": True,
         },
         {
-            "s1_group_id": "grp-sales",
+            "source_id": "grp-sales",
             "name": "Sales",
             "site_id": "site-asia",
             "site_name": "APAC — Singapore",
@@ -119,7 +120,7 @@ async def seed_demo_data(db: AsyncIOMotorDatabase) -> dict[str, Any]:  # type: i
             "_demo": True,
         },
         {
-            "s1_group_id": "grp-exec",
+            "source_id": "grp-exec",
             "name": "Executive",
             "site_id": "site-hq",
             "site_name": "HQ — San Francisco",
@@ -128,7 +129,7 @@ async def seed_demo_data(db: AsyncIOMotorDatabase) -> dict[str, Any]:  # type: i
             "_demo": True,
         },
     ]
-    await db["s1_groups"].insert_many(groups)
+    await db[GROUPS].insert_many(groups)
     counts["groups"] = len(groups)
 
     # ── Agents ───────────────────────────────────────────────────────────────
@@ -151,7 +152,7 @@ async def seed_demo_data(db: AsyncIOMotorDatabase) -> dict[str, Any]:  # type: i
         aid = f"agent-eng-{i:03d}"
         agents.append(
             {
-                "s1_agent_id": aid,
+                "source_id": aid,
                 "hostname": f"eng-ws-{i:03d}",
                 "os_type": "windows",
                 "os_name": "Windows 11 Pro",
@@ -166,7 +167,7 @@ async def seed_demo_data(db: AsyncIOMotorDatabase) -> dict[str, Any]:  # type: i
                 "is_active": True,
                 "last_active_date": now,
                 "created_at": now,
-                "network_status": "connected",
+                "agent_status": "connected",
                 "machine_type": "desktop",
                 "_demo": True,
             }
@@ -193,7 +194,7 @@ async def seed_demo_data(db: AsyncIOMotorDatabase) -> dict[str, Any]:  # type: i
         aid = f"agent-fin-{i:03d}"
         agents.append(
             {
-                "s1_agent_id": aid,
+                "source_id": aid,
                 "hostname": f"fin-ws-{i:03d}",
                 "os_type": "windows",
                 "os_name": "Windows 11 Enterprise",
@@ -208,7 +209,7 @@ async def seed_demo_data(db: AsyncIOMotorDatabase) -> dict[str, Any]:  # type: i
                 "is_active": True,
                 "last_active_date": now,
                 "created_at": now,
-                "network_status": "connected",
+                "agent_status": "connected",
                 "machine_type": "desktop",
                 "_demo": True,
             }
@@ -230,7 +231,7 @@ async def seed_demo_data(db: AsyncIOMotorDatabase) -> dict[str, Any]:  # type: i
         aid = f"agent-scada-{i:03d}"
         agents.append(
             {
-                "s1_agent_id": aid,
+                "source_id": aid,
                 "hostname": f"scada-hmi-{i:03d}",
                 "os_type": "windows",
                 "os_name": "Windows 10 LTSC",
@@ -245,7 +246,7 @@ async def seed_demo_data(db: AsyncIOMotorDatabase) -> dict[str, Any]:  # type: i
                 "is_active": True,
                 "last_active_date": now,
                 "created_at": now,
-                "network_status": "connected",
+                "agent_status": "connected",
                 "machine_type": "desktop",
                 "_demo": True,
             }
@@ -266,7 +267,7 @@ async def seed_demo_data(db: AsyncIOMotorDatabase) -> dict[str, Any]:  # type: i
         aid = f"agent-lab-{i:03d}"
         agents.append(
             {
-                "s1_agent_id": aid,
+                "source_id": aid,
                 "hostname": f"qa-vm-{i:03d}",
                 "os_type": "linux",
                 "os_name": "Ubuntu 22.04 LTS",
@@ -281,7 +282,7 @@ async def seed_demo_data(db: AsyncIOMotorDatabase) -> dict[str, Any]:  # type: i
                 "is_active": True,
                 "last_active_date": now,
                 "created_at": now,
-                "network_status": "connected",
+                "agent_status": "connected",
                 "machine_type": "server",
                 "_demo": True,
             }
@@ -303,7 +304,7 @@ async def seed_demo_data(db: AsyncIOMotorDatabase) -> dict[str, Any]:  # type: i
         aid = f"agent-sales-{i:03d}"
         agents.append(
             {
-                "s1_agent_id": aid,
+                "source_id": aid,
                 "hostname": f"sales-nb-{i:03d}",
                 "os_type": "macos",
                 "os_name": "macOS Sonoma 14.4",
@@ -318,7 +319,7 @@ async def seed_demo_data(db: AsyncIOMotorDatabase) -> dict[str, Any]:  # type: i
                 "is_active": True,
                 "last_active_date": now,
                 "created_at": now,
-                "network_status": "connected",
+                "agent_status": "connected",
                 "machine_type": "laptop",
                 "_demo": True,
             }
@@ -339,7 +340,7 @@ async def seed_demo_data(db: AsyncIOMotorDatabase) -> dict[str, Any]:  # type: i
         aid = f"agent-exec-{i:03d}"
         agents.append(
             {
-                "s1_agent_id": aid,
+                "source_id": aid,
                 "hostname": f"exec-mb-{i:03d}",
                 "os_type": "macos",
                 "os_name": "macOS Sonoma 14.4",
@@ -354,14 +355,14 @@ async def seed_demo_data(db: AsyncIOMotorDatabase) -> dict[str, Any]:  # type: i
                 "is_active": True,
                 "last_active_date": now,
                 "created_at": now,
-                "network_status": "connected",
+                "agent_status": "connected",
                 "machine_type": "laptop",
                 "_demo": True,
             }
         )
         agent_app_map[aid] = list(exec_apps)
 
-    await db["s1_agents"].insert_many(agents)
+    await db[AGENTS].insert_many(agents)
     counts["agents"] = len(agents)
 
     # ── Installed Apps ───────────────────────────────────────────────────────
@@ -416,7 +417,7 @@ async def seed_demo_data(db: AsyncIOMotorDatabase) -> dict[str, Any]:  # type: i
             )
 
     if installed_apps:
-        await db["s1_installed_apps"].insert_many(installed_apps)
+        await db[INSTALLED_APPS].insert_many(installed_apps)
     counts["installed_apps"] = len(installed_apps)
 
     # ── Fingerprints ─────────────────────────────────────────────────────────
@@ -557,15 +558,15 @@ async def seed_demo_data(db: AsyncIOMotorDatabase) -> dict[str, Any]:  # type: i
         # Most agents classified correctly
         classification = "correct"
         score = 0.85
-        if agent["s1_agent_id"].endswith("-003"):
+        if agent["source_id"].endswith("-003"):
             classification = "ambiguous"
             score = 0.55
-        if agent["s1_agent_id"].endswith("-007"):
+        if agent["source_id"].endswith("-007"):
             classification = "misclassified"
             score = 0.25
         results.append(
             {
-                "agent_id": agent["s1_agent_id"],
+                "agent_id": agent["source_id"],
                 "hostname": agent["hostname"],
                 "current_group_id": gid,
                 "current_group_name": gname,
@@ -584,7 +585,7 @@ async def seed_demo_data(db: AsyncIOMotorDatabase) -> dict[str, Any]:  # type: i
     counts["classification_results"] = len(results)
 
     # ── Sync metadata ────────────────────────────────────────────────────────
-    await db["s1_sync_meta"].update_one(
+    await db[SYNC_META].update_one(
         {"_id": "global"},
         {
             "$set": {
@@ -615,13 +616,13 @@ async def clear_demo_data(db: AsyncIOMotorDatabase) -> None:  # type: ignore[typ
         logger.info("No demo data to clear — skipping")
         return
     collections = [
-        "s1_sites",
-        "s1_groups",
-        "s1_agents",
-        "s1_installed_apps",
+        SITES,
+        GROUPS,
+        AGENTS,
+        INSTALLED_APPS,
         "fingerprints",
         "classification_results",
-        "s1_sync_meta",
+        SYNC_META,
     ]
     for col in collections:
         result = await db[col].delete_many({"_demo": True})

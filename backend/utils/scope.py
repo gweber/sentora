@@ -1,7 +1,7 @@
 """Shared scope filter builder for agent queries.
 
 Used by both the compliance and enforcement domains to build MongoDB
-filters that restrict agent queries to specific S1 groups and/or tags.
+filters that restrict agent queries to specific groups and/or tags.
 """
 
 from __future__ import annotations
@@ -21,11 +21,11 @@ def build_agent_scope_filter(
 
     ``scope_groups`` filters on the ``group_name`` field and
     ``scope_tags`` filters on the ``tags`` array field of the
-    ``s1_agents`` collection.
+    ``agents`` collection.
 
     Args:
-        scope_tags: SentinelOne tags to filter agents by.
-        scope_groups: SentinelOne group names to filter agents by.
+        scope_tags: Source tags to filter agents by.
+        scope_groups: Group names to filter agents by.
 
     Returns:
         A MongoDB query filter dict.

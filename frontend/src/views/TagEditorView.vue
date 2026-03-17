@@ -1,6 +1,6 @@
 <!--
   Tag Management — professional asset tag management UI.
-  Left sidebar: S1 tags overview + tag rules list (searchable).
+  Left sidebar: Source tags overview + tag rules list (searchable).
   Main area: Three-panel editor (catalog | patterns | preview) when a rule is active.
 -->
 <script setup lang="ts">
@@ -10,7 +10,7 @@ import { useTagStore } from '@/stores/useTagStore'
 import { useTaxonomyStore } from '@/stores/useTaxonomyStore'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import type { SoftwareEntry, PatternPreviewResponse } from '@/types/taxonomy'
-import type { TagRule, TagRulePattern, S1Tag } from '@/types/tags'
+import type { TagRule, TagRulePattern, SourceTag } from '@/types/tags'
 import * as taxonomyApi from '@/api/taxonomy'
 import * as tagsApi from '@/api/tags'
 
@@ -20,10 +20,10 @@ const tagStore = useTagStore()
 const taxStore = useTaxonomyStore()
 const { execute: guardedExecute } = useAsyncAction()
 
-// ── S1 Tags state ──────────────────────────────────────────────────────────────
-const s1Tags = ref<S1Tag[]>([])
-const s1TagsLoading = ref(false)
-const s1TagSearch = ref('')
+// ── Source Tags state ─────────────────────────────────────────────────────────
+const sourceTags = ref<SourceTag[]>([])
+const sourceTagsLoading = ref(false)
+const sourceTagSearch = ref('')
 
 // ── Route + active state ───────────────────────────────────────────────────────
 const ruleId = computed(() => (route.params.ruleId as string) || '')
@@ -58,22 +58,22 @@ onMounted(async () => {
   await Promise.all([
     taxStore.fetchCategories(),
     tagStore.fetchRules(),
-    loadS1Tags(),
+    loadSourceTags(),
   ])
   if (ruleId.value) {
     await tagStore.loadRule(ruleId.value)
   }
 })
 
-async function loadS1Tags() {
-  s1TagsLoading.value = true
+async function loadSourceTags() {
+  sourceTagsLoading.value = true
   try {
     const resp = await tagsApi.listSyncedTags()
-    s1Tags.value = resp.tags
+    sourceTags.value = resp.tags
   } catch {
-    s1Tags.value = []
+    sourceTags.value = []
   } finally {
-    s1TagsLoading.value = false
+    sourceTagsLoading.value = false
   }
 }
 
@@ -94,14 +94,14 @@ watch(
   },
 )
 
-// ── S1 Tags computed ───────────────────────────────────────────────────────────
+// ── Source Tags computed ──────────────────────────────────────────────────────
 
 /** Unique tag names with their scopes and whether a rule exists */
-const s1TagGroups = computed(() => {
-  const q = s1TagSearch.value.toLowerCase().trim()
-  const tagsByName = new Map<string, { name: string; tags: S1Tag[]; rule: TagRule | null }>()
+const sourceTagGroups = computed(() => {
+  const q = sourceTagSearch.value.toLowerCase().trim()
+  const tagsByName = new Map<string, { name: string; tags: SourceTag[]; rule: TagRule | null }>()
 
-  for (const tag of s1Tags.value) {
+  for (const tag of sourceTags.value) {
     if (q && !tag.name.toLowerCase().includes(q)) continue
     if (!tagsByName.has(tag.name)) {
       const matchingRule = tagStore.rules.find((r) => r.tag_name === tag.name) ?? null
@@ -113,21 +113,21 @@ const s1TagGroups = computed(() => {
   return Array.from(tagsByName.values()).sort((a, b) => a.name.localeCompare(b.name))
 })
 
-/** Rules not linked to any S1 tag */
+/** Rules not linked to any source tag */
 const orphanRules = computed(() => {
-  const s1Names = new Set(s1Tags.value.map((t) => t.name))
+  const s1Names = new Set(sourceTags.value.map((t) => t.name))
   return tagStore.rules.filter((r) => !s1Names.has(r.tag_name))
 })
 
 const filteredRules = computed(() => {
-  const q = s1TagSearch.value.toLowerCase().trim()
+  const q = sourceTagSearch.value.toLowerCase().trim()
   if (!q) return tagStore.rules
   return tagStore.rules.filter(
     (r) => r.tag_name.toLowerCase().includes(q) || r.description.toLowerCase().includes(q),
   )
 })
 
-// ── S1 Tag actions ─────────────────────────────────────────────────────────────
+// ── Source Tag actions ────────────────────────────────────────────────────────
 
 async function openTagRule(tagKey: string) {
   const existing = tagStore.rules.find((r) => r.tag_name === tagKey)
@@ -409,7 +409,7 @@ function scopeStyle(scope: string): string {
   <div class="flex h-full overflow-hidden">
 
     <!-- ═══════════════════════════════════════════════════════════════════════
-         LEFT SIDEBAR — S1 Tags + Rules
+         LEFT SIDEBAR — Source Tags + Rules
          ═══════════════════════════════════════════════════════════════════════ -->
     <div class="w-[260px] shrink-0 flex flex-col overflow-hidden" style="border-right: 1px solid var(--border); background: var(--surface-alt);">
 
@@ -423,12 +423,12 @@ function scopeStyle(scope: string): string {
               : 'color: var(--text-3); border-color: transparent;'"
             @click="sidebarTab = 's1tags'"
           >
-            S1 Tags
+            Source Tags
             <span
-              v-if="s1Tags.length > 0"
+              v-if="sourceTags.length > 0"
               class="ml-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full"
               style="background: var(--badge-bg); color: var(--badge-text);"
-            >{{ s1Tags.length }}</span>
+            >{{ sourceTags.length }}</span>
           </button>
           <button
             class="flex-1 px-3 py-2.5 text-[11px] font-semibold uppercase tracking-widest transition-colors border-b-2 border-violet-500"
@@ -450,7 +450,7 @@ function scopeStyle(scope: string): string {
       <!-- Search -->
       <div class="shrink-0 px-3 py-2.5" style="border-bottom: 1px solid var(--border);">
         <input
-          v-model="s1TagSearch"
+          v-model="sourceTagSearch"
           type="text"
           :placeholder="sidebarTab === 's1tags' ? 'Search tags…' : 'Search rules…'"
           class="w-full text-[12px] px-2.5 py-1.5 rounded-md focus:outline-none focus:ring-1 focus:ring-violet-400 placeholder:text-[var(--text-3)]"
@@ -458,31 +458,31 @@ function scopeStyle(scope: string): string {
         />
       </div>
 
-      <!-- ── S1 Tags tab ─────────────────────────────────────────────────────── -->
+      <!-- ── Source Tags tab ──────────────────────────────────────────────────── -->
       <div v-if="sidebarTab === 's1tags'" class="flex-1 overflow-y-auto">
 
         <!-- Loading -->
-        <div v-if="s1TagsLoading" class="px-4 py-6 text-center">
+        <div v-if="sourceTagsLoading" class="px-4 py-6 text-center">
           <svg class="w-5 h-5 animate-spin mx-auto mb-2" style="color: var(--accent-text);" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
           </svg>
-          <p class="text-[11px]" style="color: var(--text-3);">Loading S1 tags…</p>
+          <p class="text-[11px]" style="color: var(--text-3);">Loading source tags…</p>
         </div>
 
         <!-- Empty state -->
-        <div v-else-if="s1Tags.length === 0" class="px-4 py-10 text-center">
+        <div v-else-if="sourceTags.length === 0" class="px-4 py-10 text-center">
           <svg class="w-8 h-8 mx-auto mb-2" style="color: var(--text-3); opacity: 0.5;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
           </svg>
-          <p class="text-[12px]" style="color: var(--text-3);">No S1 tags synced</p>
-          <p class="text-[11px] mt-1" style="color: var(--text-3); opacity: 0.6;">Run a sync to fetch tags from SentinelOne</p>
+          <p class="text-[12px]" style="color: var(--text-3);">No source tags synced</p>
+          <p class="text-[11px] mt-1" style="color: var(--text-3); opacity: 0.6;">Run a sync to fetch tags</p>
         </div>
 
-        <!-- S1 Tag groups (by key) -->
+        <!-- Source tag groups (by key) -->
         <div v-else>
           <div
-            v-for="group in s1TagGroups"
+            v-for="group in sourceTagGroups"
             :key="group.name"
             style="border-bottom: 1px solid var(--border-light);"
           >
@@ -542,7 +542,7 @@ function scopeStyle(scope: string): string {
         <!-- New Rule button -->
         <div class="px-3 py-2.5" style="border-bottom: 1px solid var(--border-light);">
           <button
-            class="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] font-medium bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition-colors"
+            class="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 text-[12px] font-medium bg-[var(--brand-primary)] text-white rounded-lg hover:opacity-90 transition-colors"
             @click="showNewRuleForm = !showNewRuleForm"
           >
             <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
@@ -560,7 +560,7 @@ function scopeStyle(scope: string): string {
           @submit.prevent="submitNewRule"
         >
           <div class="mb-2">
-            <label class="block text-[10px] mb-0.5" style="color: var(--text-3);">Tag name (S1 tag key)</label>
+            <label class="block text-[10px] mb-0.5" style="color: var(--text-3);">Tag name (source tag key)</label>
             <input
               v-model="newTagName"
               type="text"
@@ -580,12 +580,12 @@ function scopeStyle(scope: string): string {
               style="border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-1);"
             />
           </div>
-          <p v-if="createError" class="text-[10px] text-red-600 mb-2">{{ createError }}</p>
+          <p v-if="createError" class="text-[10px] text-[var(--error-text)] mb-2">{{ createError }}</p>
           <div class="flex items-center gap-2">
             <button
               type="submit"
               :disabled="isCreating || !newTagName.trim()"
-              class="px-2.5 py-1 text-[11px] font-medium bg-violet-600 text-white rounded-md hover:bg-violet-700 disabled:opacity-50 transition-colors"
+              class="px-2.5 py-1 text-[11px] font-medium bg-[var(--brand-primary)] text-white rounded-md hover:opacity-90 disabled:opacity-50 transition-colors"
             >{{ isCreating ? 'Creating…' : 'Create' }}</button>
             <button
               type="button"
@@ -599,7 +599,7 @@ function scopeStyle(scope: string): string {
         <!-- Rule list -->
         <div v-if="filteredRules.length === 0 && !tagStore.isLoading" class="px-4 py-10 text-center">
           <p class="text-[12px]" style="color: var(--text-3);">No tag rules yet</p>
-          <p class="text-[11px] mt-1" style="color: var(--text-3); opacity: 0.6;">Create one from an S1 tag or click New Rule</p>
+          <p class="text-[11px] mt-1" style="color: var(--text-3); opacity: 0.6;">Create one from a source tag or click New Rule</p>
         </div>
         <div
           v-for="rule in filteredRules"
@@ -638,9 +638,9 @@ function scopeStyle(scope: string): string {
           </button>
         </div>
 
-        <!-- Orphan rules section (rules without matching S1 tag) -->
+        <!-- Orphan rules section (rules without matching source tag) -->
         <div v-if="orphanRules.length > 0 && sidebarTab === 'rules'" class="mt-2 pt-1" style="border-top: 1px solid var(--border);">
-          <p class="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-widest" style="color: var(--text-3); opacity: 0.6;">No matching S1 tag</p>
+          <p class="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-widest" style="color: var(--text-3); opacity: 0.6;">No matching source tag</p>
         </div>
       </div>
     </div>
@@ -661,14 +661,14 @@ function scopeStyle(scope: string): string {
       </div>
       <h2 class="text-[17px] font-semibold mb-1.5" style="color: var(--heading);">Tag Management</h2>
       <p class="text-[13px] max-w-md mb-6 leading-relaxed" style="color: var(--text-3);">
-        Select an S1 tag from the sidebar to create or edit a rule, or click a rule to manage its patterns. Tag rules match installed applications to automatically assign S1 tags to agents.
+        Select a source tag from the sidebar to create or edit a rule, or click a rule to manage its patterns. Tag rules match installed applications to automatically assign tags to agents.
       </p>
       <div class="flex items-center gap-6 text-center">
         <div class="flex flex-col items-center gap-1.5">
           <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: var(--info-bg);">
-            <span class="text-[15px] font-bold" style="color: var(--info-text);">{{ s1Tags.length }}</span>
+            <span class="text-[15px] font-bold" style="color: var(--info-text);">{{ sourceTags.length }}</span>
           </div>
-          <span class="text-[11px]" style="color: var(--text-3);">S1 Tags</span>
+          <span class="text-[11px]" style="color: var(--text-3);">Source Tags</span>
         </div>
         <div class="flex flex-col items-center gap-1.5">
           <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: var(--accent-bg);">
@@ -711,7 +711,7 @@ function scopeStyle(scope: string): string {
             <div v-if="isEditingName" class="flex items-center gap-2">
               <input
                 v-model="editingName"
-                class="text-[15px] font-semibold rounded px-2 py-0.5 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                class="text-[15px] font-semibold rounded px-2 py-0.5 focus:outline-none focus:ring-1 focus:ring-[var(--input-focus)]"
                 style="color: var(--heading); border: 1px solid rgb(165 180 252);"
                 @blur="commitName"
                 @keydown.enter="commitName"
@@ -739,7 +739,7 @@ function scopeStyle(scope: string): string {
           >
             <span
               v-if="tagStore.activeRule.apply_status === 'running'"
-              class="inline-block w-2 h-2 rounded-full bg-amber-500 animate-pulse"
+              class="inline-block w-2 h-2 rounded-full bg-[var(--warn-bg)]0 animate-pulse"
             />
             {{ applyStatusLabel(tagStore.activeRule.apply_status) }}
             <span v-if="tagStore.activeRule.apply_status === 'done' && tagStore.activeRule.last_applied_count > 0">
@@ -750,7 +750,7 @@ function scopeStyle(scope: string): string {
             {{ patterns.length }} pattern{{ patterns.length !== 1 ? 's' : '' }}
           </span>
           <button
-            class="shrink-0 hover:text-red-500 transition-colors"
+            class="shrink-0 hover:text-[var(--error-text)] transition-colors"
             style="color: var(--text-3);"
             title="Delete this tag rule"
             @click="deleteActiveRule"
@@ -772,7 +772,7 @@ function scopeStyle(scope: string): string {
                 v-model="catalogSearch"
                 type="text"
                 placeholder="Search catalog…"
-                class="w-full text-[12px] px-2.5 py-1.5 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-400 placeholder:text-[var(--text-3)]"
+                class="w-full text-[12px] px-2.5 py-1.5 rounded-md focus:outline-none focus:ring-1 focus:ring-[var(--input-focus)] placeholder:text-[var(--text-3)]"
                 style="background: var(--input-bg); border: 1px solid var(--input-border); color: var(--text-1);"
               />
             </div>
@@ -915,7 +915,7 @@ function scopeStyle(scope: string): string {
                       <code class="text-[11px] font-mono" style="color: var(--text-3);">{{ p.pattern }}</code>
                     </div>
                     <button
-                      class="shrink-0 w-6 h-6 flex items-center justify-center rounded hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
+                      class="shrink-0 w-6 h-6 flex items-center justify-center rounded hover:text-[var(--error-text)] transition-colors opacity-0 group-hover:opacity-100"
                       style="color: var(--text-3);"
                       title="Remove pattern"
                       @click.stop="removePattern(p.id)"
@@ -950,19 +950,19 @@ function scopeStyle(scope: string): string {
                 {{ tagStore.isPreviewLoading ? 'Previewing…' : 'Preview' }}
               </button>
               <button
-                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium bg-violet-600 text-white rounded-lg hover:bg-violet-700 disabled:opacity-50 transition-colors"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium bg-[var(--brand-primary)] text-white rounded-lg hover:opacity-90 disabled:opacity-50 transition-colors"
                 :disabled="tagStore.isApplying || patterns.length === 0 || tagStore.activeRule?.apply_status === 'running'"
                 @click="runApply"
               >
                 <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                 </svg>
-                {{ tagStore.isApplying ? 'Applying…' : 'Apply to S1' }}
+                {{ tagStore.isApplying ? 'Applying…' : 'Apply' }}
               </button>
               <p v-if="patterns.length === 0" class="text-[11px]" style="color: var(--text-3);">
                 Add patterns before previewing or applying
               </p>
-              <p v-if="tagStore.error" class="text-[11px] text-red-500">{{ tagStore.error }}</p>
+              <p v-if="tagStore.error" class="text-[11px] text-[var(--error-text)]">{{ tagStore.error }}</p>
             </div>
           </div>
 
@@ -1093,7 +1093,7 @@ function scopeStyle(scope: string): string {
                 <div class="flex-1 overflow-y-auto">
                   <div
                     v-for="agent in tagStore.previewResult.agents"
-                    :key="agent.s1_agent_id"
+                    :key="agent.source_id"
                     class="px-4 py-3 transition-colors"
                     style="border-bottom: 1px solid var(--border-light);"
                   >
@@ -1113,7 +1113,7 @@ function scopeStyle(scope: string): string {
                         style="background: var(--accent-bg); color: var(--accent-text);"
                       >{{ mp }}</span>
                     </div>
-                    <!-- Existing S1 tags -->
+                    <!-- Existing tags -->
                     <div v-if="agent.existing_tags.length > 0" class="flex flex-wrap gap-1 mt-1.5">
                       <span class="text-[10px] mr-0.5" style="color: var(--text-3); opacity: 0.6;">Tags:</span>
                       <span

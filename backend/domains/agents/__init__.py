@@ -1,1 +1,1 @@
-"""Agents bounded context — read-only queries over synced S1 agent data."""
+"""Agents bounded context — read-only queries over synced agent data."""

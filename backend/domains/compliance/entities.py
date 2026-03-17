@@ -24,6 +24,11 @@ class FrameworkId(StrEnum):
     pci_dss = "pci_dss_4"
     hipaa = "hipaa"
     bsi = "bsi_grundschutz"
+    dora = "dora"
+    iso27001 = "iso27001"
+    nist_csf = "nist_csf"
+    nis2 = "nis2"
+    cis_v8 = "cis_v8"
 
 
 class ControlSeverity(StrEnum):
@@ -48,6 +53,7 @@ class CheckType(StrEnum):
     classification_coverage = "classification_coverage_check"
     delta_detection = "delta_detection_check"
     custom_app_presence = "custom_app_presence_check"
+    eol_software = "eol_software_check"
 
 
 class CheckStatus(StrEnum):
@@ -116,8 +122,8 @@ class ControlDefinition:
         severity: Default severity level.
         check_type: Which check implementation evaluates this control.
         parameters: Default parameters passed to the check function.
-        scope_tags: Default S1 tags to scope the check (empty = all).
-        scope_groups: Default S1 group names to scope the check.
+        scope_tags: Default source tags to scope the check (empty = all).
+        scope_groups: Default group names to scope the check.
         hipaa_type: HIPAA-only: required vs addressable safeguard.
         bsi_level: BSI-only: basis/standard/elevated requirement level.
         remediation: Default remediation guidance.
@@ -149,6 +155,9 @@ class ControlConfiguration:
         control_id: References ``ControlDefinition.id``.
         framework_id: References ``ControlDefinition.framework_id``.
         enabled: Whether this control is active for the tenant.
+        disable_reason: Free-text justification when disabling a control.
+            Useful for ISO 27001 Statement of Applicability (SoA) where
+            auditors require documented reasons for excluded controls.
         severity_override: Tenant-specific severity override.
         parameters_override: Merged over the definition's defaults.
         scope_tags_override: Replaces the default scope tags.
@@ -160,6 +169,7 @@ class ControlConfiguration:
     control_id: str
     framework_id: str
     enabled: bool = True
+    disable_reason: str | None = None
     severity_override: ControlSeverity | None = None
     parameters_override: dict[str, Any] = field(default_factory=dict)
     scope_tags_override: list[str] | None = None
@@ -173,7 +183,7 @@ class ComplianceViolation:
     """A single non-compliant finding on an endpoint.
 
     Attributes:
-        agent_id: SentinelOne agent ID.
+        agent_id: Source agent ID.
         agent_hostname: Hostname for display.
         violation_detail: Human-readable description of the violation.
         app_name: Offending application name (if applicable).
@@ -282,8 +292,8 @@ class CustomControlDefinition:
         severity: Severity level.
         check_type: Which check implementation to invoke.
         parameters: Parameters for the check function.
-        scope_tags: S1 tags to scope the check.
-        scope_groups: S1 group names to scope the check.
+        scope_tags: Source tags to scope the check.
+        scope_groups: Group names to scope the check.
         remediation: Remediation guidance.
         created_at: Creation timestamp.
         created_by: Creator username.

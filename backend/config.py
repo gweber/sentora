@@ -45,10 +45,32 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    # SentinelOne
+    # SentinelOne source adapter
     s1_base_url: str = Field(default="https://example.sentinelone.net")
     s1_api_token: str = Field(default="")
     s1_rate_limit_per_minute: int = Field(default=100, ge=1)
+
+    # CrowdStrike Falcon source adapter
+    cs_client_id: str = Field(default="", description="CrowdStrike OAuth2 Client ID")
+    cs_client_secret: str = Field(default="", description="CrowdStrike OAuth2 Client Secret")
+    cs_base_url: str = Field(
+        default="auto",
+        description="CrowdStrike API region: auto, us-1, us-2, eu-1, us-gov-1",
+    )
+    cs_member_cid: str = Field(
+        default="",
+        description="CrowdStrike MSSP child CID (optional)",
+    )
+    cs_sync_apps: bool = Field(
+        default=True,
+        description="Sync applications via Falcon Discover (requires Discover license)",
+    )
+    cs_sync_interval_hours: int = Field(
+        default=4,
+        ge=1,
+        le=168,
+        description="Hours between CrowdStrike scheduled syncs",
+    )
 
     # MongoDB
     mongo_uri: str = Field(default="mongodb://localhost:27017")
@@ -122,7 +144,7 @@ class Settings(BaseSettings):
     # Backup / Restore
     backup_enabled: bool = Field(default=False, description="Enable scheduled backups")
     backup_local_path: str = Field(
-        default="/backups", description="Local directory for backup storage"
+        default="./backups", description="Local directory for backup storage"
     )
     backup_retention_count: int = Field(
         default=7, ge=1, le=365, description="Number of backups to retain"
@@ -130,6 +152,21 @@ class Settings(BaseSettings):
     backup_schedule_cron: str = Field(
         default="0 2 * * *", description="Cron schedule for automated backups"
     )
+    backup_storage_type: Literal["local", "s3"] = Field(
+        default="local",
+        description="Backup storage backend: 'local' or 's3' (MinIO/AWS)",
+    )
+    backup_s3_endpoint: str = Field(
+        default="http://localhost:9000",
+        description="S3-compatible endpoint URL (e.g. MinIO or AWS S3)",
+    )
+    backup_s3_bucket: str = Field(
+        default="sentora-backups",
+        description="S3 bucket name for backup storage",
+    )
+    backup_s3_access_key: str = Field(default="", description="S3 access key ID")
+    backup_s3_secret_key: str = Field(default="", description="S3 secret access key")
+    backup_s3_region: str = Field(default="us-east-1", description="S3 region (for AWS)")
 
     # MongoDB High Availability
     mongo_read_preference: str = Field(

@@ -18,6 +18,7 @@ from domains.compliance.entities import (
     ComplianceViolation,
     ControlSeverity,
 )
+from domains.sources.collections import AGENTS, SYNC_RUNS
 from utils.dt import ensure_utc, utc_now
 
 
@@ -52,14 +53,14 @@ async def execute(
     cutoff = now - timedelta(hours=max_hours)
 
     # Check the latest completed sync run
-    latest_sync = await db["s1_sync_runs"].find_one(
+    latest_sync = await db[SYNC_RUNS].find_one(
         {"status": "completed"},
         sort=[("completed_at", -1)],
         projection={"completed_at": 1, "run_id": 1},
     )
 
     violations: list[ComplianceViolation] = []
-    total_agents = await db["s1_agents"].count_documents(scope_filter or {})
+    total_agents = await db[AGENTS].count_documents(scope_filter or {})
 
     if latest_sync is None:
         status = CheckStatus.failed

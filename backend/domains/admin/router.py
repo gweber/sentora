@@ -5,9 +5,11 @@ All endpoints require the ``admin`` role.
 
 from __future__ import annotations
 
+import asyncio
+import time
 from dataclasses import asdict
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, WebSocket, status
 from loguru import logger
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
@@ -15,6 +17,7 @@ from database import get_tenant_db
 from domains.admin.dto import (
     BackupListResponse,
     BackupResponse,
+    BackupStartedResponse,
     RestoreRequest,
     RestoreResponse,
 )
@@ -22,8 +25,17 @@ from domains.auth.entities import UserRole
 from middleware.auth import require_role
 from utils.backup import BackupManager
 from utils.distributed_lock import DistributedLock
+from utils.ws_auth import authenticate_websocket
+from utils.ws_broadcast import WsBroadcaster
 
 router = APIRouter(dependencies=[Depends(require_role(UserRole.admin))])
+
+#: Separate router for WebSocket endpoints (no HTTP auth dependency).
+#: WebSocket auth is handled by ``authenticate_websocket`` inside each handler.
+ws_router = APIRouter()
+
+#: WebSocket broadcaster for backup progress events.
+backup_ws = WsBroadcaster("backup")
 
 
 def _record_to_response(record) -> BackupResponse:  # noqa: ANN001
@@ -31,28 +43,148 @@ def _record_to_response(record) -> BackupResponse:  # noqa: ANN001
     return BackupResponse(**asdict(record))
 
 
-@router.post("/backup", response_model=BackupResponse, status_code=status.HTTP_201_CREATED)
-async def trigger_backup(
-    db: AsyncIOMotorDatabase = Depends(get_tenant_db),  # type: ignore[type-arg]
-) -> BackupResponse:
-    """Trigger a manual backup.
+async def _run_backup_with_progress(
+    db: AsyncIOMotorDatabase,  # type: ignore[type-arg]
+    triggered_by: str,
+) -> None:
+    """Run a backup as a background task, broadcasting progress via WebSocket.
 
-    Uses a distributed lock to prevent concurrent backup operations.
+    Phases: started → dumping → finalising → completed/failed.
+
+    Args:
+        db: The Motor database handle.
+        triggered_by: Who initiated the backup (e.g. "manual").
     """
     lock = DistributedLock(db, "backup_operation", ttl_seconds=600)
-
     acquired = await lock.acquire()
     if not acquired:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Another backup or restore operation is already in progress",
+        await backup_ws.broadcast(
+            {
+                "type": "failed",
+                "backup_id": "",
+                "phase": "lock",
+                "progress_percent": 0,
+                "message": "Another backup or restore operation is already in progress",
+            }
         )
+        return
 
     try:
-        record = await BackupManager.create_backup(db, triggered_by="manual")
-        return _record_to_response(record)
+        await backup_ws.broadcast(
+            {
+                "type": "progress",
+                "backup_id": "",
+                "phase": "started",
+                "progress_percent": 5,
+                "message": "Backup started",
+            }
+        )
+
+        # Small yield so the WS message gets sent before blocking mongodump
+        await asyncio.sleep(0.05)
+
+        await backup_ws.broadcast(
+            {
+                "type": "progress",
+                "backup_id": "",
+                "phase": "dumping",
+                "progress_percent": 15,
+                "message": "Running database dump...",
+            }
+        )
+
+        t0 = time.monotonic()
+        record = await BackupManager.create_backup(db, triggered_by=triggered_by)
+        duration = time.monotonic() - t0
+
+        if record.status == "completed":
+            await backup_ws.broadcast(
+                {
+                    "type": "progress",
+                    "backup_id": record.id,
+                    "phase": "finalising",
+                    "progress_percent": 85,
+                    "message": "Computing checksum...",
+                }
+            )
+            # Brief pause so the 85% state is visible
+            await asyncio.sleep(0.2)
+
+            await backup_ws.broadcast(
+                {
+                    "type": "completed",
+                    "backup_id": record.id,
+                    "phase": "completed",
+                    "progress_percent": 100,
+                    "message": f"Backup completed in {duration:.1f}s",
+                    "record": asdict(record),
+                }
+            )
+        else:
+            await backup_ws.broadcast(
+                {
+                    "type": "failed",
+                    "backup_id": record.id,
+                    "phase": "failed",
+                    "progress_percent": 0,
+                    "message": record.error or "Backup failed",
+                    "record": asdict(record),
+                }
+            )
+    except Exception as exc:
+        logger.error("Backup background task failed: {}", exc)
+        await backup_ws.broadcast(
+            {
+                "type": "failed",
+                "backup_id": "",
+                "phase": "failed",
+                "progress_percent": 0,
+                "message": str(exc),
+            }
+        )
     finally:
         await lock.release()
+
+
+@router.post("/backup", response_model=BackupStartedResponse, status_code=status.HTTP_202_ACCEPTED)
+async def trigger_backup(
+    background_tasks: BackgroundTasks,
+    db: AsyncIOMotorDatabase = Depends(get_tenant_db),  # type: ignore[type-arg]
+) -> BackupStartedResponse:
+    """Trigger a manual backup.
+
+    Returns immediately with 202 Accepted. Progress is streamed via
+    the ``/admin/backup/progress`` WebSocket endpoint.
+    """
+    background_tasks.add_task(_run_backup_with_progress, db, "manual")
+
+    return BackupStartedResponse(
+        backup_id="",
+        status="accepted",
+        message="Backup started. Connect to /api/v1/admin/backup/progress for live updates.",
+    )
+
+
+@ws_router.websocket("/backup/progress")
+async def backup_progress_ws(websocket: WebSocket) -> None:
+    """WebSocket endpoint for real-time backup progress.
+
+    Clients receive JSON messages with ``type``, ``backup_id``,
+    ``phase``, ``progress_percent``, and ``message`` fields.
+    """
+    payload = await authenticate_websocket(
+        websocket,
+        allowed_roles={UserRole.admin},
+    )
+    if payload is None:
+        return
+
+    backup_ws.connect_accepted(websocket)
+    try:
+        while True:
+            await websocket.receive_text()
+    except Exception:
+        backup_ws.disconnect(websocket)
 
 
 @router.get("/backups", response_model=BackupListResponse)

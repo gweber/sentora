@@ -20,8 +20,8 @@ posture without waiting for periodic manual audits.
 
 Build a compliance monitoring engine into Sentora with the following design:
 
-1. **Pre-built controls.** 61 controls across 4 frameworks (SOC 2, PCI DSS 4.0.1, HIPAA
-   Security Rule, BSI IT-Grundschutz). Each control maps to one of 10 automated check
+1. **Pre-built controls.** 81 controls across 5 frameworks (SOC 2, PCI DSS 4.0.1, HIPAA
+   Security Rule, BSI IT-Grundschutz, DORA). Each control maps to one of 10 automated check
    types:
 
    - `sync_freshness` -- verifies sync has completed within a configured window
@@ -77,7 +77,7 @@ Build a compliance monitoring engine into Sentora with the following design:
 
 ### Negative
 
-- 61 controls across 4 frameworks increase the maintenance surface for control definitions
+- 81 controls across 5 frameworks increase the maintenance surface for control definitions
   and check logic
 - Automated checks cannot replace human judgement for procedural controls (e.g., employee
   training, vendor reviews)

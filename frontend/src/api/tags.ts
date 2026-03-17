@@ -3,7 +3,7 @@
  */
 
 import type {
-  S1TagsResponse,
+  SourceTagsResponse,
   TagApplyResponse,
   TagPatternCreateRequest,
   TagPreviewResponse,
@@ -63,8 +63,8 @@ export async function applyRule(ruleId: string): Promise<TagApplyResponse> {
   return data
 }
 
-/** Fetch synced S1 tags from the last sync run */
-export async function listSyncedTags(): Promise<S1TagsResponse> {
-  const { data } = await client.get<S1TagsResponse>('/sync/tags')
+/** Fetch synced source tags from the last sync run */
+export async function listSyncedTags(): Promise<SourceTagsResponse> {
+  const { data } = await client.get<SourceTagsResponse>('/sync/tags')
   return data
 }

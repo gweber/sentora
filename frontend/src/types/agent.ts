@@ -4,13 +4,14 @@
  */
 
 export interface Agent {
-  s1_agent_id: string
+  source_id: string
+  source: string
   hostname: string
   os_type: 'windows' | 'linux' | 'macos' | string
   os_version: string
   group_id: string
   group_name: string
-  network_status: 'connected' | 'disconnected' | string
+  agent_status: 'online' | 'offline' | 'degraded' | string
   last_active: string
   machine_type: 'desktop' | 'laptop' | 'server' | 'virtual' | string
   domain: string | null

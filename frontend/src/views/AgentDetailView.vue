@@ -1,6 +1,6 @@
 <!--
   Agent detail view — deep dive for a single agent.
-  Shows hostname, OS, IPs, S1 group, network status, match score breakdown,
+  Shows hostname, OS, IPs, group, agent status, match score breakdown,
   and the full installed applications list.
 -->
 <script setup lang="ts">
@@ -100,7 +100,7 @@ const bestMatchGroupId = computed<string | null>(() => {
     <router-link
       to="/anomalies"
       aria-label="Back to Anomalies"
-      class="inline-flex items-center gap-1.5 text-[13px] text-indigo-600 hover:text-indigo-800 no-underline font-medium"
+      class="inline-flex items-center gap-1.5 text-[13px] text-[var(--info-text)] hover:text-[var(--heading)] no-underline font-medium"
     >
       <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
         <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
@@ -114,7 +114,7 @@ const bestMatchGroupId = computed<string | null>(() => {
     </div>
 
     <!-- Error -->
-    <div v-else-if="error" class="flex items-center justify-center py-24 text-red-400 text-[13px]">
+    <div v-else-if="error" class="flex items-center justify-center py-24 text-[var(--error-text)] text-[13px]">
       {{ error }}
     </div>
 
@@ -140,9 +140,9 @@ const bestMatchGroupId = computed<string | null>(() => {
           <div class="flex items-center gap-1.5 text-[12px]" style="color: var(--text-3);">
             <span
               class="w-2 h-2 rounded-full"
-              :class="agent.network_status === 'connected' ? 'bg-emerald-400' : 'bg-slate-300'"
+              :class="agent.agent_status === 'online' ? 'bg-[var(--status-ok-text)]' : 'bg-[var(--text-3)]'"
             />
-            {{ agent.network_status }}
+            {{ agent.agent_status }}
           </div>
           <div class="flex items-center gap-1.5 text-[12px]" style="color: var(--text-3);">
             Last active: {{ formatDateTime(agent.last_active) }}
@@ -171,7 +171,7 @@ const bestMatchGroupId = computed<string | null>(() => {
             v-for="ms in agent.classification!.match_scores"
             :key="ms.group_id"
             class="px-5 py-4 space-y-2.5"
-            :class="ms.group_id === agent.group_id ? 'bg-indigo-50/40' : ''"
+            :class="ms.group_id === agent.group_id ? 'bg-[var(--info-bg)]/40' : ''"
             :style="`border-bottom: 1px solid var(--border-light);`"
           >
             <!-- Group name row -->
@@ -179,14 +179,14 @@ const bestMatchGroupId = computed<string | null>(() => {
               <div class="flex items-center gap-2">
                 <span
                   class="text-[13px] font-semibold"
-                  :class="ms.group_id === agent.group_id ? 'text-indigo-700' : ''"
+                  :class="ms.group_id === agent.group_id ? 'text-[var(--info-text)]' : ''"
                   :style="ms.group_id === agent.group_id ? '' : `color: var(--heading);`"
                 >
                   {{ ms.group_name }}
                 </span>
                 <span
                   v-if="ms.group_id === agent.group_id"
-                  class="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-600"
+                  class="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-[var(--info-bg)] text-[var(--info-text)]"
                 >
                   Current group
                 </span>
@@ -195,7 +195,7 @@ const bestMatchGroupId = computed<string | null>(() => {
                 <!-- Best match badge -->
                 <span
                   v-if="ms.group_id === bestMatchGroupId"
-                  class="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700"
+                  class="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-[var(--success-bg)] text-[var(--success-text)]"
                 >
                   Best match
                 </span>
@@ -214,7 +214,7 @@ const bestMatchGroupId = computed<string | null>(() => {
                 aria-valuemax="100"
                 :aria-label="`Match score for ${ms.group_name}: ${Math.round(ms.score * 100)}%`"
                 class="h-full rounded-full transition-all duration-500"
-                :class="ms.group_id === bestMatchGroupId ? 'bg-emerald-500' : 'bg-indigo-400'"
+                :class="ms.group_id === bestMatchGroupId ? 'bg-[var(--success-bg)]0' : 'bg-[var(--brand-primary)]'"
                 :style="{ width: `${Math.round(ms.score * 100)}%` }"
               />
             </div>
@@ -224,14 +224,14 @@ const bestMatchGroupId = computed<string | null>(() => {
               <span
                 v-for="marker in ms.matched_markers"
                 :key="`matched-${marker}`"
-                class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200"
+                class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-[var(--success-bg)] text-[var(--success-text)] border border-[var(--success-border)]"
               >
                 {{ marker }}
               </span>
               <span
                 v-for="marker in ms.missing_markers"
                 :key="`missing-${marker}`"
-                class="text-[11px] font-medium px-2 py-0.5 rounded-full  text-slate-400 border border-slate-200" style="background: var(--surface-hover);"
+                class="text-[11px] font-medium px-2 py-0.5 rounded-full  text-[var(--text-3)] border border-slate-200" style="background: var(--surface-hover);"
               >
                 {{ marker }}
               </span>
@@ -255,7 +255,7 @@ const bestMatchGroupId = computed<string | null>(() => {
             type="text"
             aria-label="Search installed applications by name or publisher"
             placeholder="Search by name or publisher…"
-            class="w-56 text-[12px] px-3 py-1.5 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-300 transition"
+            class="w-56 text-[12px] px-3 py-1.5 rounded-lg placeholder-[var(--text-3)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary-light)] transition"
             style="background: var(--input-bg); border: 1px solid var(--input-border); color: var(--text-1);"
           />
         </div>
@@ -293,16 +293,16 @@ const bestMatchGroupId = computed<string | null>(() => {
                 v-for="app in filteredApps"
                 :key="app.name + (app.version ?? '')"
                 class="transition-colors"
-                :class="isAppHighlighted(app.name) ? 'bg-emerald-50/40' : ''"
+                :class="isAppHighlighted(app.name) ? 'bg-[var(--success-bg)]/40' : ''"
                 style="border-bottom: 1px solid var(--border-light);"
               >
                 <td class="px-5 py-2.5 font-medium truncate max-w-[280px]" style="color: var(--heading);">
                   <span
                     v-if="isAppHighlighted(app.name)"
-                    class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1.5 align-middle"
+                    class="inline-block w-1.5 h-1.5 rounded-full bg-[var(--status-ok-text)] mr-1.5 align-middle"
                   />
                   <button
-                    class="hover:text-indigo-600 hover:underline transition-colors text-left truncate"
+                    class="hover:text-[var(--info-text)] hover:underline transition-colors text-left truncate"
                     @click.stop="router.push({ name: 'app-detail', params: { normalizedName: app.normalized_name } })"
                   >{{ app.name }}</button>
                 </td>

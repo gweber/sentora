@@ -39,6 +39,7 @@ from domains.config.entities import AppConfig
 from domains.fingerprint.entities import Fingerprint
 from domains.fingerprint.matcher import matches_pattern
 from domains.fingerprint.repository import list_all as list_all_fingerprints
+from domains.sources.collections import AGENTS, INSTALLED_APPS
 from utils.dt import utc_now
 
 # Fallback verdict thresholds (used when app_config is unavailable)
@@ -68,7 +69,7 @@ async def classify_single_agent(
     -----
     1. Read the agent's ``installed_app_names`` field (denormalized by the sync
        pipeline — a compact list of distinct normalised app names).  Falls back
-       to a live ``s1_installed_apps`` query for agents synced before
+       to a live ``installed_apps`` query for agents synced before
        denormalization was introduced.
     2. For each fingerprint, compute a weighted match score across all markers.
     3. Sort scores descending and keep the top 5.
@@ -77,14 +78,14 @@ async def classify_single_agent(
     Args:
         db: Motor database handle (fallback only — not used when the agent doc
             already carries ``installed_app_names``).
-        agent_doc: Raw ``s1_agents`` document dict.
+        agent_doc: Raw agents collection document dict.
         fingerprints: All fingerprints pre-loaded by the caller.
         cfg: Optional persisted app config for threshold overrides.
 
     Returns:
         A fully populated ``ClassificationResult`` entity.
     """
-    agent_id: str = agent_doc.get("s1_agent_id", "")
+    agent_id: str = agent_doc.get("source_id", "")
     hostname: str = agent_doc.get("hostname", "")
     current_group_id: str = agent_doc.get("group_id", "")
     current_group_name: str = agent_doc.get("group_name", "")
@@ -105,7 +106,7 @@ async def classify_single_agent(
                 active_match_stage(agent_id=agent_id),
                 {"$group": {"_id": "$normalized_name"}},
             ]
-            app_docs = await db["s1_installed_apps"].aggregate(pipeline).to_list(length=None)
+            app_docs = await db[INSTALLED_APPS].aggregate(pipeline).to_list(length=None)
             installed_apps_raw = [d["_id"] for d in app_docs if d.get("_id")]
         except Exception as exc:
             logger.warning("Failed to load apps for agent {}: {}", agent_id, exc)
@@ -308,7 +309,7 @@ class ClassificationManager:
     ) -> None:
         """Main classification pipeline executed as a background task.
 
-        Processes all agents in ``s1_agents`` in batches of ``_BATCH_SIZE``.
+        Processes all agents in batches of ``_BATCH_SIZE``.
         Results are bulk-upserted after each batch. Updates the run record
         on completion or failure.
 
@@ -358,11 +359,11 @@ class ClassificationManager:
                 # ── Count total agents ──────────────────────────────────────
                 # Let failures propagate so the run is marked "failed" rather
                 # than silently completing with 0 agents (AUDIT-036).
-                total_agents: int = await db["s1_agents"].count_documents({})
+                total_agents: int = await db[AGENTS].count_documents({})
 
                 if total_agents == 0:
                     logger.info(
-                        "Classification run {}: no agents found in s1_agents, run complete.",
+                        "Classification run {}: no agents found, run complete.",
                         run_id,
                     )
                     await update_run(
@@ -394,7 +395,7 @@ class ClassificationManager:
 
                     try:
                         batch_docs: list[dict[str, Any]] = (
-                            await db["s1_agents"]
+                            await db[AGENTS]
                             .find(batch_filter)
                             .sort("_id", 1)
                             .limit(_BATCH_SIZE)
@@ -425,7 +426,7 @@ class ClassificationManager:
                             batch_results.append(result)
                             agents_classified += 1
                         except Exception as exc:
-                            agent_id = agent_doc.get("s1_agent_id", "unknown")
+                            agent_id = agent_doc.get("source_id", "unknown")
                             msg = f"Error classifying agent {agent_id}: {exc}"
                             logger.error("Classification run {}: {}", run_id, msg)
                             error_log.append(msg)

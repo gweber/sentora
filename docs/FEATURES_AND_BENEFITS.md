@@ -2,16 +2,16 @@
 
 ## Elevator Pitch
 
-Sentora is the endpoint compliance platform purpose-built for SentinelOne environments. It transforms raw SentinelOne agent and application data into actionable compliance intelligence — covering SOC 2, PCI DSS 4.0, HIPAA, and BSI IT-Grundschutz out of the box. Instead of manually exporting spreadsheets and mapping controls, security teams get real-time compliance scores, automated violation detection, and audit-ready evidence — across fleets of 1,000 to 150,000+ endpoints.
+Sentora is the multi-EDR endpoint compliance platform that transforms raw agent and application data from EDR platforms (SentinelOne, CrowdStrike, Defender) into actionable compliance intelligence — covering SOC 2, PCI DSS 4.0, HIPAA, BSI IT-Grundschutz, DORA, ISO 27001, NIST CSF 2.0, NIS2, and CIS Controls v8 out of the box. Instead of manually exporting spreadsheets and mapping controls, security teams get real-time compliance scores, automated violation detection, and audit-ready evidence — across fleets of 1,000 to 150,000+ endpoints.
 
 ---
 
 ## Core Platform
 
-### SentinelOne 5-Phase Sync Pipeline
+### 5-Phase Sync Pipeline
 
 **What it does:**
-A production-proven ingestion engine that synchronizes your entire SentinelOne tenant — sites, groups, agents, installed applications, and tags — through five independent, parallelizable phases with checkpoint-based resume.
+A production-proven ingestion engine that synchronizes your entire EDR tenant — sites, groups, agents, installed applications, and tags — through five independent, parallelizable phases with checkpoint-based resume.
 
 **Customer benefit:**
 
@@ -28,7 +28,7 @@ Database-per-tenant isolation with distributed locking and leader election for m
 **Customer benefit:**
 
 - **Data isolation guarantee**: Tenant A never sees Tenant B's data — not through a row-level filter, but through physically separate databases
-- **MSSPs and holding structures** can manage multiple SentinelOne tenants from a single Sentora instance
+- **MSSPs and holding structures** can manage multiple EDR tenants from a single Sentora instance
 - Distributed locks ensure that concurrent workers never produce duplicate syncs or conflicting compliance evaluations
 - Scale horizontally by adding workers; leader election handles coordination automatically
 
@@ -53,7 +53,7 @@ Full enterprise auth stack: JWT with 15-minute access tokens and 7-day refresh t
 ### Fingerprint Engine (TF-IDF + Lift Scoring)
 
 **What it does:**
-A statistical engine that analyzes which applications are characteristic for each SentinelOne group. It uses TF-IDF-based matching and lift scoring (how much more likely an app appears in a group vs. the fleet average) to generate fingerprint proposals automatically.
+A statistical engine that analyzes which applications are characteristic for each agent group. It uses TF-IDF-based matching and lift scoring (how much more likely an app appears in a group vs. the fleet average) to generate fingerprint proposals automatically.
 
 **Customer benefit:**
 
@@ -92,10 +92,10 @@ Ingests software definitions from five authoritative sources: NIST CPE (NVD), MI
 
 ## Compliance Module
 
-### 4 Frameworks, 61 Controls, 10 Check Types
+### 5 Frameworks, 81 Controls, 10 Check Types
 
 **What it does:**
-Automated compliance evaluation against four industry frameworks, with 61 pre-built controls and 10 distinct check types — all evaluated against live SentinelOne data.
+Automated compliance evaluation against five industry frameworks, with 81 pre-built controls and 10 distinct check types — all evaluated against live EDR data.
 
 | Framework           | Controls | Focus                                                  |
 | ------------------- | -------- | ------------------------------------------------------ |
@@ -103,6 +103,7 @@ Automated compliance evaluation against four industry frameworks, with 61 pre-bu
 | PCI DSS 4.0.1       | 15       | Malware protection, patch management, secure software  |
 | HIPAA Security Rule | 15       | Required & addressable safeguards                      |
 | BSI IT-Grundschutz  | 16       | German/DACH regulatory standard (3 requirement levels) |
+| DORA                | 20       | EU financial entity digital operational resilience     |
 
 **10 Check Types:**
 
@@ -110,7 +111,7 @@ Automated compliance evaluation against four industry frameworks, with 61 pre-bu
 | ------------------------- | -------------------------------------------------------------- |
 | `prohibited_app`          | Blacklisted software present on endpoints                      |
 | `required_app`            | Mandatory software missing from endpoints                      |
-| `agent_version`           | SentinelOne agent below minimum version                        |
+| `agent_version`           | EDR agent below minimum version                                |
 | `agent_online`            | Agents unreachable or offline                                  |
 | `app_version`             | Specific application below required version                    |
 | `sync_freshness`          | Data older than acceptable threshold                           |
@@ -125,7 +126,7 @@ Automated compliance evaluation against four industry frameworks, with 61 pre-bu
 - **Continuous compliance**: Checks run automatically after every sync — you don't find out you're non-compliant the day before the audit
 - **Evidence-ready**: Each violation includes the agent hostname, the specific check that failed, the violation detail, and a remediation hint
 - **Custom controls**: Extend built-in frameworks with tenant-specific control definitions
-- **Scoping**: Apply controls to specific SentinelOne groups and/or tags — not every control applies to every endpoint
+- **Scoping**: Apply controls to specific groups and/or tags — not every control applies to every endpoint
 
 ### Framework Dashboard & Score Cards
 
@@ -166,7 +167,7 @@ Policy enforcement through three rule types — **Required** (software must be i
 - **Required rules**: "Every endpoint in PCI scope must have the DLP agent installed" — missing software flagged per-agent
 - **Allowlist rules**: "Only approved software in the secure enclave group" — anything not on the list is a violation
 - **Taxonomy integration**: Rules reference taxonomy categories, not raw app names — when a new version of a forbidden app appears with a slightly different name, the pattern still matches
-- **Scoping**: Rules can target specific SentinelOne groups and/or tags — apply different policies to different parts of your fleet
+- **Scoping**: Rules can target specific groups and/or tags — apply different policies to different parts of your fleet
 - **Framework labels**: Tag rules with compliance framework references (e.g., "PCI-DSS 5.2.1") for audit traceability
 - **Severity levels**: Critical, High, Medium, Low — prioritize remediation effort
 
@@ -332,9 +333,9 @@ Generic asset tools discover and inventory hardware and software across your net
 - **Compliance mapping**: Lansweeper shows you what's installed. Sentora tells you whether what's installed complies with SOC 2 CC7.1 or BSI SYS.2.1.A6 — and produces the evidence artifact
 - **Software intelligence**: TF-IDF fingerprinting and lift scoring analyze which applications are characteristic for each group — generic asset tools show flat inventories
 - **Enforcement policies**: Forbidden/required/allowlist rules with real-time violation webhooks — not just "this app exists" but "this app shouldn't exist and here's who to notify"
-- **SentinelOne depth**: Sentora uses the SentinelOne API as its authoritative data source — agent version, online status, group membership, tags — and builds compliance logic on top of it
+- **EDR depth**: Sentora uses the EDR API as its authoritative data source — agent version, online status, group membership, tags — and builds compliance logic on top of it
 
-**The trade-off:** Sentora requires SentinelOne. If your fleet uses CrowdStrike or Defender, Sentora isn't the right tool. This single-source depth is a feature — it means tighter integration, richer data, and fewer false positives than a tool trying to normalize across 15 different EDR vendors.
+**Multi-EDR architecture:** Sentora supports multiple EDR platforms through a source adapter pattern. SentinelOne is the first fully implemented adapter. CrowdStrike and Defender are next. The canonical data model ensures all compliance checks, enforcement rules, and reports work source-agnostically.
 
 ### vs. Broad GRC Platforms (Drata, Vanta, Sprinto)
 
@@ -363,12 +364,12 @@ These platforms provide vulnerability management, asset discovery, and endpoint 
 
 **How Sentora complements them:**
 
-- **SentinelOne specialization**: While Axonius aggregates data from dozens of sources with shallow integration each, Sentora goes deep on one source — extracting compliance intelligence that requires understanding SentinelOne's data model (groups, tags, agent lifecycle, application inventory)
+- **EDR depth over breadth**: While Axonius aggregates data from dozens of sources with shallow integration each, Sentora goes deep on EDR sources — extracting compliance intelligence that requires understanding the EDR data model (groups, tags, agent lifecycle, application inventory)
 - **Compliance-first**: Qualys focuses on vulnerabilities (CVEs). Sentora focuses on compliance posture (is the right software installed, is the wrong software absent, is the agent current and online)
 - **Software classification**: None of these tools offer TF-IDF fingerprinting with automatic group-level proposal generation
 - **Enforcement with taxonomy**: Tanium can enforce policies, but Sentora's taxonomy-based pattern matching means rules adapt to application naming variations automatically
 
-**The honest position:** If you need vulnerability scanning, patch deployment, or cross-platform endpoint management, Sentora is not a replacement. It's the compliance intelligence layer that sits on top of your SentinelOne deployment and answers the question: "Are our endpoints compliant with Framework X — and if not, which ones, why, and how do we fix it?"
+**The honest position:** If you need vulnerability scanning, patch deployment, or cross-platform endpoint management, Sentora is not a replacement. It's the compliance intelligence layer that sits on top of your EDR deployment and answers the question: "Are our endpoints compliant with Framework X — and if not, which ones, why, and how do we fix it?"
 
 ---
 
@@ -391,7 +392,7 @@ Sentora maps 16 automated controls to specific BSI building blocks across three 
 
 | Control ID            | Building Block   | What It Checks                                                 |
 | --------------------- | ---------------- | -------------------------------------------------------------- |
-| BSI-SYS.2.1.A6        | General Client   | SentinelOne EDR agent installed and active                     |
+| BSI-SYS.2.1.A6        | General Client   | EDR agent installed and active                                 |
 | BSI-SYS.2.1.A6-ONLINE | General Client   | Agent reachable and reporting to management console            |
 | BSI-APP.6.A1          | General Software | Software inventory completeness (classification coverage ≥70%) |
 | BSI-APP.6.A1-SYNC     | General Software | Data freshness — sync completed within acceptable window       |
@@ -432,11 +433,11 @@ For DACH organizations undergoing BSI certification or demonstrating KRITIS comp
 
 ### 1. CISO Preparing for SOC 2 Audit
 
-**Problem:** The SOC 2 audit is in 6 weeks. The auditor will ask for evidence that endpoints have current EDR agents, no prohibited software, and classified application inventories. Today, this evidence lives in SentinelOne exports, spreadsheets, and tribal knowledge.
+**Problem:** The SOC 2 audit is in 6 weeks. The auditor will ask for evidence that endpoints have current EDR agents, no prohibited software, and classified application inventories. Today, this evidence lives in EDR exports, spreadsheets, and tribal knowledge.
 
 **How Sentora solves it:**
 
-- Connect Sentora to your SentinelOne tenant → initial sync completes in minutes
+- Connect Sentora to your EDR tenant → initial sync completes in minutes
 - 15 SOC 2 controls evaluate automatically against live data
 - The compliance dashboard shows: "SOC 2: 87% — 13 of 15 controls passing"
 - Drill into the 2 failing controls: 47 agents running an outdated EDR version, 12 agents with unclassified applications above threshold
@@ -447,7 +448,7 @@ For DACH organizations undergoing BSI certification or demonstrating KRITIS comp
 
 ### 2. IT-Ops Enforcing Forbidden Software Fleet-Wide
 
-**Problem:** Security policy prohibits cryptocurrency mining software and unauthorized remote access tools. Currently, someone manually searches the SentinelOne console every quarter — and misses installations between checks.
+**Problem:** Security policy prohibits cryptocurrency mining software and unauthorized remote access tools. Currently, someone manually searches the EDR console every quarter — and misses installations between checks.
 
 **How Sentora solves it:**
 
@@ -490,7 +491,7 @@ For DACH organizations undergoing BSI certification or demonstrating KRITIS comp
 
 ### 5. MSSP Managing Multiple Customer Tenants
 
-**Problem:** You're a managed security service provider with 12 SentinelOne customer tenants. Each customer has different compliance requirements (some need SOC 2, others PCI DSS, two need BSI). Today, each customer is managed separately with no unified view.
+**Problem:** You're a managed security service provider with 12 EDR customer tenants. Each customer has different compliance requirements (some need SOC 2, others PCI DSS, two need BSI). Today, each customer is managed separately with no unified view.
 
 **How Sentora solves it:**
 

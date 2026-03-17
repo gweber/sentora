@@ -1,10 +1,10 @@
 <!--
-  TagPicker — multi-select for S1 tags fetched from the sync/tags API.
-  Selected tags emit as an array of tag name strings (matching s1_agents.tags field).
+  TagPicker — multi-select for source tags fetched from the sync/tags API.
+  Selected tags emit as an array of tag name strings (matching agents.tags field).
 -->
 <script setup lang="ts">
 /**
- * Multi-select dropdown for SentinelOne tags.
+ * Multi-select dropdown for source tags.
  *
  * @param modelValue - Currently selected tag names.
  * @emits update:modelValue - When selection changes.

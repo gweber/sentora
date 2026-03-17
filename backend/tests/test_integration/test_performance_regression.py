@@ -143,9 +143,9 @@ class TestDbIndexes:
         await ensure_all_indexes(test_db)
 
         # Spot-check critical indexes
-        agents_idx = await test_db["s1_agents"].index_information()
-        assert any("s1_agent_id" in str(idx.get("key", "")) for idx in agents_idx.values()), (
-            "s1_agents missing s1_agent_id index"
+        agents_idx = await test_db["agents"].index_information()
+        assert any("source_id" in str(idx.get("key", "")) for idx in agents_idx.values()), (
+            "agents missing source_id index"
         )
 
         users_idx = await test_db["users"].index_information()

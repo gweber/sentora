@@ -154,9 +154,9 @@ function eventLabel(event: string): string {
 }
 
 function eventColor(event: string): string {
-  if (event.includes('completed')) return 'bg-emerald-50 text-emerald-700 border-emerald-200'
-  if (event.includes('failed')) return 'bg-red-50 text-red-600 border-red-200'
-  if (event.includes('updated')) return 'bg-blue-50 text-blue-700 border-blue-200'
+  if (event.includes('completed')) return 'bg-[var(--success-bg)] text-[var(--success-text)] border-[var(--success-border)]'
+  if (event.includes('failed')) return 'bg-[var(--error-bg)] text-[var(--error-text)] border-[var(--error-border)]'
+  if (event.includes('updated')) return 'bg-[var(--info-bg)] text-[var(--info-text)] border-[var(--border)]'
   return 'badge-neutral border'
 }
 
@@ -188,7 +188,7 @@ onUnmounted(() => {
         <p class="text-[12px] mt-0.5" style="color: var(--text-3);">Receive HTTP notifications when events occur in Sentora</p>
       </div>
       <button
-        class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-indigo-600 text-white text-[13px] font-medium hover:bg-indigo-700 transition-colors"
+        class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[var(--brand-primary)] text-white text-[13px] font-medium hover:opacity-90 transition-colors"
         @click="openCreateModal"
       >
         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -231,11 +231,11 @@ onUnmounted(() => {
             <div class="flex items-center gap-2 min-w-0 flex-1">
               <div
                 class="w-2 h-2 rounded-full shrink-0"
-                :class="wh.enabled ? 'bg-emerald-400' : 'bg-slate-300'"
+                :class="wh.enabled ? 'bg-[var(--status-ok-text)]' : 'bg-[var(--text-3)]'"
                 :title="wh.enabled ? 'Enabled' : 'Disabled'"
               />
               <h3 class="text-[14px] font-semibold truncate" style="color: var(--text-1);">{{ wh.name }}</h3>
-              <span v-if="wh.failure_count > 0" class="shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-red-50 text-red-600 border border-red-200">
+              <span v-if="wh.failure_count > 0" class="shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-[var(--error-bg)] text-[var(--error-text)] border border-[var(--error-border)]">
                 {{ wh.failure_count }} failures
               </span>
             </div>
@@ -245,7 +245,7 @@ onUnmounted(() => {
               <button
                 class="px-2.5 py-1 rounded-md text-[11px] font-medium border transition-colors"
                 :class="testingId === wh.id
-                  ? (testResult?.success ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : testResult ? 'bg-red-50 text-red-600 border-red-200' : '')
+                  ? (testResult?.success ? 'bg-[var(--success-bg)] text-[var(--success-text)] border-[var(--success-border)]' : testResult ? 'bg-[var(--error-bg)] text-[var(--error-text)] border-[var(--error-border)]' : '')
                   : ''"
                 :style="testingId !== wh.id ? 'background: var(--surface); color: var(--text-2); border-color: var(--border);' : testResult?.success ? '' : testResult ? '' : 'background: var(--surface-inset); color: var(--text-3); border-color: var(--border);'"
                 :disabled="testingId === wh.id && !testResult"
@@ -262,8 +262,8 @@ onUnmounted(() => {
               <button
                 class="px-2.5 py-1 rounded-md text-[11px] font-medium border transition-colors"
                 :class="wh.enabled
-                  ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
-                  : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'"
+                  ? 'bg-[var(--warn-bg)] text-[var(--warn-text)] border-[var(--warn-border)] hover:bg-[var(--warn-bg)]'
+                  : 'bg-[var(--success-bg)] text-[var(--success-text)] border-[var(--success-border)] hover:bg-[var(--success-bg)]'"
                 :aria-label="wh.enabled ? `Disable webhook ${wh.name}` : `Enable webhook ${wh.name}`"
                 @click="handleToggleEnabled(wh)"
               >
@@ -280,7 +280,7 @@ onUnmounted(() => {
 
               <!-- Delete -->
               <button
-                class="px-2.5 py-1 rounded-md text-[11px] font-medium text-red-500 hover:bg-red-50 hover:border-red-200 transition-colors"
+                class="px-2.5 py-1 rounded-md text-[11px] font-medium text-[var(--error-text)] hover:bg-[var(--error-bg)] hover:border-[var(--error-border)] transition-colors"
                 style="background: var(--surface); border: 1px solid var(--border);"
                 :aria-label="`Delete webhook ${wh.name}`"
                 @click="deletingId = wh.id"
@@ -389,15 +389,15 @@ onUnmounted(() => {
                   type="button"
                   class="flex items-center gap-2 px-3 py-2 rounded-lg border text-[12px] font-medium transition-colors text-left"
                   :class="formEvents.includes(event)
-                    ? 'bg-indigo-50 border-indigo-300 text-indigo-700'
-                    : 'hover:border-gray-300'"
+                    ? 'bg-[var(--info-bg)] border-[var(--border)] text-[var(--info-text)]'
+                    : 'hover:border-[var(--border)]'"
                   :style="!formEvents.includes(event) ? 'background: var(--surface); border-color: var(--border); color: var(--text-2);' : ''"
                   :aria-pressed="formEvents.includes(event)"
                   @click="toggleEvent(event)"
                 >
                   <svg
                     class="w-3.5 h-3.5 shrink-0"
-                    :class="formEvents.includes(event) ? 'text-indigo-500' : 'text-gray-300'"
+                    :class="formEvents.includes(event) ? 'text-[var(--brand-primary)]' : 'text-[var(--text-3)]'"
                     fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"
                   >
                     <path v-if="formEvents.includes(event)" stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
@@ -417,7 +417,7 @@ onUnmounted(() => {
               @click="showModal = false"
             >Cancel</button>
             <button
-              class="px-4 py-1.5 rounded-lg bg-indigo-600 text-white text-[13px] font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50"
+              class="px-4 py-1.5 rounded-lg bg-[var(--brand-primary)] text-white text-[13px] font-medium hover:opacity-90 transition-colors disabled:opacity-50"
               :disabled="isSaving"
               @click="handleSave"
             >
@@ -437,8 +437,8 @@ onUnmounted(() => {
         @click.self="deletingId = null"
       >
         <div class="rounded-xl shadow-2xl w-full max-w-sm p-6 text-center" style="background: var(--surface);" role="alertdialog" aria-modal="true" aria-label="Confirm webhook deletion">
-          <div class="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-3">
-            <svg class="w-6 h-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+          <div class="w-12 h-12 rounded-full bg-[var(--error-bg)] flex items-center justify-center mx-auto mb-3">
+            <svg class="w-6 h-6 text-[var(--error-text)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
               <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
             </svg>
           </div>
@@ -451,7 +451,7 @@ onUnmounted(() => {
               @click="deletingId = null"
             >Cancel</button>
             <button
-              class="px-4 py-2 rounded-lg bg-red-600 text-white text-[13px] font-medium hover:bg-red-700 transition-colors"
+              class="px-4 py-2 rounded-lg bg-[var(--error-text)] text-white text-[13px] font-medium hover:opacity-90 transition-colors"
               @click="handleDelete"
             >Delete</button>
           </div>

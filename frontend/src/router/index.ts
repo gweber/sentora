@@ -107,8 +107,8 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/sync',
     name: 'sync',
-    component: () => import('@/views/SyncView.vue'),
-    meta: { title: 'Sync' },
+    component: () => import('@/views/IntegrationsView.vue'),
+    meta: { title: 'Integrations' },
   },
   {
     path: '/users',
@@ -127,6 +127,12 @@ const routes: RouteRecordRaw[] = [
     name: 'settings',
     component: () => import('@/views/SettingsView.vue'),
     meta: { title: 'Settings', roles: ['admin', 'super_admin'] },
+  },
+  {
+    path: '/backups',
+    name: 'backups',
+    component: () => import('@/views/BackupView.vue'),
+    meta: { title: 'Backup Management', roles: ['admin', 'super_admin'] },
   },
   {
     path: '/api-keys',

@@ -20,6 +20,7 @@ from domains.compliance.entities import (
     ComplianceViolation,
     ControlSeverity,
 )
+from domains.sources.collections import AGENTS
 from utils.dt import utc_now
 
 
@@ -64,7 +65,7 @@ async def execute(
             evidence_summary="No required applications configured",
         )
 
-    total_agents = await db["s1_agents"].count_documents(scope_filter or {})
+    total_agents = await db[AGENTS].count_documents(scope_filter or {})
     if total_agents == 0:
         return not_applicable_result(
             control_id=control_id,
@@ -81,9 +82,9 @@ async def execute(
     violations: list[ComplianceViolation] = []
     non_compliant_agents: set[str] = set()
 
-    projection = {"s1_agent_id": 1, "hostname": 1, "installed_app_names": 1}
-    async for agent in db["s1_agents"].find(scope_filter or {}, projection):
-        agent_id = agent["s1_agent_id"]
+    projection = {"source_id": 1, "hostname": 1, "installed_app_names": 1}
+    async for agent in db[AGENTS].find(scope_filter or {}, projection):
+        agent_id = agent["source_id"]
         hostname = agent.get("hostname", "unknown")
         installed = agent.get("installed_app_names", [])
 

@@ -39,6 +39,7 @@ export interface ControlResponse {
   scope_tags: string[]
   scope_groups: string[]
   enabled: boolean
+  disable_reason: string | null
   hipaa_type: string | null
   bsi_level: string | null
   remediation: string
@@ -165,6 +166,7 @@ export interface ScheduleResponse {
 
 export interface ConfigureControlRequest {
   enabled?: boolean | null
+  disable_reason?: string | null
   severity_override?: string | null
   parameters_override?: Record<string, unknown> | null
   scope_tags_override?: string[] | null

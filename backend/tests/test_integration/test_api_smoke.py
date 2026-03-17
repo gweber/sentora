@@ -18,11 +18,12 @@ from httpx import AsyncClient
 
 
 async def _seed_agent(client: AsyncClient, db: object, headers: dict) -> str:
-    """Insert a minimal agent document and return its s1_agent_id."""
+    """Insert a minimal agent document and return its source_id."""
     from utils.dt import utc_now
 
     doc = {
-        "s1_agent_id": "smoke_agent_1",
+        "source": "sentinelone",
+        "source_id": "smoke_agent_1",
         "hostname": "smoke-host",
         "os_type": "windows",
         "os_version": "Windows 10",
@@ -30,25 +31,27 @@ async def _seed_agent(client: AsyncClient, db: object, headers: dict) -> str:
         "group_name": "Smoke Group",
         "site_id": "smoke_site_1",
         "site_name": "Smoke Site",
-        "network_status": "connected",
+        "agent_status": "online",
         "last_active": utc_now().isoformat(),
         "machine_type": "desktop",
         "installed_app_names": ["chrome", "firefox"],
         "tags": [],
         "synced_at": utc_now().isoformat(),
     }
-    await db["s1_agents"].insert_one(doc)  # type: ignore[index]
+    await db["agents"].insert_one(doc)  # type: ignore[index]
 
-    await db["s1_groups"].insert_one(  # type: ignore[index]
+    await db["groups"].insert_one(  # type: ignore[index]
         {
-            "s1_group_id": "smoke_group_1",
+            "source": "sentinelone",
+            "source_id": "smoke_group_1",
             "name": "Smoke Group",
             "site_id": "smoke_site_1",
         }
     )
-    await db["s1_sites"].insert_one(  # type: ignore[index]
+    await db["sites"].insert_one(  # type: ignore[index]
         {
-            "s1_site_id": "smoke_site_1",
+            "source": "sentinelone",
+            "source_id": "smoke_site_1",
             "name": "Smoke Site",
         }
     )
@@ -141,7 +144,7 @@ async def test_apps_list(client: AsyncClient, seeded_db: object, admin_headers: 
 async def test_apps_detail(client: AsyncClient, seeded_db: object, admin_headers: dict) -> None:
     """GET /apps/{name} — app detail. 404 when no installed_apps exist."""
     resp = await client.get("/api/v1/apps/chrome", headers=admin_headers)
-    # 404 is expected — no s1_installed_apps seeded
+    # 404 is expected — no installed_apps seeded
     assert resp.status_code in (200, 404)
 
 

@@ -401,7 +401,7 @@ jobs:
 
       - name: Generate Python SBOM (CycloneDX)
         working-directory: backend
-        run: cyclonedx-py requirements -i requirements.txt -o ../sbom-backend.json --format json
+        run: cyclonedx-py requirements -i requirements.txt -o ../sbom-backend.json --output-format json
 
       - name: Generate Node.js SBOM (CycloneDX)
         working-directory: frontend

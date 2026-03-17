@@ -59,8 +59,8 @@ def build_scope_filter(
     executor call sites.
 
     Args:
-        scope_tags: SentinelOne tags to filter agents by.
-        scope_groups: SentinelOne group names to filter agents by.
+        scope_tags: Tags to filter agents by.
+        scope_groups: Group names to filter agents by.
 
     Returns:
         A MongoDB query filter dict.

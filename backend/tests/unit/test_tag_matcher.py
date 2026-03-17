@@ -53,7 +53,16 @@ class TestFindMatchingAgents:
     @pytest.mark.asyncio
     async def test_empty_patterns_returns_nothing(self) -> None:
         rule = _make_rule()
-        db = _make_db([{"s1_agent_id": "a1", "hostname": "h1", "installed_app_names": ["python"]}])
+        db = _make_db(
+            [
+                {
+                    "source": "sentinelone",
+                    "source_id": "a1",
+                    "hostname": "h1",
+                    "installed_app_names": ["python"],
+                }
+            ]
+        )
         agents, total = await find_matching_agents(db, rule)
         assert total == 0
         assert agents == []
@@ -64,7 +73,8 @@ class TestFindMatchingAgents:
         db = _make_db(
             [
                 {
-                    "s1_agent_id": "a1",
+                    "source": "sentinelone",
+                    "source_id": "a1",
                     "hostname": "host-mfg",
                     "group_name": "Mfg",
                     "site_name": "SiteA",
@@ -84,7 +94,8 @@ class TestFindMatchingAgents:
         db = _make_db(
             [
                 {
-                    "s1_agent_id": "a1",
+                    "source": "sentinelone",
+                    "source_id": "a1",
                     "hostname": "host-lab",
                     "group_name": "Labs",
                     "site_name": "SiteB",
@@ -103,7 +114,8 @@ class TestFindMatchingAgents:
         db = _make_db(
             [
                 {
-                    "s1_agent_id": "a1",
+                    "source": "sentinelone",
+                    "source_id": "a1",
                     "hostname": "host-a",
                     "group_name": "",
                     "site_name": "",
@@ -111,7 +123,8 @@ class TestFindMatchingAgents:
                     "installed_app_names": ["siemens wincc"],
                 },
                 {
-                    "s1_agent_id": "a2",
+                    "source": "sentinelone",
+                    "source_id": "a2",
                     "hostname": "host-b",
                     "group_name": "",
                     "site_name": "",
@@ -119,7 +132,8 @@ class TestFindMatchingAgents:
                     "installed_app_names": ["python 3.12"],
                 },
                 {
-                    "s1_agent_id": "a3",
+                    "source": "sentinelone",
+                    "source_id": "a3",
                     "hostname": "host-c",
                     "group_name": "",
                     "site_name": "",
@@ -140,7 +154,8 @@ class TestFindMatchingAgents:
         rule = _make_rule("python*")
         docs = [
             {
-                "s1_agent_id": f"a{i}",
+                "source": "sentinelone",
+                "source_id": f"a{i}",
                 "hostname": f"host-{i:03d}",
                 "group_name": "",
                 "site_name": "",
@@ -159,7 +174,8 @@ class TestFindMatchingAgents:
         rule = _make_rule("python*")
         docs = [
             {
-                "s1_agent_id": f"a{i}",
+                "source": "sentinelone",
+                "source_id": f"a{i}",
                 "hostname": f"host-{i:03d}",
                 "group_name": "",
                 "site_name": "",
@@ -178,7 +194,8 @@ class TestFindMatchingAgents:
         rule = _make_rule("python*")
         docs = [
             {
-                "s1_agent_id": "a3",
+                "source": "sentinelone",
+                "source_id": "a3",
                 "hostname": "zebra",
                 "group_name": "",
                 "site_name": "",
@@ -186,7 +203,8 @@ class TestFindMatchingAgents:
                 "installed_app_names": ["python"],
             },
             {
-                "s1_agent_id": "a1",
+                "source": "sentinelone",
+                "source_id": "a1",
                 "hostname": "alpha",
                 "group_name": "",
                 "site_name": "",
@@ -194,7 +212,8 @@ class TestFindMatchingAgents:
                 "installed_app_names": ["python"],
             },
             {
-                "s1_agent_id": "a2",
+                "source": "sentinelone",
+                "source_id": "a2",
                 "hostname": "mango",
                 "group_name": "",
                 "site_name": "",
@@ -212,7 +231,8 @@ class TestFindMatchingAgents:
         rule = _make_rule("python*")
         docs = [
             {
-                "s1_agent_id": "a1",
+                "source": "sentinelone",
+                "source_id": "a1",
                 "hostname": "host",
                 "group_name": "",
                 "site_name": "",

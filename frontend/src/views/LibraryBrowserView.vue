@@ -119,10 +119,10 @@ const statuses = [
 
 function sourceBadgeClass(source: string): string {
   switch (source) {
-    case 'nist_cpe': return 'bg-blue-50 text-blue-700 border-blue-200'
+    case 'nist_cpe': return 'bg-[var(--info-bg)] text-[var(--info-text)] border-[var(--border)]'
     case 'mitre': return 'bg-purple-50 text-purple-700 border-purple-200'
-    case 'chocolatey': return 'bg-amber-50 text-amber-700 border-amber-200'
-    case 'homebrew': return 'bg-emerald-50 text-emerald-700 border-emerald-200'
+    case 'chocolatey': return 'bg-[var(--warn-bg)] text-[var(--warn-text)] border-[var(--warn-border)]'
+    case 'homebrew': return 'bg-[var(--success-bg)] text-[var(--success-text)] border-[var(--success-border)]'
     case 'manual': return 'badge-neutral border'
     default: return 'badge-neutral border'
   }
@@ -135,9 +135,9 @@ function sourceLabel(source: string): string {
 
 function statusBadgeClass(status: string): string {
   switch (status) {
-    case 'published': return 'bg-emerald-50 text-emerald-700 border-emerald-200'
-    case 'draft': return 'bg-amber-50 text-amber-700 border-amber-200'
-    case 'deprecated': return 'bg-red-50 text-red-600 border-red-200'
+    case 'published': return 'bg-[var(--success-bg)] text-[var(--success-text)] border-[var(--success-border)]'
+    case 'draft': return 'bg-[var(--warn-bg)] text-[var(--warn-text)] border-[var(--warn-border)]'
+    case 'deprecated': return 'bg-[var(--error-bg)] text-[var(--error-text)] border-[var(--error-border)]'
     default: return 'badge-neutral border'
   }
 }
@@ -195,7 +195,7 @@ async function handleCreate() {
       </div>
       <button
         v-if="canCreate"
-        class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-indigo-600 text-white text-[13px] font-medium hover:bg-indigo-700 transition-colors"
+        class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[var(--brand-primary)] text-white text-[13px] font-medium hover:opacity-90 transition-colors"
         aria-label="Create new library entry"
         @click="openCreateModal"
       >
@@ -247,7 +247,7 @@ async function handleCreate() {
         type="text"
         placeholder="Search entries..."
         aria-label="Search library entries"
-        class="text-[12px] px-3 py-2 rounded-lg focus:outline-none focus:ring-1 placeholder-slate-400 w-64"
+        class="text-[12px] px-3 py-2 rounded-lg focus:outline-none focus:ring-1 placeholder-[var(--text-3)] w-64"
         style="background: var(--input-bg); border: 1px solid var(--input-border); color: var(--text-1);"
       />
 
@@ -268,8 +268,8 @@ async function handleCreate() {
           :aria-pressed="statusFilter === s.key"
           class="px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors border"
           :class="statusFilter === s.key
-            ? 'bg-indigo-600 text-white border-indigo-600'
-            : 'hover:border-indigo-300'"
+            ? 'bg-[var(--brand-primary)] text-white border-indigo-600'
+            : 'hover:border-[var(--border)]'"
           :style="statusFilter !== s.key ? 'background: var(--surface); color: var(--text-2); border-color: var(--border);' : ''"
         >{{ s.label }}</button>
       </div>
@@ -277,14 +277,14 @@ async function handleCreate() {
       <router-link
         v-if="(isOnprem && auth.isAdmin) || auth.isSuperAdmin"
         to="/library/sources"
-        class="ml-auto text-[11px] font-medium text-indigo-600 hover:text-indigo-800 transition-colors no-underline"
+        class="ml-auto text-[11px] font-medium text-[var(--info-text)] hover:text-[var(--heading)] transition-colors no-underline"
         aria-label="Manage library sources"
       >Manage Sources</router-link>
     </div>
 
     <!-- Loading -->
     <div v-if="isLoading && entries.length === 0" class="flex items-center gap-2 text-[13px] py-10 justify-center" style="color: var(--text-3);">
-      <svg class="w-4 h-4 animate-spin text-indigo-400" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+      <svg class="w-4 h-4 animate-spin text-[var(--brand-primary)]" fill="none" viewBox="0 0 24 24" aria-hidden="true">
         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
       </svg>
@@ -313,13 +313,13 @@ async function handleCreate() {
         v-for="entry in entries"
         :key="entry.id"
         @click="goToEntry(entry)"
-        class="rounded-xl shadow-sm hover:shadow-md hover:border-indigo-200 transition-all p-4 text-left cursor-pointer group"
+        class="rounded-xl shadow-sm hover:shadow-md hover:border-[var(--border)] transition-all p-4 text-left cursor-pointer group"
         style="background: var(--surface); border: 1px solid var(--border);"
         :aria-label="`View library entry: ${entry.name}`"
       >
         <!-- Top: name + status -->
         <div class="flex items-start justify-between gap-2 mb-2">
-          <h3 class="text-[14px] font-semibold group-hover:text-indigo-700 transition-colors leading-snug line-clamp-2" style="color: var(--text-1);">{{ entry.name }}</h3>
+          <h3 class="text-[14px] font-semibold group-hover:text-[var(--info-text)] transition-colors leading-snug line-clamp-2" style="color: var(--text-1);">{{ entry.name }}</h3>
           <span
             class="shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded-full border"
             :class="statusBadgeClass(entry.status)"
@@ -357,7 +357,7 @@ async function handleCreate() {
           <span
             v-for="tag in entry.tags.slice(0, 5)"
             :key="tag"
-            class="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-100"
+            class="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-[var(--info-bg)] text-[var(--info-text)] border border-[var(--border-light)]"
           >{{ tag }}</span>
           <span
             v-if="entry.tags.length > 5"
@@ -425,7 +425,7 @@ async function handleCreate() {
 
             <!-- Name -->
             <div>
-              <label for="lib-name" class="block text-xs font-medium mb-1" style="color: var(--text-2);">Name <span class="text-red-500">*</span></label>
+              <label for="lib-name" class="block text-xs font-medium mb-1" style="color: var(--text-2);">Name <span class="text-[var(--error-text)]">*</span></label>
               <input
                 id="lib-name"
                 v-model="createForm.name"
@@ -494,7 +494,7 @@ async function handleCreate() {
               @click="showCreateModal = false"
             >Cancel</button>
             <button
-              class="px-4 py-1.5 rounded-lg bg-indigo-600 text-white text-[13px] font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50"
+              class="px-4 py-1.5 rounded-lg bg-[var(--brand-primary)] text-white text-[13px] font-medium hover:opacity-90 transition-colors disabled:opacity-50"
               :disabled="isCreating"
               @click="handleCreate"
             >{{ isCreating ? 'Creating...' : 'Create' }}</button>

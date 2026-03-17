@@ -37,10 +37,11 @@ async def _seed_and_classify(
 ) -> None:
     """Seed agents, fingerprints, trigger classification, and wait."""
     now = "2025-01-01T00:00:00"
-    await test_db["s1_agents"].insert_many(
+    await test_db["agents"].insert_many(
         [
             {
-                "s1_agent_id": "exp_agent1",
+                "source": "sentinelone",
+                "source_id": "exp_agent1",
                 "hostname": "exp-host-1",
                 "group_id": "grp_a",
                 "group_name": "Group A",
@@ -151,7 +152,8 @@ class TestClassifierVerdicts:
         """Agent in group A whose apps match group B fingerprint → misclassified."""
         now = "2025-01-01T00:00:00"
         agent = {
-            "s1_agent_id": "mis_agent",
+            "source": "sentinelone",
+            "source_id": "mis_agent",
             "hostname": "mis-host",
             "group_id": "grp_wrong",
             "group_name": "Wrong Group",
@@ -187,7 +189,8 @@ class TestClassifierVerdicts:
         """When two fingerprints score similarly, verdict is ambiguous."""
         now = "2025-01-01T00:00:00"
         agent = {
-            "s1_agent_id": "amb_agent",
+            "source": "sentinelone",
+            "source_id": "amb_agent",
             "hostname": "amb-host",
             "group_id": "grp_a",
             "group_name": "Group A",
@@ -243,7 +246,8 @@ class TestClassifierVerdicts:
         """Agent with no matching apps → unclassifiable."""
         now = "2025-01-01T00:00:00"
         agent = {
-            "s1_agent_id": "unc_agent",
+            "source": "sentinelone",
+            "source_id": "unc_agent",
             "hostname": "unc-host",
             "group_id": "grp_x",
             "group_name": "Group X",
@@ -278,7 +282,8 @@ class TestClassifierVerdicts:
         from domains.classification.classifier import classify_single_agent
 
         agent = {
-            "s1_agent_id": "nofp_agent",
+            "source": "sentinelone",
+            "source_id": "nofp_agent",
             "hostname": "nofp-host",
             "group_id": "grp_z",
             "group_name": "Group Z",
@@ -299,7 +304,8 @@ class TestClassifierVerdicts:
             markers=[],
         )
         agent = {
-            "s1_agent_id": "empty_agent",
+            "source": "sentinelone",
+            "source_id": "empty_agent",
             "hostname": "empty-host",
             "group_id": "grp_empty",
             "group_name": "Empty",
@@ -309,13 +315,13 @@ class TestClassifierVerdicts:
         assert result.match_scores[0].score == 0.0
 
     async def test_fallback_app_query(self, test_db: AsyncIOMotorDatabase) -> None:
-        """When installed_app_names is empty, falls back to s1_installed_apps query."""
+        """When installed_app_names is empty, falls back to installed_apps query."""
         now = "2025-01-01T00:00:00"
         from domains.classification.classifier import classify_single_agent
         from domains.fingerprint.entities import Fingerprint, FingerprintMarker
 
-        # Insert apps in s1_installed_apps
-        await test_db["s1_installed_apps"].insert_one(
+        # Insert apps in installed_apps
+        await test_db["installed_apps"].insert_one(
             {
                 "agent_id": "fallback_agent",
                 "name": "WinCC Runtime",
@@ -338,7 +344,8 @@ class TestClassifierVerdicts:
             ],
         )
         agent = {
-            "s1_agent_id": "fallback_agent",
+            "source": "sentinelone",
+            "source_id": "fallback_agent",
             "hostname": "fb-host",
             "group_id": "grp_fb",
             "group_name": "Fallback Group",
@@ -366,7 +373,8 @@ class TestClassifierVerdicts:
             ],
         )
         agent = {
-            "s1_agent_id": "wc_agent",
+            "source": "sentinelone",
+            "source_id": "wc_agent",
             "hostname": "wc-host",
             "group_id": "grp_wc",
             "group_name": "Wildcard Group",

@@ -47,6 +47,7 @@ class ControlResponse(BaseModel):
     scope_tags: list[str] = Field(default_factory=list)
     scope_groups: list[str] = Field(default_factory=list)
     enabled: bool = True
+    disable_reason: str | None = None
     hipaa_type: str | None = None
     bsi_level: str | None = None
     remediation: str = ""
@@ -231,6 +232,11 @@ class ConfigureControlRequest(BaseModel):
     """Request to update a control's tenant-specific configuration."""
 
     enabled: bool | None = None
+    disable_reason: str | None = Field(
+        None,
+        max_length=1000,
+        description="Justification for disabling a control (Statement of Applicability)",
+    )
     severity_override: str | None = Field(
         None,
         description="Override severity: critical, high, medium, low",

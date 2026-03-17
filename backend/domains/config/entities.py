@@ -80,6 +80,68 @@ class AppConfig(BaseModel):
     password_max_age_days: int = Field(default=0, ge=0, le=365)
     password_check_breached: bool = Field(default=True)
 
+    # ── OIDC / OpenID Connect SSO ──────────────────────────────────────────────
+    # Per-tenant OIDC config. Falls back to env vars when empty, so env-only
+    # deployments continue to work. In multi-tenant mode each tenant database
+    # stores its own OIDC provider settings.
+    oidc_enabled: bool = Field(default=False, description="Enable OIDC SSO for this tenant")
+    oidc_discovery_url: str = Field(
+        default="",
+        max_length=500,
+        description="OIDC discovery URL (.well-known/openid-configuration)",
+    )
+    oidc_client_id: str = Field(default="", max_length=200, description="OIDC client ID")
+    oidc_client_secret: str = Field(
+        default="",
+        max_length=500,
+        description="OIDC client secret (encrypted at rest)",
+    )
+    oidc_redirect_uri: str = Field(
+        default="",
+        max_length=500,
+        description="OIDC redirect URI (callback URL)",
+    )
+    oidc_default_role: str = Field(
+        default="viewer",
+        description="Default role for OIDC-provisioned users (viewer/analyst/admin)",
+    )
+
+    # ── SAML 2.0 SSO ────────────────────────────────────────────────────────
+    saml_enabled: bool = Field(default=False, description="Enable SAML SSO for this tenant")
+    saml_idp_metadata_url: str = Field(
+        default="",
+        max_length=500,
+        description="SAML IdP metadata URL",
+    )
+    saml_sp_entity_id: str = Field(default="", max_length=300, description="SAML SP entity ID")
+    saml_sp_acs_url: str = Field(default="", max_length=500, description="SAML SP ACS URL")
+    saml_default_role: str = Field(
+        default="viewer",
+        description="Default role for SAML-provisioned users (viewer/analyst/admin)",
+    )
+
+    # ── Backup storage ────────────────────────────────────────────────────────
+    backup_storage_type: str = Field(
+        default="local",
+        description="Backup storage: 'local' for filesystem, 's3' for S3-compatible (MinIO/AWS)",
+    )
+    backup_local_path: str = Field(
+        default="./backups",
+        max_length=500,
+        description="Local directory for backup storage (writability is validated on save)",
+    )
+    backup_s3_endpoint: str = Field(default="", max_length=500, description="S3 endpoint URL")
+    backup_s3_bucket: str = Field(
+        default="sentora-backups", max_length=100, description="S3 bucket name"
+    )
+    backup_s3_access_key: str = Field(
+        default="", max_length=200, description="S3 access key (encrypted at rest)"
+    )
+    backup_s3_secret_key: str = Field(
+        default="", max_length=200, description="S3 secret key (encrypted at rest)"
+    )
+    backup_s3_region: str = Field(default="us-east-1", max_length=50, description="S3 region")
+
     # Branding / white-labeling
     brand_app_name: str = Field(default="Sentora", max_length=50)
     brand_tagline: str = Field(default="EDR Asset Classification", max_length=100)

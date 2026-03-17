@@ -15,13 +15,14 @@ _NOW = "2025-01-01T00:00:00"
 
 _AGENTS = [
     {
-        "s1_agent_id": "agent_001",
+        "source": "sentinelone",
+        "source_id": "agent_001",
         "hostname": "pc-scada-01",
         "os_type": "windows",
         "os_version": "10",
         "group_id": "grp_scada",
         "group_name": "SCADA Floor",
-        "network_status": "connected",
+        "agent_status": "online",
         "last_active": _NOW,
         "machine_type": "desktop",
         "domain": "corp.local",
@@ -30,13 +31,14 @@ _AGENTS = [
         "synced_at": _NOW,
     },
     {
-        "s1_agent_id": "agent_002",
+        "source": "sentinelone",
+        "source_id": "agent_002",
         "hostname": "srv-lab-01",
         "os_type": "linux",
         "os_version": "Ubuntu 22.04",
         "group_id": "grp_lab",
         "group_name": "Lab Systems",
-        "network_status": "disconnected",
+        "agent_status": "offline",
         "last_active": _NOW,
         "machine_type": "server",
         "domain": None,
@@ -71,7 +73,8 @@ _APPS = [
 
 _GROUPS = [
     {
-        "s1_group_id": "grp_scada",
+        "source": "sentinelone",
+        "source_id": "grp_scada",
         "name": "SCADA Floor",
         "description": "SCADA systems",
         "type": "static",
@@ -85,7 +88,8 @@ _GROUPS = [
         "updated_at": _NOW,
     },
     {
-        "s1_group_id": "grp_lab",
+        "source": "sentinelone",
+        "source_id": "grp_lab",
         "name": "Lab Systems",
         "description": "Lab environment",
         "type": "static",
@@ -103,10 +107,10 @@ _GROUPS = [
 
 @pytest_asyncio.fixture
 async def agents_db(test_db: AsyncIOMotorDatabase) -> AsyncIOMotorDatabase:  # type: ignore[type-arg]
-    """Seed s1_agents, s1_installed_apps, and s1_groups into the test database."""
-    await test_db["s1_agents"].insert_many(_AGENTS)
-    await test_db["s1_installed_apps"].insert_many(_APPS)
-    await test_db["s1_groups"].insert_many(_GROUPS)
+    """Seed agents, installed_apps, and groups into the test database."""
+    await test_db["agents"].insert_many(_AGENTS)
+    await test_db["installed_apps"].insert_many(_APPS)
+    await test_db["groups"].insert_many(_GROUPS)
     return test_db
 
 
@@ -176,12 +180,12 @@ class TestListAgents:
         response = await client.get("/api/v1/agents/", headers=admin_headers)
         assert response.status_code == 200
         for agent in response.json()["agents"]:
-            assert "s1_agent_id" in agent
+            assert "source_id" in agent
             assert "hostname" in agent
             assert "group_id" in agent
             assert "group_name" in agent
             assert "os_type" in agent
-            assert "network_status" in agent
+            assert "agent_status" in agent
 
 
 class TestGetAgentDetail:
@@ -465,10 +469,11 @@ class TestListSites:
     async def test_returns_seeded_sites(
         self, agents_db: AsyncIOMotorDatabase, client: AsyncClient, admin_headers: dict
     ) -> None:
-        """After seeding s1_sites, sites list returns the seeded site."""
-        await agents_db["s1_sites"].insert_one(
+        """After seeding sites, sites list returns the seeded site."""
+        await agents_db["sites"].insert_one(
             {
-                "s1_site_id": "site_001",
+                "source": "sentinelone",
+                "source_id": "site_001",
                 "name": "HQ",
                 "state": "active",
                 "site_type": "Paid",
@@ -482,22 +487,23 @@ class TestListSites:
         data = response.json()
         assert data["total"] == 1
         site = data["sites"][0]
-        assert site["s1_site_id"] == "site_001"
+        assert site["source_id"] == "site_001"
         assert site["name"] == "HQ"
 
     async def test_sites_include_group_and_agent_counts(
         self, agents_db: AsyncIOMotorDatabase, client: AsyncClient, admin_headers: dict
     ) -> None:
         """Sites response includes aggregated group_count and agent_count."""
-        await agents_db["s1_sites"].insert_one(
+        await agents_db["sites"].insert_one(
             {
-                "s1_site_id": "site_001",
+                "source": "sentinelone",
+                "source_id": "site_001",
                 "name": "HQ",
                 "state": "active",
             }
         )
-        # s1_groups already seeded in agents_db with site_id "site_001"
-        # s1_agents already seeded with matching group entries
+        # groups already seeded in agents_db with site_id "site_001"
+        # agents already seeded with matching group entries
 
         response = await client.get("/api/v1/sites/", headers=admin_headers)
         assert response.status_code == 200

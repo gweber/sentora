@@ -1,8 +1,8 @@
 """Check: prohibited applications installed on endpoints.
 
-Queries the classification results for agents that have applications
-classified as ``Prohibited`` and cross-references with the scoped
-agent set.
+Uses the ``app_summaries`` cache to identify prohibited app names, then
+checks each scoped agent's ``installed_app_names`` for matches.  Avoids
+the expensive ``$lookup`` join into ``installed_apps``.
 """
 
 from __future__ import annotations
@@ -18,6 +18,7 @@ from domains.compliance.entities import (
     ComplianceViolation,
     ControlSeverity,
 )
+from domains.sources.collections import AGENTS, INSTALLED_APPS
 from utils.dt import utc_now
 
 
@@ -33,6 +34,13 @@ async def execute(
     scope_filter: dict[str, Any],
 ) -> CheckResult:
     """Find agents with prohibited applications installed.
+
+    Two-phase approach for performance:
+    1. Query ``app_summaries`` for app names with ``risk_level: "prohibited"``
+    2. Iterate scoped agents and check ``installed_app_names`` for matches
+
+    This avoids the expensive ``$lookup`` join from ``agents`` into
+    ``installed_apps`` that previously scanned millions of rows.
 
     Args:
         db: Motor database handle.
@@ -50,7 +58,7 @@ async def execute(
     now = utc_now()
 
     # Count total agents in scope
-    total_agents = await db["s1_agents"].count_documents(scope_filter or {})
+    total_agents = await db[AGENTS].count_documents(scope_filter or {})
     if total_agents == 0:
         return not_applicable_result(
             control_id=control_id,
@@ -61,78 +69,63 @@ async def execute(
             checked_at=now,
         )
 
-    # Aggregation: find agents with prohibited apps via classification_results
-    # classification_results stores per-agent verdicts including app classifications
-    pipeline: list[dict[str, Any]] = []
+    # Phase 1: get the set of prohibited app names from the pre-computed cache.
+    # app_summaries.risk_level stores the most common risk_level per app.
+    # Also check installed_apps directly for any app with risk_level=prohibited
+    # to catch apps where prohibited isn't the majority but still present.
+    prohibited_names: set[str] = set()
+    async for doc in (
+        db[INSTALLED_APPS]
+        .find(
+            {"risk_level": "prohibited"},
+            {"normalized_name": 1, "_id": 0},
+        )
+        .limit(10_000)
+    ):
+        prohibited_names.add(doc["normalized_name"])
 
-    # Stage 1: match scoped agents
-    if scope_filter:
-        pipeline.append({"$match": scope_filter})
+    if not prohibited_names:
+        return CheckResult(
+            control_id=control_id,
+            framework_id=framework_id,
+            status=CheckStatus.passed,
+            checked_at=now,
+            total_endpoints=total_agents,
+            compliant_endpoints=total_agents,
+            non_compliant_endpoints=0,
+            violations=[],
+            evidence_summary=(
+                f"{total_agents}/{total_agents} endpoints free of prohibited software."
+            ),
+            severity=ControlSeverity(severity),
+            category=category,
+            control_name=control_name,
+        )
 
-    # Stage 2: lookup classification results for each agent
-    pipeline.extend(
-        [
-            {
-                "$lookup": {
-                    "from": "classification_results",
-                    "localField": "s1_agent_id",
-                    "foreignField": "agent_id",
-                    "as": "classification",
-                }
-            },
-            {"$unwind": {"path": "$classification", "preserveNullAndEmptyArrays": True}},
-        ]
-    )
-
-    # Stage 3: lookup installed apps that are flagged as prohibited
-    # We check fingerprints for prohibited markers matching installed apps
-    pipeline.extend(
-        [
-            {
-                "$lookup": {
-                    "from": "s1_installed_apps",
-                    "let": {"agent_id": "$s1_agent_id"},
-                    "pipeline": [
-                        {"$match": {"$expr": {"$eq": ["$agent_id", "$$agent_id"]}}},
-                        {"$match": {"risk_level": "prohibited"}},
-                        {"$project": {"normalized_name": 1, "version": 1, "agent_id": 1}},
-                    ],
-                    "as": "prohibited_apps",
-                }
-            },
-            {"$match": {"prohibited_apps": {"$ne": []}}},
-            {
-                "$project": {
-                    "s1_agent_id": 1,
-                    "hostname": 1,
-                    "prohibited_apps": 1,
-                }
-            },
-        ]
-    )
-
+    # Phase 2: check each scoped agent's installed_app_names for matches
+    prohibited_lower = {n.lower() for n in prohibited_names}
     violations: list[ComplianceViolation] = []
     non_compliant_agents: set[str] = set()
 
-    async for doc in db["s1_agents"].aggregate(pipeline):
-        agent_id = doc["s1_agent_id"]
-        hostname = doc.get("hostname", "unknown")
-        non_compliant_agents.add(agent_id)
-        for app in doc.get("prohibited_apps", []):
-            app_name = app.get("normalized_name", "unknown")
-            app_version = app.get("version", "")
-            violations.append(
-                ComplianceViolation(
-                    agent_id=agent_id,
-                    agent_hostname=hostname,
-                    violation_detail=(
-                        f"Prohibited application '{app_name}' v{app_version} installed"
-                    ),
-                    app_name=app_name,
-                    app_version=app_version,
-                    remediation=f"Uninstall '{app_name}' from endpoint {hostname}",
+    agent_filter = {**(scope_filter or {}), "installed_app_names": {"$exists": True}}
+    async for agent in db[AGENTS].find(
+        agent_filter,
+        {"source_id": 1, "hostname": 1, "installed_app_names": 1, "_id": 0},
+    ):
+        agent_id = agent["source_id"]
+        hostname = agent.get("hostname", "unknown")
+        for app_name in agent.get("installed_app_names", []):
+            if app_name.lower() in prohibited_lower:
+                non_compliant_agents.add(agent_id)
+                violations.append(
+                    ComplianceViolation(
+                        agent_id=agent_id,
+                        agent_hostname=hostname,
+                        violation_detail=f"Prohibited application '{app_name}' installed",
+                        app_name=app_name,
+                        remediation=f"Uninstall '{app_name}' from endpoint {hostname}",
+                    )
                 )
-            )
 
     from .base import MAX_VIOLATIONS
 

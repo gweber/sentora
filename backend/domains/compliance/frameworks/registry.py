@@ -6,7 +6,17 @@ Provides lookup functions used by the engine, commands, and queries.
 from __future__ import annotations
 
 from domains.compliance.entities import ComplianceFramework, ControlDefinition
-from domains.compliance.frameworks import bsi, hipaa, pci_dss, soc2
+from domains.compliance.frameworks import (
+    bsi,
+    cis_v8,
+    dora,
+    hipaa,
+    iso27001,
+    nis2,
+    nist_csf,
+    pci_dss,
+    soc2,
+)
 
 #: All built-in frameworks keyed by ID.
 _FRAMEWORKS: dict[str, ComplianceFramework] = {
@@ -14,6 +24,11 @@ _FRAMEWORKS: dict[str, ComplianceFramework] = {
     pci_dss.FRAMEWORK.id: pci_dss.FRAMEWORK,
     hipaa.FRAMEWORK.id: hipaa.FRAMEWORK,
     bsi.FRAMEWORK.id: bsi.FRAMEWORK,
+    dora.FRAMEWORK.id: dora.FRAMEWORK,
+    iso27001.FRAMEWORK.id: iso27001.FRAMEWORK,
+    nist_csf.FRAMEWORK.id: nist_csf.FRAMEWORK,
+    nis2.FRAMEWORK.id: nis2.FRAMEWORK,
+    cis_v8.FRAMEWORK.id: cis_v8.FRAMEWORK,
 }
 
 #: All built-in controls keyed by framework ID.
@@ -22,6 +37,11 @@ _CONTROLS: dict[str, list[ControlDefinition]] = {
     pci_dss.FRAMEWORK.id: pci_dss.CONTROLS,
     hipaa.FRAMEWORK.id: hipaa.CONTROLS,
     bsi.FRAMEWORK.id: bsi.CONTROLS,
+    dora.FRAMEWORK.id: dora.CONTROLS,
+    iso27001.FRAMEWORK.id: iso27001.CONTROLS,
+    nist_csf.FRAMEWORK.id: nist_csf.CONTROLS,
+    nis2.FRAMEWORK.id: nis2.CONTROLS,
+    cis_v8.FRAMEWORK.id: cis_v8.CONTROLS,
 }
 
 #: Flat lookup of all controls by control ID.

@@ -27,7 +27,8 @@ async def enforcement_seeded(seeded_db: AsyncIOMotorDatabase) -> AsyncIOMotorDat
 
     agents = [
         {
-            "s1_agent_id": "enf-agent-1",
+            "source": "sentinelone",
+            "source_id": "enf-agent-1",
             "hostname": "srv-app-01",
             "group_name": "Production",
             "group_id": "g-prod",
@@ -39,7 +40,8 @@ async def enforcement_seeded(seeded_db: AsyncIOMotorDatabase) -> AsyncIOMotorDat
             "agent_version": "23.3.1",
         },
         {
-            "s1_agent_id": "enf-agent-2",
+            "source": "sentinelone",
+            "source_id": "enf-agent-2",
             "hostname": "srv-db-01",
             "group_name": "Production",
             "group_id": "g-prod",
@@ -51,7 +53,8 @@ async def enforcement_seeded(seeded_db: AsyncIOMotorDatabase) -> AsyncIOMotorDat
             "agent_version": "23.3.1",
         },
         {
-            "s1_agent_id": "enf-agent-3",
+            "source": "sentinelone",
+            "source_id": "enf-agent-3",
             "hostname": "ws-dev-01",
             "group_name": "Development",
             "group_id": "g-dev",
@@ -63,7 +66,7 @@ async def enforcement_seeded(seeded_db: AsyncIOMotorDatabase) -> AsyncIOMotorDat
             "agent_version": "23.3.1",
         },
     ]
-    await seeded_db["s1_agents"].insert_many(agents)
+    await seeded_db["agents"].insert_many(agents)
 
     await seeded_db["taxonomy_categories"].insert_many(
         [

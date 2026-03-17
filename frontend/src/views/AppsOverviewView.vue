@@ -279,7 +279,7 @@ function goToDetail(app: AppListItem) {
           :aria-pressed="taxonomyFilter === f.key"
           class="px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors"
           :class="taxonomyFilter === f.key
-            ? 'bg-indigo-600 text-white border-indigo-600'
+            ? 'bg-[var(--brand-primary)] text-white border-indigo-600'
             : ''"
           :style="taxonomyFilter === f.key ? 'border: 1px solid transparent;' : `background: var(--surface); color: var(--text-2); border: 1px solid var(--border);`"
         >{{ f.label }}</button>
@@ -306,7 +306,7 @@ function goToDetail(app: AppListItem) {
 
     <!-- Loading -->
     <div v-if="isLoading && apps.length === 0" class="flex items-center gap-2 text-[13px] py-10 justify-center" style="color: var(--text-3);">
-      <svg class="w-4 h-4 animate-spin text-indigo-400" fill="none" viewBox="0 0 24 24">
+      <svg class="w-4 h-4 animate-spin text-[var(--brand-primary)]" fill="none" viewBox="0 0 24 24">
         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
       </svg>
@@ -338,6 +338,7 @@ function goToDetail(app: AppListItem) {
                 </button>
               </th>
               <th scope="col" class="text-left px-4 py-2.5 font-semibold" style="color: var(--text-3);">Category</th>
+              <th scope="col" class="text-left px-4 py-2.5 font-semibold" style="color: var(--text-3);">Lifecycle</th>
               <th scope="col" class="px-4 py-2.5 w-20"></th>
             </tr>
           </thead>
@@ -345,7 +346,7 @@ function goToDetail(app: AppListItem) {
             <tr
               v-for="app in filteredApps"
               :key="app.normalized_name"
-              class="hover:bg-indigo-50/40 transition-colors cursor-pointer group"
+              class="hover:bg-[var(--info-bg)]/40 transition-colors cursor-pointer group"
               @click="goToDetail(app)"
             >
               <td class="px-4 py-2.5">
@@ -357,7 +358,7 @@ function goToDetail(app: AppListItem) {
               <td class="px-4 py-2.5">
                 <span
                   v-if="app.category_display"
-                  class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-indigo-50 text-indigo-700 border border-indigo-200"
+                  class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-[var(--info-bg)] text-[var(--info-text)] border border-[var(--border)]"
                 >{{ app.category_display }}</span>
                 <span
                   v-else
@@ -365,13 +366,28 @@ function goToDetail(app: AppListItem) {
                   style="background: var(--badge-bg); color: var(--badge-text); border: 1px solid var(--border);"
                 >Unknown</span>
               </td>
+              <td class="px-4 py-2.5">
+                <span
+                  v-if="app.eol"
+                  class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border"
+                  :class="app.eol.match_source === 'fuzzy'
+                    ? 'bg-[var(--badge-bg)] text-[var(--badge-text)] border-[var(--border)]'
+                    : 'bg-orange-500/10 text-orange-600 border-orange-200'"
+                  :title="`Tracked by endoflife.date as '${app.eol.eol_product_id}' (${app.eol.match_source}, ${Math.round(app.eol.match_confidence * 100)}%)`"
+                >
+                  <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  {{ app.eol.eol_product_id }}
+                </span>
+              </td>
               <td class="px-4 py-2.5 text-right">
                 <button
                   v-if="!app.category"
                   @click.stop="openTaxModal(app)"
                   title="Add to taxonomy"
                   :aria-label="`Add ${app.display_name} to taxonomy`"
-                  class="opacity-0 group-hover:opacity-100 inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium text-indigo-600 hover:bg-indigo-50 transition-all"
+                  class="opacity-0 group-hover:opacity-100 inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium text-[var(--info-text)] hover:bg-[var(--info-bg)] transition-all"
                 >
                   <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
@@ -445,12 +461,12 @@ function goToDetail(app: AppListItem) {
             <!-- Name -->
             <div>
               <label class="block text-[12px] font-medium mb-1" style="color: var(--text-2);">
-                Name <span class="text-red-500">*</span>
+                Name <span class="text-[var(--error-text)]">*</span>
               </label>
               <input
                 v-model="taxForm.name"
                 required
-                class="w-full rounded-lg px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                class="w-full rounded-lg px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-[var(--input-focus)] focus:border-transparent"
                 style="border: 1px solid var(--input-border); background: var(--surface); color: var(--text-1);"
               />
             </div>
@@ -458,14 +474,14 @@ function goToDetail(app: AppListItem) {
             <!-- Patterns -->
             <div>
               <label class="block text-[12px] font-medium mb-1" style="color: var(--text-2);">
-                Patterns <span class="text-red-500">*</span>
+                Patterns <span class="text-[var(--error-text)]">*</span>
                 <span class="font-normal ml-1" style="color: var(--text-3);">(one per line, glob syntax)</span>
               </label>
               <textarea
                 v-model="taxForm.patterns"
                 required
                 rows="2"
-                class="w-full rounded-lg px-3 py-2 text-[13px] font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
+                class="w-full rounded-lg px-3 py-2 text-[13px] font-mono focus:outline-none focus:ring-2 focus:ring-[var(--input-focus)] focus:border-transparent resize-none"
                 style="border: 1px solid var(--input-border); background: var(--surface); color: var(--text-1);"
               />
             </div>
@@ -473,7 +489,7 @@ function goToDetail(app: AppListItem) {
             <!-- Category selector -->
             <div>
               <label class="block text-[12px] font-medium mb-1.5" style="color: var(--text-2);">
-                Category <span class="text-red-500">*</span>
+                Category <span class="text-[var(--error-text)]">*</span>
               </label>
               <!-- Quick-select from existing categories -->
               <div v-if="taxCategories.length > 0" class="flex flex-wrap gap-1.5 mb-2">
@@ -484,7 +500,7 @@ function goToDetail(app: AppListItem) {
                   @click="selectCategory(cat)"
                   class="px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors"
                   :class="taxForm.category === cat.key
-                    ? 'bg-indigo-600 text-white border-indigo-600'
+                    ? 'bg-[var(--brand-primary)] text-white border-indigo-600'
                     : ''"
                   :style="taxForm.category === cat.key ? 'border: 1px solid transparent;' : `background: var(--surface); color: var(--text-2); border: 1px solid var(--border);`"
                 >{{ cat.display }}</button>
@@ -496,7 +512,7 @@ function goToDetail(app: AppListItem) {
                     v-model="taxForm.category"
                     required
                     placeholder="Category key (e.g. devtools)"
-                    class="w-full rounded-lg px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    class="w-full rounded-lg px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-[var(--input-focus)] focus:border-transparent"
                     style="border: 1px solid var(--input-border); background: var(--surface); color: var(--text-1);"
                   />
                 </div>
@@ -504,7 +520,7 @@ function goToDetail(app: AppListItem) {
                   <input
                     v-model="taxForm.category_display"
                     placeholder="Label (e.g. Developer Tools)"
-                    class="w-full rounded-lg px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    class="w-full rounded-lg px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-[var(--input-focus)] focus:border-transparent"
                     style="border: 1px solid var(--input-border); background: var(--surface); color: var(--text-1);"
                   />
                 </div>
@@ -517,7 +533,7 @@ function goToDetail(app: AppListItem) {
               <input
                 v-model="taxForm.publisher"
                 placeholder="Optional"
-                class="w-full rounded-lg px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                class="w-full rounded-lg px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-[var(--input-focus)] focus:border-transparent"
                 style="border: 1px solid var(--input-border); background: var(--surface); color: var(--text-1);"
               />
             </div>
@@ -532,7 +548,7 @@ function goToDetail(app: AppListItem) {
               <button
                 type="submit"
                 :disabled="taxSaving"
-                class="px-4 py-2 rounded-lg text-[13px] font-medium text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+                class="px-4 py-2 rounded-lg text-[13px] font-medium text-white bg-[var(--brand-primary)] hover:opacity-90 disabled:opacity-50 transition-colors"
               >{{ taxSaving ? 'Saving…' : 'Add to Taxonomy' }}</button>
             </div>
           </form>

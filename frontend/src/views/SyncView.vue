@@ -10,6 +10,19 @@ import type { SyncProgressMessage } from '@/types/sync'
 import * as configApi from '@/api/config'
 import * as syncApi from '@/api/sync'
 
+const props = withDefaults(defineProps<{
+  /** Source adapter key (e.g. 'sentinelone', 'crowdstrike'). */
+  source?: string
+  /** Human-readable source label. */
+  sourceLabel?: string
+  /** Phase keys to display for this source tab. */
+  phaseKeys?: string[]
+}>(), {
+  source: 'sentinelone',
+  sourceLabel: 'SentinelOne',
+  phaseKeys: () => ['sites', 'groups', 'agents', 'apps', 'tags'],
+})
+
 const syncStore = useSyncStore()
 
 const wsUrl = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/api/v1/sync/progress`
@@ -157,7 +170,9 @@ onMounted(() => {
 onUnmounted(() => { if (_staleCheckTimer) clearInterval(_staleCheckTimer); disconnectWs() })
 
 async function trigger(mode: 'full' | 'incremental' | 'auto', phases?: string[]) {
-  const ok = await syncStore.triggerSync(mode, phases)
+  // Pass the source's phase keys if no explicit phases given
+  const targetPhases = phases ?? props.phaseKeys
+  const ok = await syncStore.triggerSync(mode, targetPhases)
   if (ok) connectWs()
 }
 
@@ -236,49 +251,35 @@ const isSyncing = computed(() =>
 
 // ── Phase definitions ─────────────────────────────────────────────────────────
 
-// All phases run independently in parallel — order here is just for display
-const PHASE_DEFS = [
-  {
-    key: 'sites',
-    label: 'Sites',
-    description: 'SentinelOne sites & account info',
-    syncPhases: ['sites'],
-    synced: (c: any) => c?.sites_synced ?? 0,
-    total:  (c: any) => c?.sites_total ?? 0,
-  },
-  {
-    key: 'tags',
-    label: 'Tags',
-    description: 'SentinelOne tag definitions',
-    syncPhases: ['tags'],
-    synced: (c: any) => c?.tags_synced ?? 0,
-    total:  (c: any) => c?.tags_total ?? 0,
-  },
-  {
-    key: 'groups',
-    label: 'Groups',
-    description: 'Agent groups per site',
-    syncPhases: ['groups'],
-    synced: (c: any) => c?.groups_synced ?? 0,
-    total:  (c: any) => c?.groups_total ?? 0,
-  },
-  {
-    key: 'agents',
-    label: 'Agents',
-    description: 'Endpoint agents',
-    syncPhases: ['agents'],
-    synced: (c: any) => c?.agents_synced ?? 0,
-    total:  (c: any) => c?.agents_total ?? 0,
-  },
-  {
-    key: 'apps',
-    label: 'Applications',
-    description: 'Installed software per agent',
-    syncPhases: ['apps'],
-    synced: (c: any) => c?.apps_synced ?? 0,
-    total:  (c: any) => c?.apps_total ?? 0,
-  },
-]
+/** Phase metadata — keyed by phase name. */
+const ALL_PHASE_META: Record<string, { label: string; description: string; syncedKey: string; totalKey: string }> = {
+  sites:      { label: 'Sites',        description: 'Sites & account info',      syncedKey: 'sites_synced',  totalKey: 'sites_total' },
+  tags:       { label: 'Tags',         description: 'Source tag definitions',     syncedKey: 'tags_synced',   totalKey: 'tags_total' },
+  groups:     { label: 'Groups',       description: 'Agent groups per site',      syncedKey: 'groups_synced', totalKey: 'groups_total' },
+  agents:     { label: 'Agents',       description: 'Endpoint agents',            syncedKey: 'agents_synced', totalKey: 'agents_total' },
+  apps:       { label: 'Applications', description: 'Installed software per agent', syncedKey: 'apps_synced', totalKey: 'apps_total' },
+  // CrowdStrike phases (map to same count fields as S1)
+  cs_groups:  { label: 'Groups',       description: 'Host groups',               syncedKey: 'groups_synced', totalKey: 'groups_total' },
+  cs_agents:  { label: 'Agents',       description: 'Endpoint hosts',            syncedKey: 'agents_synced', totalKey: 'agents_total' },
+  cs_apps:    { label: 'Applications', description: 'Falcon Discover apps',      syncedKey: 'apps_synced',   totalKey: 'apps_total' },
+}
+
+/** Active phase definitions — filtered by the source's phase keys. */
+const PHASE_DEFS = computed(() =>
+  props.phaseKeys
+    .filter((key) => ALL_PHASE_META[key])
+    .map((key) => {
+      const meta = ALL_PHASE_META[key]
+      return {
+        key,
+        label: meta.label,
+        description: meta.description,
+        syncPhases: [key],
+        synced: (c: any) => c?.[meta.syncedKey] ?? 0,
+        total:  (c: any) => c?.[meta.totalKey] ?? 0,
+      }
+    })
+)
 
 // When not syncing, show actual DB totals so a 272-agent incremental refresh
 // doesn't make the fleet look like it only has 272 agents.
@@ -359,8 +360,8 @@ function barPct(key: string, synced: number, total: number): number {
 
       <!-- Header -->
       <div class="px-6 py-5" style="border-bottom: 1px solid var(--border-light);">
-        <h2 class="text-[15px] font-semibold" style="color: var(--heading);">SentinelOne Data Sync</h2>
-        <p class="text-[12px] mt-0.5" style="color: var(--text-3);">Pull sites, groups, agents, applications, and tags from your S1 tenant</p>
+        <h2 class="text-[15px] font-semibold" style="color: var(--heading);">{{ sourceLabel }} Sync</h2>
+        <p class="text-[12px] mt-0.5" style="color: var(--text-3);">Pull data from {{ sourceLabel }} into your canonical inventory</p>
       </div>
 
       <!-- Full / Incremental buttons -->
@@ -410,7 +411,7 @@ function barPct(key: string, synced: number, total: number): number {
       <!-- Per-phase sync buttons -->
       <div class="px-6 py-4" style="border-bottom: 1px solid var(--border-light);">
         <p class="text-[11px] font-semibold uppercase tracking-widest mb-3" style="color: var(--text-3);">Sync individual data type</p>
-        <div class="grid grid-cols-2 sm:grid-cols-5 gap-2">
+        <div class="grid grid-cols-2 gap-2" :class="PHASE_DEFS.length >= 5 ? 'sm:grid-cols-5' : 'sm:grid-cols-3'">
           <button
             v-for="phase in PHASE_DEFS"
             :key="phase.key"
@@ -498,7 +499,7 @@ function barPct(key: string, synced: number, total: number): number {
                 <svg v-else-if="phaseStatus(phase.key) === 'done'" class="w-3.5 h-3.5 text-[var(--success-text)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
                 </svg>
-                <span v-else class="w-1.5 h-1.5 rounded-full bg-slate-300 block mx-auto"/>
+                <span v-else class="w-1.5 h-1.5 rounded-full bg-[var(--text-3)] block mx-auto"/>
               </span>
               <span
                 class="text-[13px] font-medium"
@@ -551,7 +552,7 @@ function barPct(key: string, synced: number, total: number): number {
               :class="{
                 'bg-[var(--brand-primary)]':  phaseStatus(phase.key) === 'active',
                 'bg-[var(--success-text)]': phaseStatus(phase.key) === 'done',
-                'bg-slate-200':   phaseStatus(phase.key) === 'pending',
+                'bg-[var(--badge-bg)]':   phaseStatus(phase.key) === 'pending',
                 'animate-pulse':  phaseStatus(phase.key) === 'active' && !phase.total(activeCounts),
               }"
               :style="{ width: `${barPct(phase.key, phase.synced(activeCounts), phase.total(activeCounts))}%` }"
@@ -618,7 +619,7 @@ function barPct(key: string, synced: number, total: number): number {
           <p class="text-[13px] font-medium" style="color: var(--text-1);">Re-normalize app names</p>
           <p class="text-[12px] mt-0.5" style="color: var(--text-3);">
             Strips version suffixes (e.g. <code class="font-mono text-[11px] px-1 rounded" style="background: var(--surface-inset);"> - 14.36.32543</code>)
-            from all app names in <code class="font-mono text-[11px] px-1 rounded" style="background: var(--surface-inset);">s1_installed_apps</code>,
+            from all app names in <code class="font-mono text-[11px] px-1 rounded" style="background: var(--surface-inset);">installed_apps</code>,
             then rebuilds <code class="font-mono text-[11px] px-1 rounded" style="background: var(--surface-inset);">installed_app_names</code> on agents.
             Run after upgrading the normalizer so existing data matches the new logic.
           </p>

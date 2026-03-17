@@ -14,6 +14,7 @@ from loguru import logger
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from domains.agents.app_cache import invalidate_taxonomy_cache
+from domains.sources.collections import AGENTS
 from domains.taxonomy import repository
 from domains.taxonomy.dto import (
     AppMatch,
@@ -522,11 +523,11 @@ async def preview_pattern(
         app_matches.sort(key=lambda m: m.agent_count, reverse=True)
         app_matches = app_matches[:50]
 
-        # Step 2: Get total unique agent count and group breakdown from s1_agents
+        # Step 2: Get total unique agent count and group breakdown from agents
         if matched_names:
             agent_filter: dict[str, object] = {"installed_app_names": {"$in": matched_names}}
 
-            total_agents = await db["s1_agents"].count_documents(agent_filter)
+            total_agents = await db[AGENTS].count_documents(agent_filter)
 
             # Group breakdown (top 20)
             group_pipeline: list[dict[str, object]] = [
@@ -535,7 +536,7 @@ async def preview_pattern(
                 {"$sort": {"agent_count": -1}},
                 {"$limit": 20},
             ]
-            async for doc in db["s1_agents"].aggregate(group_pipeline):
+            async for doc in db[AGENTS].aggregate(group_pipeline):
                 group_counts.append(
                     GroupCount(
                         group_name=doc.get("_id") or "Unknown",

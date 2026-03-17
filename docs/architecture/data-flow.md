@@ -68,11 +68,11 @@ The sync pipeline progresses through five independent phases. Each phase runs on
 
 | Phase | S1 API endpoint | MongoDB collection | WS phase field |
 |---|---|---|---|
-| Sites | `GET /web/api/v2.1/sites` | `s1_sites` | `"sites"` |
-| Groups | `GET /web/api/v2.1/groups` | `s1_groups` | `"groups"` |
-| Agents | `GET /web/api/v2.1/agents` (paginated) | `s1_agents` | `"agents"` |
-| Applications | `GET /web/api/v2.1/agents/applications` (per agent batch) | `s1_installed_apps` | `"apps"` |
-| Tags | `GET /web/api/v2.1/tags` | `s1_tags` | `"tags"` |
+| Sites | `GET /web/api/v2.1/sites` | `sites` | `"sites"` |
+| Groups | `GET /web/api/v2.1/groups` | `groups` | `"groups"` |
+| Agents | `GET /web/api/v2.1/agents` (paginated) | `agents` | `"agents"` |
+| Applications | `GET /web/api/v2.1/agents/applications` (per agent batch) | `installed_apps` | `"apps"` |
+| Tags | `GET /web/api/v2.1/tags` | `source_tags` | `"tags"` |
 
 All five collections are upserted (insert or update on S1 ID), so re-running a sync is safe and idempotent.
 
@@ -86,7 +86,7 @@ The S1 API client respects the `S1_RATE_LIMIT_PER_MINUTE` setting. Requests are 
 
 ### Sync Run Persistence
 
-Sync run records are persisted to the `s1_sync_runs` MongoDB collection. The `SyncManager` singleton loads history from the database on startup via `init()`, so sync history survives process restarts. The in-memory state is kept in sync with the database. History is exposed via `GET /api/v1/sync/history`.
+Sync run records are persisted to the `sync_runs` MongoDB collection. The `SyncManager` singleton loads history from the database on startup via `init()`, so sync history survives process restarts. The in-memory state is kept in sync with the database. History is exposed via `GET /api/v1/sync/history`.
 
 ---
 

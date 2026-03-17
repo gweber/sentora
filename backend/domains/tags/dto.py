@@ -59,7 +59,7 @@ class TagRuleResponse(BaseModel):
 
 
 class TagPreviewAgent(BaseModel):
-    s1_agent_id: str
+    source_id: str
     hostname: str
     group_name: str
     site_name: str

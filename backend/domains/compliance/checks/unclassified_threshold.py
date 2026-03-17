@@ -17,6 +17,7 @@ from domains.compliance.entities import (
     ComplianceViolation,
     ControlSeverity,
 )
+from domains.sources.collections import AGENTS
 from utils.dt import utc_now
 
 
@@ -52,7 +53,7 @@ async def execute(
     now = utc_now()
     max_unclassified_pct: float = parameters.get("max_unclassified_percent", 10)
 
-    total_agents = await db["s1_agents"].count_documents(scope_filter or {})
+    total_agents = await db[AGENTS].count_documents(scope_filter or {})
     if total_agents == 0:
         return not_applicable_result(
             control_id=control_id,
@@ -74,8 +75,8 @@ async def execute(
     violations: list[ComplianceViolation] = []
     non_compliant_agents: set[str] = set()
 
-    projection = {"s1_agent_id": 1, "hostname": 1, "installed_app_names": 1}
-    async for agent in db["s1_agents"].find(scope_filter or {}, projection):
+    projection = {"source_id": 1, "hostname": 1, "installed_app_names": 1}
+    async for agent in db[AGENTS].find(scope_filter or {}, projection):
         installed = agent.get("installed_app_names", [])
         if not installed:
             continue
@@ -85,7 +86,7 @@ async def execute(
         unclassified_pct = (unclassified / total_apps * 100) if total_apps > 0 else 0
 
         if unclassified_pct > max_unclassified_pct:
-            agent_id = agent["s1_agent_id"]
+            agent_id = agent["source_id"]
             non_compliant_agents.add(agent_id)
             violations.append(
                 ComplianceViolation(

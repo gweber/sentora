@@ -119,16 +119,17 @@ async def seeded_agents(test_db: AsyncIOMotorDatabase) -> AsyncIOMotorDatabase:
         The test database with agents and installed apps seeded.
     """
     now = "2025-01-01T00:00:00"
-    await test_db["s1_agents"].insert_many(
+    await test_db["agents"].insert_many(
         [
             {
-                "s1_agent_id": "agent1",
+                "source": "sentinelone",
+                "source_id": "agent1",
                 "hostname": "pc-001",
                 "group_id": "group_scada",
                 "group_name": "SCADA Systems",
                 "os_type": "windows",
                 "os_version": "10",
-                "network_status": "connected",
+                "agent_status": "online",
                 "last_active": now,
                 "machine_type": "desktop",
                 "domain": None,
@@ -137,13 +138,14 @@ async def seeded_agents(test_db: AsyncIOMotorDatabase) -> AsyncIOMotorDatabase:
                 "synced_at": now,
             },
             {
-                "s1_agent_id": "agent2",
+                "source": "sentinelone",
+                "source_id": "agent2",
                 "hostname": "pc-002",
                 "group_id": "group_lab",
                 "group_name": "Lab Systems",
                 "os_type": "windows",
                 "os_version": "10",
-                "network_status": "connected",
+                "agent_status": "online",
                 "last_active": now,
                 "machine_type": "desktop",
                 "domain": None,
@@ -152,13 +154,14 @@ async def seeded_agents(test_db: AsyncIOMotorDatabase) -> AsyncIOMotorDatabase:
                 "synced_at": now,
             },
             {
-                "s1_agent_id": "agent3",
+                "source": "sentinelone",
+                "source_id": "agent3",
                 "hostname": "pc-003",
                 "group_id": "group_scada",
                 "group_name": "SCADA Systems",
                 "os_type": "linux",
                 "os_version": "Ubuntu 22.04",
-                "network_status": "disconnected",
+                "agent_status": "offline",
                 "last_active": now,
                 "machine_type": "server",
                 "domain": None,
@@ -168,7 +171,7 @@ async def seeded_agents(test_db: AsyncIOMotorDatabase) -> AsyncIOMotorDatabase:
             },
         ]
     )
-    await test_db["s1_installed_apps"].insert_many(
+    await test_db["installed_apps"].insert_many(
         [
             {
                 "agent_id": "agent1",
@@ -477,7 +480,8 @@ class TestClassifyCorrectly:
 
         fingerprints = await list_fingerprints(seeded_fingerprints)
         agent_doc = {
-            "s1_agent_id": "agent1",
+            "source": "sentinelone",
+            "source_id": "agent1",
             "hostname": "pc-001",
             "group_id": "group_scada",
             "group_name": "SCADA Systems",

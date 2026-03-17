@@ -2,6 +2,9 @@
 
 Call ``ensure_all_indexes(db)`` once at application startup. MongoDB's
 ``create_index`` is idempotent — it is safe to call on every restart.
+
+Collection names are imported from ``domains.sources.collections`` —
+the single source of truth for canonical collection names.
 """
 
 from __future__ import annotations
@@ -9,66 +12,85 @@ from __future__ import annotations
 from loguru import logger
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
+from domains.sources.collections import (
+    AGENTS,
+    GROUPS,
+    INSTALLED_APPS,
+    SITES,
+    SOURCE_TAGS,
+    SYNC_RUNS,
+)
+
 
 async def ensure_all_indexes(db: AsyncIOMotorDatabase) -> None:  # type: ignore[type-arg]
     """Create all application indexes across every collection."""
 
-    # ── s1_agents ─────────────────────────────────────────────────────────────
-    # Primary key for upserts and per-agent lookups
-    await db["s1_agents"].create_index("s1_agent_id", unique=True, background=True)
+    # ── agents (canonical) ──────────────────────────────────────────────────
+    # Deterministic UUID _id from (source, source_id) — no separate unique index needed
+    await db[AGENTS].create_index("source_id", background=True)
+    await db[AGENTS].create_index("source", background=True)
     # Filtering by site and group (list_agents, aggregations, fingerprint matcher)
-    await db["s1_agents"].create_index("site_id", background=True)
-    await db["s1_agents"].create_index("group_id", background=True)
+    await db[AGENTS].create_index("site_id", background=True)
+    await db[AGENTS].create_index("group_id", background=True)
     # Hostname search (regex)
-    await db["s1_agents"].create_index("hostname", background=True)
+    await db[AGENTS].create_index("hostname", background=True)
     # Stale agent dashboard queries: count_documents({"last_active": {"$lt": cutoff}})
-    await db["s1_agents"].create_index("last_active", background=True)
+    await db[AGENTS].create_index("last_active", background=True)
     # Denormalized app names — written by sync, read by classification and tag matcher
-    await db["s1_agents"].create_index("installed_app_names", background=True)
-    # Tags — for future filtering of agents by their current S1 tags
-    await db["s1_agents"].create_index("tags", background=True)
+    await db[AGENTS].create_index("installed_app_names", background=True)
+    # Tags — for filtering of agents by their current source tags
+    await db[AGENTS].create_index("tags", background=True)
     # synced_at — full sync uses this to delete stale agents instead of $nin with 150k+ IDs
-    await db["s1_agents"].create_index("synced_at", background=True)
+    await db[AGENTS].create_index("synced_at", background=True)
 
-    # ── s1_installed_apps ─────────────────────────────────────────────────────
+    # ── installed_apps (canonical) ──────────────────────────────────────────
     # Wrapped in try/except: background index builds on this large collection can
     # cause transient conflicts on rapid restarts (uvicorn --reload). All indexes
     # here are persistent from previous successful runs so a transient failure is safe.
     try:
-        await db["s1_installed_apps"].create_index("id", unique=True, sparse=True, background=True)
-        await db["s1_installed_apps"].create_index("agent_id", background=True)
-        await db["s1_installed_apps"].create_index("normalized_name", background=True)
-        await db["s1_installed_apps"].create_index(
+        await db[INSTALLED_APPS].create_index("source_id", background=True)
+        await db[INSTALLED_APPS].create_index("source", background=True)
+        await db[INSTALLED_APPS].create_index("agent_id", background=True)
+        await db[INSTALLED_APPS].create_index("normalized_name", background=True)
+        await db[INSTALLED_APPS].create_index(
             [("agent_id", 1), ("normalized_name", 1)], background=True
         )
-        await db["s1_installed_apps"].create_index("last_synced_at", background=True)
-        await db["s1_installed_apps"].create_index("publisher", background=True)
-        await db["s1_installed_apps"].create_index("risk_level", background=True)
-        await db["s1_installed_apps"].create_index(
+        await db[INSTALLED_APPS].create_index("last_synced_at", background=True)
+        await db[INSTALLED_APPS].create_index("publisher", background=True)
+        await db[INSTALLED_APPS].create_index("risk_level", background=True)
+        await db[INSTALLED_APPS].create_index(
             [("normalized_name", 1), ("agent_id", 1)], background=True
         )
-        await db["s1_installed_apps"].create_index("active", background=True, sparse=True)
+        # Covering index for app detail: match(normalized_name, active) + group(agent_id)
+        # with projected fields to avoid FETCH stage on stats/breakdown queries.
+        await db[INSTALLED_APPS].create_index(
+            [("normalized_name", 1), ("active", 1), ("agent_id", 1)], background=True
+        )
+        await db[INSTALLED_APPS].create_index("active", background=True, sparse=True)
     except Exception as exc:
-        logger.warning("s1_installed_apps index setup skipped (transient conflict): {}", exc)
+        logger.warning("installed_apps index setup skipped (transient conflict): {}", exc)
 
-    # ── s1_groups ─────────────────────────────────────────────────────────────
-    await db["s1_groups"].create_index("s1_group_id", unique=True, background=True)
-    await db["s1_groups"].create_index("site_id", background=True)
+    # ── groups (canonical) ──────────────────────────────────────────────────
+    await db[GROUPS].create_index("source_id", background=True)
+    await db[GROUPS].create_index("source", background=True)
+    await db[GROUPS].create_index("site_id", background=True)
 
-    # ── s1_sites ──────────────────────────────────────────────────────────────
-    await db["s1_sites"].create_index("s1_site_id", unique=True, background=True)
-    await db["s1_sites"].create_index("name", background=True)
+    # ── sites (canonical) ───────────────────────────────────────────────────
+    await db[SITES].create_index("source_id", background=True)
+    await db[SITES].create_index("source", background=True)
+    await db[SITES].create_index("name", background=True)
 
-    # ── s1_tags ────────────────────────────────────────────────────────────────
-    await db["s1_tags"].create_index("s1_tag_id", unique=True, background=True)
-    await db["s1_tags"].create_index("name", background=True)
-    await db["s1_tags"].create_index("scope", background=True)
+    # ── source_tags (canonical) ─────────────────────────────────────────────
+    await db[SOURCE_TAGS].create_index("source_id", background=True)
+    await db[SOURCE_TAGS].create_index("source", background=True)
+    await db[SOURCE_TAGS].create_index("name", background=True)
+    await db[SOURCE_TAGS].create_index("scope", background=True)
 
-    # ── s1_sync_runs ──────────────────────────────────────────────────────────
+    # ── sync_runs (canonical) ───────────────────────────────────────────────
     # Status + completed_at: used in GET /status to find last completed run
-    await db["s1_sync_runs"].create_index([("status", 1), ("completed_at", -1)], background=True)
+    await db[SYNC_RUNS].create_index([("status", 1), ("completed_at", -1)], background=True)
     # started_at: used in GET /history
-    await db["s1_sync_runs"].create_index([("started_at", -1)], background=True)
+    await db[SYNC_RUNS].create_index([("started_at", -1)], background=True)
 
     # ── classification_results ────────────────────────────────────────────────
     # agent_id is unique — created by classification repo, but declared here too
@@ -111,6 +133,23 @@ async def ensure_all_indexes(db: AsyncIOMotorDatabase) -> None:  # type: ignore[
     await db["app_summaries"].create_index("normalized_name", unique=True, background=True)
     await db["app_summaries"].create_index("agent_count", background=True)
     await db["app_summaries"].create_index("category", background=True)
+
+    # ── eol_products ─────────────────────────────────────────────────────────
+    # Primary key for upserts and product lookups
+    await db["eol_products"].create_index("product_id", unique=True, background=True)
+    await db["eol_products"].create_index("last_synced", background=True)
+
+    # ── eol_name_mappings ────────────────────────────────────────────────────
+    # User-configured app name prefix → EOL product mappings
+    await db["eol_name_mappings"].create_index("app_name_prefix", unique=True, background=True)
+
+    # EOL match on app_summaries for compliance check queries
+    await db["app_summaries"].create_index("eol_match.eol_product_id", background=True, sparse=True)
+    await db["app_summaries"].create_index("eol_match.match_source", background=True, sparse=True)
+
+    # ── export_cache ──────────────────────────────────────────────────────────
+    await db["export_cache"].create_index("cache_key", unique=True, background=True)
+    await db["export_cache"].create_index("created_at", background=True)
 
     # ── taxonomy_categories ──────────────────────────────────────────────────
     await db["taxonomy_categories"].create_index("key", unique=True, background=True)

@@ -146,6 +146,7 @@ async def configure_control(
         control_id,
         actor=user.sub,
         enabled=payload.enabled,
+        disable_reason=payload.disable_reason,
         severity_override=payload.severity_override,
         parameters_override=payload.parameters_override,
         scope_tags_override=payload.scope_tags_override,
@@ -163,6 +164,7 @@ async def configure_control(
         scope_tags=config.scope_tags_override or [],
         scope_groups=config.scope_groups_override or [],
         enabled=config.enabled,
+        disable_reason=config.disable_reason,
     )
 
 

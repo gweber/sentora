@@ -15,7 +15,7 @@ Usage in find queries::
 
     from domains.sync.app_filters import active_filter
 
-    cursor = db["s1_installed_apps"].find(active_filter(agent_id=some_id))
+    cursor = db["installed_apps"].find(active_filter(agent_id=some_id))
 """
 
 from __future__ import annotations

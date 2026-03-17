@@ -71,10 +71,10 @@ onUnmounted(() => {
 
 function sourceBadgeClass(source: string): string {
   switch (source) {
-    case 'nist_cpe': return 'bg-blue-50 text-blue-700 border-blue-200'
+    case 'nist_cpe': return 'bg-[var(--info-bg)] text-[var(--info-text)] border-[var(--border)]'
     case 'mitre': return 'bg-purple-50 text-purple-700 border-purple-200'
-    case 'chocolatey': return 'bg-amber-50 text-amber-700 border-amber-200'
-    case 'homebrew': return 'bg-emerald-50 text-emerald-700 border-emerald-200'
+    case 'chocolatey': return 'bg-[var(--warn-bg)] text-[var(--warn-text)] border-[var(--warn-border)]'
+    case 'homebrew': return 'bg-[var(--success-bg)] text-[var(--success-text)] border-[var(--success-border)]'
     case 'manual': return 'badge-neutral border'
     default: return 'badge-neutral border'
   }
@@ -93,9 +93,9 @@ function sourceLabel(source: string): string {
 
 function statusBadgeClass(status: string): string {
   switch (status) {
-    case 'published': return 'bg-emerald-50 text-emerald-700 border-emerald-200'
-    case 'draft': return 'bg-amber-50 text-amber-700 border-amber-200'
-    case 'deprecated': return 'bg-red-50 text-red-600 border-red-200'
+    case 'published': return 'bg-[var(--success-bg)] text-[var(--success-text)] border-[var(--success-border)]'
+    case 'draft': return 'bg-[var(--warn-bg)] text-[var(--warn-text)] border-[var(--warn-border)]'
+    case 'deprecated': return 'bg-[var(--error-bg)] text-[var(--error-text)] border-[var(--error-border)]'
     default: return 'badge-neutral border'
   }
 }
@@ -111,8 +111,8 @@ function formatDate(iso: string): string {
 }
 
 function weightColor(weight: number): string {
-  if (weight >= 0.7) return 'text-emerald-700 bg-emerald-50'
-  if (weight >= 0.4) return 'text-amber-700 bg-amber-50'
+  if (weight >= 0.7) return 'text-[var(--success-text)] bg-[var(--success-bg)]'
+  if (weight >= 0.4) return 'text-[var(--warn-text)] bg-[var(--warn-bg)]'
   return 'badge-neutral-muted'
 }
 
@@ -273,7 +273,7 @@ async function handleEdit() {
     <!-- Back link -->
     <router-link
       to="/library"
-      class="inline-flex items-center gap-1 text-[12px] hover:text-indigo-600 transition-colors no-underline"
+      class="inline-flex items-center gap-1 text-[12px] hover:text-[var(--info-text)] transition-colors no-underline"
       style="color: var(--text-3);"
       aria-label="Back to library browser"
     >
@@ -285,7 +285,7 @@ async function handleEdit() {
 
     <!-- Loading -->
     <div v-if="isLoading" class="flex items-center gap-2 text-[13px] py-10 justify-center" style="color: var(--text-3);">
-      <svg class="w-4 h-4 animate-spin text-indigo-400" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+      <svg class="w-4 h-4 animate-spin text-[var(--brand-primary)]" fill="none" viewBox="0 0 24 24" aria-hidden="true">
         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
       </svg>
@@ -323,7 +323,7 @@ async function handleEdit() {
               <span
                 v-for="tag in entry.tags"
                 :key="tag"
-                class="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-100"
+                class="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-[var(--info-bg)] text-[var(--info-text)] border border-[var(--border-light)]"
               >{{ tag }}</span>
             </div>
 
@@ -347,38 +347,38 @@ async function handleEdit() {
               @click="openEditModal"
             >Edit</button>
             <button
-              class="px-2.5 py-1 rounded-md text-[11px] font-medium bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 transition-colors"
+              class="px-2.5 py-1 rounded-md text-[11px] font-medium bg-[var(--info-bg)] text-[var(--info-text)] border border-[var(--border)] hover:bg-[var(--info-bg)] transition-colors"
               aria-label="Subscribe a group"
               @click="openSubscribeModal"
             >Subscribe Group</button>
             <button
               v-if="isAdmin && entry.status === 'draft'"
-              class="px-2.5 py-1 rounded-md text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition-colors"
+              class="px-2.5 py-1 rounded-md text-[11px] font-medium bg-[var(--success-bg)] text-[var(--success-text)] border border-[var(--success-border)] hover:bg-[var(--success-bg)] transition-colors"
               :disabled="actionLoading === 'publish'"
               aria-label="Publish entry"
               @click="handlePublish"
             >{{ actionLoading === 'publish' ? 'Publishing...' : 'Publish' }}</button>
             <button
               v-if="isAdmin && entry.status === 'published'"
-              class="px-2.5 py-1 rounded-md text-[11px] font-medium bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 transition-colors"
+              class="px-2.5 py-1 rounded-md text-[11px] font-medium bg-[var(--warn-bg)] text-[var(--warn-text)] border border-[var(--warn-border)] hover:bg-[var(--warn-bg)] transition-colors"
               :disabled="actionLoading === 'deprecate'"
               aria-label="Deprecate entry"
               @click="handleDeprecate"
             >{{ actionLoading === 'deprecate' ? 'Deprecating...' : 'Deprecate' }}</button>
             <button
               v-if="isAdmin && entry.markers.length > 0"
-              class="px-2.5 py-1 rounded-md text-[11px] font-medium bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 transition-colors"
+              class="px-2.5 py-1 rounded-md text-[11px] font-medium bg-[var(--info-bg)] text-[var(--info-text)] border border-[var(--border)] hover:bg-[var(--info-bg)] transition-colors"
               aria-label="Add to taxonomy catalog"
               @click="handleShowPromotePanel"
             >Add to Taxonomy</button>
             <span
               v-if="promoteResult"
               class="text-[11px] font-medium"
-              :class="promoteResult.created ? 'text-emerald-600' : 'text-blue-600'"
+              :class="promoteResult.created ? 'text-[var(--success-text)]' : 'text-[var(--info-text)]'"
             >{{ promoteResult.created ? `Created (${promoteResult.patterns_added} patterns)` : `Merged ${promoteResult.patterns_added} patterns` }}</span>
             <button
               v-if="isAdmin"
-              class="px-2.5 py-1 rounded-md text-[11px] font-medium text-red-500 hover:bg-red-50 hover:border-red-200 transition-colors"
+              class="px-2.5 py-1 rounded-md text-[11px] font-medium text-[var(--error-text)] hover:bg-[var(--error-bg)] hover:border-[var(--error-border)] transition-colors"
               style="background: var(--surface); border: 1px solid var(--border);"
               aria-label="Delete entry"
               @click="showDeleteConfirm = true"
@@ -399,11 +399,11 @@ async function handleEdit() {
       >
         <div class="px-5 py-3 flex items-center justify-between" style="border-bottom: 1px solid var(--border-light); background: var(--surface-inset);">
           <h2 class="text-[14px] font-semibold" style="color: var(--text-1);">Add to Taxonomy</h2>
-          <button class="text-[11px] text-muted hover:text-indigo-600" @click="showPromotePanel = false">Cancel</button>
+          <button class="text-[11px] text-muted hover:text-[var(--info-text)]" @click="showPromotePanel = false">Cancel</button>
         </div>
         <div class="p-5 space-y-4">
           <!-- Merge warning -->
-          <div v-if="promotePreview.would_merge" class="px-3 py-2 rounded-lg text-[12px] bg-amber-50 text-amber-800 border border-amber-200">
+          <div v-if="promotePreview.would_merge" class="px-3 py-2 rounded-lg text-[12px] bg-[var(--warn-bg)] text-amber-800 border border-[var(--warn-border)]">
             A taxonomy entry named "<strong>{{ promotePreview.existing_entry_name }}</strong>" already exists.
             {{ promotePreview.new_patterns.length }} new pattern(s) will be merged.
           </div>
@@ -413,7 +413,7 @@ async function handleEdit() {
             <label class="block text-[12px] font-medium mb-1.5" style="color: var(--text-2);">Taxonomy Category</label>
             <select
               v-model="promoteCategory"
-              class="w-full max-w-xs px-3 py-1.5 rounded-lg border text-[13px] focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+              class="w-full max-w-xs px-3 py-1.5 rounded-lg border text-[13px] focus:outline-none focus:ring-2 focus:ring-[var(--input-focus)]/30"
               style="background: var(--surface); border-color: var(--border); color: var(--text-1);"
             >
               <option
@@ -450,10 +450,10 @@ async function handleEdit() {
           <div class="flex items-center gap-3 pt-1">
             <button
               :disabled="promoteLoading || (promotePreview.would_merge && promotePreview.new_patterns.length === 0)"
-              class="px-4 py-1.5 rounded-lg bg-indigo-600 text-white text-[12px] font-medium hover:bg-indigo-700 transition-colors disabled:opacity-40"
+              class="px-4 py-1.5 rounded-lg bg-[var(--brand-primary)] text-white text-[12px] font-medium hover:opacity-90 transition-colors disabled:opacity-40"
               @click="handlePromoteToTaxonomy"
             >{{ promoteLoading ? 'Adding...' : promotePreview.would_merge ? 'Merge Patterns' : 'Create Entry' }}</button>
-            <button class="px-3 py-1.5 rounded-lg text-[12px] text-muted border-muted border hover:border-indigo-300 transition-colors" style="background: var(--surface);" @click="showPromotePanel = false">Cancel</button>
+            <button class="px-3 py-1.5 rounded-lg text-[12px] text-muted border-muted border hover:border-[var(--border)] transition-colors" style="background: var(--surface);" @click="showPromotePanel = false">Cancel</button>
           </div>
         </div>
       </div>
@@ -484,7 +484,7 @@ async function handleEdit() {
               <tr
                 v-for="marker in entry.markers"
                 :key="marker.id"
-                class="hover:bg-indigo-50/40 transition-colors"
+                class="hover:bg-[var(--info-bg)]/40 transition-colors"
               >
                 <td class="px-4 py-2.5 font-mono text-[11px]" style="color: var(--text-1);">{{ marker.pattern }}</td>
                 <td class="px-4 py-2.5" style="color: var(--text-2);">{{ marker.display_name || '—' }}</td>
@@ -551,7 +551,7 @@ async function handleEdit() {
             </div>
 
             <div>
-              <label for="sub-group" class="block text-xs font-medium mb-1" style="color: var(--text-2);">Group ID <span class="text-red-500">*</span></label>
+              <label for="sub-group" class="block text-xs font-medium mb-1" style="color: var(--text-2);">Group ID <span class="text-[var(--error-text)]">*</span></label>
               <input
                 id="sub-group"
                 v-model="subscribeGroupId"
@@ -566,7 +566,7 @@ async function handleEdit() {
                 id="sub-auto"
                 v-model="subscribeAutoUpdate"
                 type="checkbox"
-                class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                class="rounded border-[var(--border)] text-[var(--info-text)] focus:ring-[var(--input-focus)]"
               />
               <label for="sub-auto" class="text-xs" style="color: var(--text-2);">Auto-update when entry changes</label>
             </div>
@@ -579,7 +579,7 @@ async function handleEdit() {
               @click="showSubscribeModal = false"
             >Cancel</button>
             <button
-              class="px-4 py-1.5 rounded-lg bg-indigo-600 text-white text-[13px] font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50"
+              class="px-4 py-1.5 rounded-lg bg-[var(--brand-primary)] text-white text-[13px] font-medium hover:opacity-90 transition-colors disabled:opacity-50"
               :disabled="subscribing"
               @click="handleSubscribe"
             >{{ subscribing ? 'Subscribing...' : 'Subscribe' }}</button>
@@ -619,7 +619,7 @@ async function handleEdit() {
             </div>
 
             <div>
-              <label for="edit-name" class="block text-xs font-medium mb-1" style="color: var(--text-2);">Name <span class="text-red-500">*</span></label>
+              <label for="edit-name" class="block text-xs font-medium mb-1" style="color: var(--text-2);">Name <span class="text-[var(--error-text)]">*</span></label>
               <input
                 id="edit-name"
                 v-model="editForm.name"
@@ -678,7 +678,7 @@ async function handleEdit() {
               @click="showEditModal = false"
             >Cancel</button>
             <button
-              class="px-4 py-1.5 rounded-lg bg-indigo-600 text-white text-[13px] font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50"
+              class="px-4 py-1.5 rounded-lg bg-[var(--brand-primary)] text-white text-[13px] font-medium hover:opacity-90 transition-colors disabled:opacity-50"
               :disabled="isEditing"
               @click="handleEdit"
             >{{ isEditing ? 'Saving...' : 'Save Changes' }}</button>
@@ -696,8 +696,8 @@ async function handleEdit() {
         @click.self="showDeleteConfirm = false"
       >
         <div class="rounded-xl shadow-2xl w-full max-w-sm p-6 text-center" style="background: var(--surface);" role="alertdialog" aria-modal="true" aria-label="Confirm entry deletion">
-          <div class="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-3">
-            <svg class="w-6 h-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+          <div class="w-12 h-12 rounded-full bg-[var(--error-bg)] flex items-center justify-center mx-auto mb-3">
+            <svg class="w-6 h-6 text-[var(--error-text)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
             </svg>
           </div>
@@ -710,7 +710,7 @@ async function handleEdit() {
               @click="showDeleteConfirm = false"
             >Cancel</button>
             <button
-              class="px-4 py-2 rounded-lg bg-red-600 text-white text-[13px] font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
+              class="px-4 py-2 rounded-lg bg-[var(--error-text)] text-white text-[13px] font-medium hover:opacity-90 transition-colors disabled:opacity-50"
               :disabled="actionLoading === 'delete'"
               @click="handleDelete"
             >{{ actionLoading === 'delete' ? 'Deleting...' : 'Delete' }}</button>

@@ -19,6 +19,7 @@ from domains.compliance.entities import (
     ComplianceViolation,
     ControlSeverity,
 )
+from domains.sources.collections import AGENTS
 from utils.dt import utc_now
 
 
@@ -55,22 +56,20 @@ async def execute(
     must_exist: bool = parameters.get("must_exist", True)
 
     if not app_pattern:
-        return CheckResult(
+        return not_applicable_result(
             control_id=control_id,
             framework_id=framework_id,
-            status=CheckStatus.error,
-            checked_at=now,
-            total_endpoints=0,
-            compliant_endpoints=0,
-            non_compliant_endpoints=0,
-            violations=[],
-            evidence_summary="No app_pattern configured for this control",
-            severity=ControlSeverity(severity),
-            category=category,
             control_name=control_name,
+            category=category,
+            severity=severity,
+            checked_at=now,
+            evidence_summary=(
+                "No app_pattern configured — configure this control in "
+                "Compliance > Settings to specify the application to check"
+            ),
         )
 
-    total_agents = await db["s1_agents"].count_documents(scope_filter or {})
+    total_agents = await db[AGENTS].count_documents(scope_filter or {})
     if total_agents == 0:
         return not_applicable_result(
             control_id=control_id,
@@ -88,11 +87,11 @@ async def execute(
     violations: list[ComplianceViolation] = []
     non_compliant_agents: set[str] = set()
 
-    projection = {"s1_agent_id": 1, "hostname": 1, "installed_app_names": 1}
-    async for agent in db["s1_agents"].find(scope_filter or {}, projection):
+    projection = {"source_id": 1, "hostname": 1, "installed_app_names": 1}
+    async for agent in db[AGENTS].find(scope_filter or {}, projection):
         installed = agent.get("installed_app_names", [])
         found = any(compiled.search(name) for name in installed)
-        agent_id = agent["s1_agent_id"]
+        agent_id = agent["source_id"]
         hostname = agent.get("hostname", "unknown")
 
         if must_exist and not found:

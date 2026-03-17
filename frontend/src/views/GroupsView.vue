@@ -1,5 +1,5 @@
 <!--
-  Groups view — S1 hierarchy: Account → Sites → Groups.
+  Groups view — hierarchy: Account → Sites → Groups.
   Sites shown as filter pills; groups filtered per site.
 -->
 <script setup lang="ts">
@@ -41,8 +41,8 @@ onMounted(async () => {
 
 function osChipClass(os: string): string {
   const lower = os.toLowerCase()
-  if (lower === 'windows') return 'bg-blue-50 text-blue-600 border-blue-200'
-  if (lower === 'linux') return 'bg-orange-50 text-orange-600 border-orange-200'
+  if (lower === 'windows') return 'bg-[var(--info-bg)] text-[var(--info-text)] border-[var(--border)]'
+  if (lower === 'linux') return 'bg-[var(--warn-bg)] text-[var(--warn-text)] border-[var(--warn-border)]'
   if (lower === 'macos') return 'badge-neutral border'
   return 'badge-neutral border'
 }
@@ -64,7 +64,7 @@ function groupCountForSite(siteId: string): number {
       <p v-if="!isLoading && !error" class="text-[12px] mt-0.5" style="color: var(--text-3);">
         {{ filteredGroups.length }} group{{ filteredGroups.length !== 1 ? 's' : '' }}
         <template v-if="selectedSiteId">
-          in {{ sites.find(s => s.s1_site_id === selectedSiteId)?.name }}
+          in {{ sites.find(s => s.source_id === selectedSiteId)?.name }}
         </template>
         <template v-else>across {{ sites.length }} site{{ sites.length !== 1 ? 's' : '' }}</template>
       </p>
@@ -76,7 +76,7 @@ function groupCountForSite(siteId: string): number {
     </div>
 
     <!-- Error -->
-    <div v-else-if="error" class="flex items-center justify-center py-24 text-red-400 text-[13px]">
+    <div v-else-if="error" class="flex items-center justify-center py-24 text-[var(--error-text)] text-[13px]">
       {{ error }}
     </div>
 
@@ -86,7 +86,7 @@ function groupCountForSite(siteId: string): number {
         <button
           class="px-3 py-1.5 rounded-full text-[12px] font-medium transition-colors"
           :class="selectedSiteId === null
-            ? 'bg-indigo-600 border-indigo-600 text-white'
+            ? 'bg-[var(--brand-primary)] border-indigo-600 text-white'
             : ''"
           :style="selectedSiteId === null ? 'border: 1px solid transparent;' : `background: var(--surface); border: 1px solid var(--border); color: var(--text-2);`"
           aria-label="Show all sites"
@@ -98,18 +98,18 @@ function groupCountForSite(siteId: string): number {
         </button>
         <button
           v-for="site in sites"
-          :key="site.s1_site_id"
+          :key="site.source_id"
           class="px-3 py-1.5 rounded-full text-[12px] font-medium transition-colors"
-          :class="selectedSiteId === site.s1_site_id
-            ? 'bg-indigo-600 border-indigo-600 text-white'
+          :class="selectedSiteId === site.source_id
+            ? 'bg-[var(--brand-primary)] border-indigo-600 text-white'
             : ''"
-          :style="selectedSiteId === site.s1_site_id ? 'border: 1px solid transparent;' : `background: var(--surface); border: 1px solid var(--border); color: var(--text-2);`"
+          :style="selectedSiteId === site.source_id ? 'border: 1px solid transparent;' : `background: var(--surface); border: 1px solid var(--border); color: var(--text-2);`"
           :aria-label="`Filter by site ${site.name}`"
-          :aria-pressed="selectedSiteId === site.s1_site_id"
-          @click="selectedSiteId = site.s1_site_id"
+          :aria-pressed="selectedSiteId === site.source_id"
+          @click="selectedSiteId = site.source_id"
         >
           {{ site.name }}
-          <span class="ml-1.5 opacity-70 tabular-nums">{{ groupCountForSite(site.s1_site_id) }} groups</span>
+          <span class="ml-1.5 opacity-70 tabular-nums">{{ groupCountForSite(site.source_id) }} groups</span>
         </button>
       </div>
 
@@ -123,10 +123,10 @@ function groupCountForSite(siteId: string): number {
           <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
         </svg>
         <p class="text-[14px] font-medium" style="color: var(--text-3);">No groups yet</p>
-        <p class="text-[12px]">Sync your SentinelOne data to see groups here.</p>
+        <p class="text-[12px]">Sync your data to see groups here.</p>
         <router-link
           to="/sync"
-          class="mt-2 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-[13px] font-medium transition-colors no-underline"
+          class="mt-2 px-4 py-2 rounded-lg bg-[var(--brand-primary)] hover:opacity-90 text-white text-[13px] font-medium transition-colors no-underline"
         >
           Go to Sync
         </router-link>
@@ -137,7 +137,7 @@ function groupCountForSite(siteId: string): number {
         <div
           v-for="group in filteredGroups"
           :key="group.group_id"
-          class="rounded-xl p-5 hover:border-indigo-200 hover:shadow-md transition-all cursor-pointer"
+          class="rounded-xl p-5 hover:border-[var(--border)] hover:shadow-md transition-all cursor-pointer"
           style="background: var(--surface); border: 1px solid var(--border);"
           role="button"
           tabindex="0"
@@ -151,16 +151,16 @@ function groupCountForSite(siteId: string): number {
               <h2 class="text-[14px] font-semibold leading-snug break-words" style="color: var(--heading);">
                 {{ group.group_name ?? group.group_id }}
               </h2>
-              <p class="text-[10px] text-slate-300 font-mono mt-0.5 truncate">{{ group.group_id }}</p>
+              <p class="text-[10px] text-[var(--text-3)] font-mono mt-0.5 truncate">{{ group.group_id }}</p>
             </div>
             <div class="flex items-center gap-1 shrink-0 mt-0.5">
               <span
                 class="w-2 h-2 rounded-full"
-                :class="group.has_fingerprint ? 'bg-emerald-400' : 'bg-slate-300'"
+                :class="group.has_fingerprint ? 'bg-[var(--status-ok-text)]' : 'bg-[var(--text-3)]'"
               />
               <span
                 class="text-[11px]"
-                :class="group.has_fingerprint ? 'text-emerald-600' : ''"
+                :class="group.has_fingerprint ? 'text-[var(--success-text)]' : ''"
                 :style="group.has_fingerprint ? '' : 'color: var(--text-3);'"
               >
                 {{ group.has_fingerprint ? 'Fingerprint' : 'No fingerprint' }}

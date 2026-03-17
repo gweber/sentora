@@ -11,6 +11,16 @@ from pydantic import BaseModel
 
 from database import get_tenant_db
 from domains.auth.entities import UserRole
+from domains.sources.collections import (
+    AGENTS,
+    GROUPS,
+    INSTALLED_APPS,
+    SITES,
+    SOURCE_TAGS,
+    SYNC_CHECKPOINT,
+    SYNC_META,
+    SYNC_RUNS,
+)
 from middleware.auth import get_current_user, require_role
 
 from .manager import sync_manager
@@ -21,6 +31,7 @@ router = APIRouter()
 class SyncTriggerBody(BaseModel):
     mode: str = "auto"  # "full" | "incremental" | "auto"
     phases: list[str] | None = None  # None = all phases
+    source: str | None = None  # "sentinelone" | "crowdstrike" | None = all sources
 
 
 @router.websocket("/progress")
@@ -57,7 +68,7 @@ async def trigger_sync(
     db: AsyncIOMotorDatabase = Depends(get_tenant_db),  # type: ignore[type-arg]
 ) -> JSONResponse:
     """Trigger all (or selected) phases independently. Returns which phases started."""
-    result = await sync_manager.trigger_all(mode=body.mode, phases=body.phases)
+    result = await sync_manager.trigger_all(mode=body.mode, phases=body.phases, source=body.source)
     if not result["phases_started"]:
         return JSONResponse({"detail": "All requested phases are already running"}, status_code=409)
     from audit.log import audit
@@ -227,10 +238,10 @@ async def get_checkpoint(
     The checkpoint reflects progress of the most recent (possibly failed) sync run.
     It is cleared on successful completion and created fresh on each new trigger.
     """
-    checkpoint = await db["s1_sync_checkpoint"].find_one({"_id": "current"}, {"_id": 0})
+    checkpoint = await db[SYNC_CHECKPOINT].find_one({"_id": "current"}, {"_id": 0})
     # Also return per-phase checkpoints
     phase_checkpoints: dict = {}
-    async for doc in db["s1_sync_checkpoint"].find(
+    async for doc in db[SYNC_CHECKPOINT].find(
         {"_id": {"$regex": "^phase:"}},
     ):
         phase_name = doc["_id"].replace("phase:", "")
@@ -251,7 +262,7 @@ async def get_sync_status(
     current = sync_manager.current_run
     last = sync_manager.last_completed_run
     if last is None and current is None:
-        doc = await db["s1_sync_runs"].find_one(
+        doc = await db[SYNC_RUNS].find_one(
             {"status": {"$in": ["completed", "failed"]}},
             {"_id": 0},
             sort=[("completed_at", -1)],
@@ -261,11 +272,11 @@ async def get_sync_status(
     from .app_filters import active_filter
 
     agents, groups, sites, apps, tags = await asyncio.gather(
-        db["s1_agents"].count_documents({}),
-        db["s1_groups"].count_documents({}),
-        db["s1_sites"].count_documents({}),
-        db["s1_installed_apps"].count_documents(active_filter()),
-        db["s1_tags"].count_documents({}),
+        db[AGENTS].count_documents({}),
+        db[GROUPS].count_documents({}),
+        db[SITES].count_documents({}),
+        db[INSTALLED_APPS].count_documents(active_filter()),
+        db[SOURCE_TAGS].count_documents({}),
     )
 
     # Build per-phase schedule info
@@ -275,7 +286,7 @@ async def get_sync_status(
         from utils.dt import utc_now
 
         cfg = await config_repo.get(db)
-        meta = await db["s1_sync_meta"].find_one({"_id": "global"}) or {}
+        meta = await db[SYNC_META].find_one({"_id": "global"}) or {}
         utc_now()
 
         timestamp_keys = {
@@ -332,9 +343,9 @@ async def get_sync_status(
 async def backfill_app_names(
     db: AsyncIOMotorDatabase = Depends(get_tenant_db),  # type: ignore[type-arg]
 ) -> JSONResponse:
-    """Backfill ``installed_app_names`` onto all ``s1_agents`` documents.
+    """Backfill ``installed_app_names`` onto all agent documents.
 
-    Runs an aggregation over ``s1_installed_apps``, groups by ``agent_id``,
+    Runs an aggregation over ``installed_apps``, groups by ``agent_id``,
     and bulk-writes the resulting compact string array onto each agent document.
     Executes as a background task; returns immediately with a count of agents
     queued for update.
@@ -353,21 +364,21 @@ async def backfill_app_names(
             ]
             ops: list = []
             updated = 0
-            async for grp in db["s1_installed_apps"].aggregate(pipeline):
+            async for grp in db[INSTALLED_APPS].aggregate(pipeline):
                 if not grp.get("_id"):
                     continue
                 ops.append(
                     UpdateOne(
-                        {"s1_agent_id": grp["_id"]},
+                        {"source_id": grp["_id"]},
                         {"$set": {"installed_app_names": [n for n in grp["names"] if n]}},
                     )
                 )
                 if len(ops) >= 1000:
-                    result = await db["s1_agents"].bulk_write(ops, ordered=False)
+                    result = await db[AGENTS].bulk_write(ops, ordered=False)
                     updated += result.modified_count
                     ops.clear()
             if ops:
-                result = await db["s1_agents"].bulk_write(ops, ordered=False)
+                result = await db[AGENTS].bulk_write(ops, ordered=False)
                 updated += result.modified_count
             from loguru import logger
 
@@ -407,7 +418,7 @@ async def renormalize_apps(
     db: AsyncIOMotorDatabase = Depends(get_tenant_db),  # type: ignore[type-arg]
 ) -> JSONResponse:
     """Re-apply the current ``normalize_app_name`` logic to every app in
-    ``s1_installed_apps``, then rebuild ``installed_app_names`` on all agents.
+    ``installed_apps``, then rebuild ``installed_app_names`` on all agents.
 
     Use this after upgrading the normalizer (e.g. to strip version suffixes)
     so that existing data matches the new logic without a full re-sync.
@@ -423,10 +434,10 @@ async def renormalize_apps(
         from loguru import logger
 
         try:
-            # Step 1 — re-normalize all s1_installed_apps.normalized_name
+            # Step 1 — re-normalize all installed_apps.normalized_name
             ops: list = []
             updated_apps = 0
-            async for doc in db["s1_installed_apps"].find({}, {"_id": 1, "name": 1, "version": 1}):
+            async for doc in db[INSTALLED_APPS].find({}, {"_id": 1, "name": 1, "version": 1}):
                 new_name = normalize_app_name(
                     doc.get("name") or "", version=doc.get("version") or ""
                 )
@@ -434,11 +445,11 @@ async def renormalize_apps(
                     continue
                 ops.append(UpdateOne({"_id": doc["_id"]}, {"$set": {"normalized_name": new_name}}))
                 if len(ops) >= 1000:
-                    result = await db["s1_installed_apps"].bulk_write(ops, ordered=False)
+                    result = await db[INSTALLED_APPS].bulk_write(ops, ordered=False)
                     updated_apps += result.modified_count
                     ops.clear()
             if ops:
-                result = await db["s1_installed_apps"].bulk_write(ops, ordered=False)
+                result = await db[INSTALLED_APPS].bulk_write(ops, ordered=False)
                 updated_apps += result.modified_count
             logger.info("Renormalize — updated normalized_name on {} app records", updated_apps)
 
@@ -451,21 +462,21 @@ async def renormalize_apps(
             ]
             agent_ops: list = []
             updated_agents = 0
-            async for grp in db["s1_installed_apps"].aggregate(pipeline):
+            async for grp in db[INSTALLED_APPS].aggregate(pipeline):
                 if not grp.get("_id"):
                     continue
                 agent_ops.append(
                     UpdateOne(
-                        {"s1_agent_id": grp["_id"]},
+                        {"source_id": grp["_id"]},
                         {"$set": {"installed_app_names": [n for n in grp["names"] if n]}},
                     )
                 )
                 if len(agent_ops) >= 1000:
-                    result = await db["s1_agents"].bulk_write(agent_ops, ordered=False)
+                    result = await db[AGENTS].bulk_write(agent_ops, ordered=False)
                     updated_agents += result.modified_count
                     agent_ops.clear()
             if agent_ops:
-                result = await db["s1_agents"].bulk_write(agent_ops, ordered=False)
+                result = await db[AGENTS].bulk_write(agent_ops, ordered=False)
                 updated_agents += result.modified_count
             logger.info("Renormalize — rebuilt installed_app_names on {} agents", updated_agents)
             from audit.log import audit
@@ -502,8 +513,8 @@ async def renormalize_apps(
 async def list_synced_tags(
     db: AsyncIOMotorDatabase = Depends(get_tenant_db),  # type: ignore[type-arg]
 ) -> JSONResponse:
-    """Return S1 tags from the last sync, sorted by name (capped at 5000)."""
-    cursor = db["s1_tags"].find({}, {"_id": 0}).sort("name", 1).limit(5000)
+    """Return source tags from the last sync, sorted by name (capped at 5000)."""
+    cursor = db[SOURCE_TAGS].find({}, {"_id": 0}).sort("name", 1).limit(5000)
     docs = [doc async for doc in cursor]
     return JSONResponse({"tags": docs, "total": len(docs)})
 
@@ -515,9 +526,9 @@ async def get_sync_history(
     db: AsyncIOMotorDatabase = Depends(get_tenant_db),  # type: ignore[type-arg]
 ) -> JSONResponse:
     """Return sync run history from MongoDB, sorted newest-first."""
-    total = await db["s1_sync_runs"].count_documents({})
+    total = await db[SYNC_RUNS].count_documents({})
     cursor = (
-        db["s1_sync_runs"]
+        db[SYNC_RUNS]
         .find({}, {"_id": 0})
         .sort("started_at", -1)
         .skip((page - 1) * limit)

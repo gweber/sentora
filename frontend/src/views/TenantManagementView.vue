@@ -110,7 +110,7 @@ onMounted(fetchTenants)
     <div class="flex items-center justify-between mb-6">
       <h1 class="text-2xl font-bold" style="color: var(--heading);">Tenant Management</h1>
       <button
-        class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium"
+        class="px-4 py-2 bg-[var(--brand-primary)] text-white rounded-lg hover:opacity-90 transition-colors text-sm font-medium"
         aria-label="Create new tenant"
         @click="showCreate = true"
       >
@@ -174,8 +174,8 @@ onMounted(fetchTenants)
             <td class="px-4 py-3 text-sm">
               <span
                 :class="tenant.disabled
-                  ? 'bg-red-100 text-red-700'
-                  : 'bg-green-100 text-green-700'"
+                  ? 'bg-[var(--error-bg)] text-[var(--error-text)]'
+                  : 'bg-[var(--success-bg)] text-[var(--success-text)]'"
                 class="inline-flex px-2 py-0.5 text-xs font-medium rounded-full"
               >
                 {{ tenant.disabled ? 'Disabled' : 'Active' }}
@@ -186,14 +186,14 @@ onMounted(fetchTenants)
             </td>
             <td class="px-4 py-3 text-sm text-right space-x-2">
               <button
-                class="text-indigo-600 hover:underline text-sm"
+                class="text-[var(--info-text)] hover:underline text-sm"
                 :aria-label="tenant.disabled ? `Enable ${tenant.name}` : `Disable ${tenant.name}`"
                 @click="toggleDisabled(tenant)"
               >
                 {{ tenant.disabled ? 'Enable' : 'Disable' }}
               </button>
               <button
-                class="text-red-600 hover:underline text-sm"
+                class="text-[var(--error-text)] hover:underline text-sm"
                 :aria-label="`Delete ${tenant.name}`"
                 @click="confirmDelete = tenant.slug"
               >
@@ -255,7 +255,7 @@ onMounted(fetchTenants)
           </div>
           <div class="flex justify-end gap-3 pt-2">
             <button type="button" class="px-4 py-2 text-sm rounded-lg" style="color: var(--text-2);" @click="showCreate = false">Cancel</button>
-            <button type="submit" :disabled="creating" class="px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50">
+            <button type="submit" :disabled="creating" class="px-4 py-2 text-sm bg-[var(--brand-primary)] text-white rounded-lg hover:opacity-90 disabled:opacity-50">
               {{ creating ? 'Creating...' : 'Create Tenant' }}
             </button>
           </div>
@@ -272,7 +272,7 @@ onMounted(fetchTenants)
         </p>
         <div class="flex justify-end gap-3">
           <button class="px-4 py-2 text-sm rounded-lg" style="color: var(--text-2);" @click="confirmDelete = null">Cancel</button>
-          <button class="px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700" @click="handleDelete(confirmDelete!)">Delete</button>
+          <button class="px-4 py-2 text-sm bg-[var(--error-text)] text-white rounded-lg hover:opacity-90" @click="handleDelete(confirmDelete!)">Delete</button>
         </div>
       </div>
     </div>

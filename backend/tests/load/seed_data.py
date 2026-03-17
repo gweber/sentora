@@ -65,7 +65,7 @@ OS_VERSIONS = {
     ],
 }
 
-NETWORK_STATUSES = ["connected", "disconnected", "connecting"]
+AGENT_STATUSES = ["online", "offline", "degraded"]
 MACHINE_TYPES = ["desktop", "laptop", "server", "kubernetes node"]
 
 HOSTNAME_PREFIXES = [
@@ -282,7 +282,8 @@ def generate_sites() -> list[dict]:
     for i in range(NUM_SITES):
         sites.append(
             {
-                "s1_site_id": str(1000 + i),
+                "source": "sentinelone",
+                "source_id": str(1000 + i),
                 "name": SITE_NAMES[i],
                 "state": "active",
                 "site_type": "Paid",
@@ -303,14 +304,15 @@ def generate_groups(sites: list[dict]) -> list[dict]:
         name = f"{name} [{i}]"
         groups.append(
             {
-                "s1_group_id": str(2000 + i),
+                "source": "sentinelone",
+                "source_id": str(2000 + i),
                 "name": name,
                 "description": f"Auto-generated load test group {i}",
                 "type": random.choice(["static", "dynamic"]),
                 "is_default": i == 0,
                 "filter_name": None,
                 "agent_count": 0,  # updated after agents are assigned
-                "site_id": site["s1_site_id"],
+                "site_id": site["source_id"],
                 "site_name": site["name"],
                 "created_at": _rand_dt(180),
                 "updated_at": _rand_dt(30),
@@ -321,23 +323,24 @@ def generate_groups(sites: list[dict]) -> list[dict]:
 
 def generate_agents(groups: list[dict]) -> list[dict]:
     agents = []
-    group_agent_counts: dict[str, int] = {g["s1_group_id"]: 0 for g in groups}
+    group_agent_counts: dict[str, int] = {g["source_id"]: 0 for g in groups}
 
     for i in range(NUM_AGENTS):
         group = random.choice(groups)
         os_type = random.choice(OS_TYPES)
-        group_agent_counts[group["s1_group_id"]] += 1
+        group_agent_counts[group["source_id"]] += 1
         agents.append(
             {
-                "s1_agent_id": str(3000000 + i),
+                "source": "sentinelone",
+                "source_id": str(3000000 + i),
                 "hostname": _rand_hostname(),
                 "os_type": os_type,
                 "os_version": random.choice(OS_VERSIONS[os_type]),
-                "group_id": group["s1_group_id"],
+                "group_id": group["source_id"],
                 "group_name": group["name"],
                 "site_id": group["site_id"],
                 "site_name": group["site_name"],
-                "network_status": random.choices(NETWORK_STATUSES, weights=[85, 10, 5], k=1)[0],
+                "agent_status": random.choices(AGENT_STATUSES, weights=[85, 10, 5], k=1)[0],
                 "last_active": _rand_dt(7),
                 "machine_type": random.choice(MACHINE_TYPES),
                 "domain": random.choice(["corp.local", "ot.local", "plant.local", None]),
@@ -351,7 +354,7 @@ def generate_agents(groups: list[dict]) -> list[dict]:
 
     # Back-fill accurate agent_count on groups
     for group in groups:
-        group["agent_count"] = group_agent_counts[group["s1_group_id"]]
+        group["agent_count"] = group_agent_counts[group["source_id"]]
 
     return agents
 
@@ -360,8 +363,8 @@ def generate_apps(agents: list[dict]) -> list[dict]:
     """Generate 100k installed-app records distributed across agents."""
     apps = []
     synced_at = _rand_dt(1)
-    agent_ids = [a["s1_agent_id"] for a in agents]
-    agent_os = {a["s1_agent_id"]: a["os_type"] for a in agents}
+    agent_ids = [a["source_id"] for a in agents]
+    agent_os = {a["source_id"]: a["os_type"] for a in agents}
 
     # Each agent gets ~10 apps on average (100k / 10k)
     app_id_counter = 5000000
@@ -391,8 +394,8 @@ def generate_apps(agents: list[dict]) -> list[dict]:
                     "os_type": agent_os[agent_id],
                     "app_type": None,
                     "risk_level": random.choice(["none", "low", "medium", "high", None]),
-                    "s1_updated_at": _rand_dt(30),
-                    "s1_created_at": _rand_dt(180),
+                    "source_updated_at": _rand_dt(30),
+                    "source_created_at": _rand_dt(180),
                     "synced_at": synced_at,
                     "last_synced_at": synced_at,
                     "active": True,
@@ -421,8 +424,8 @@ def generate_apps(agents: list[dict]) -> list[dict]:
                 "os_type": agent_os[agent_id],
                 "app_type": None,
                 "risk_level": random.choice(["none", "low", "medium", "high", None]),
-                "s1_updated_at": _rand_dt(30),
-                "s1_created_at": _rand_dt(180),
+                "source_updated_at": _rand_dt(30),
+                "source_created_at": _rand_dt(180),
                 "synced_at": synced_at,
                 "last_synced_at": synced_at,
                 "active": True,
@@ -557,7 +560,7 @@ def generate_fingerprints(groups: list[dict]) -> list[dict]:
         fingerprints.append(
             {
                 "_id": str(ObjectId()),
-                "group_id": group["s1_group_id"],
+                "group_id": group["source_id"],
                 "group_name": group["name"],
                 "site_name": group["site_name"],
                 "account_name": "Sentora Corp",
@@ -578,7 +581,7 @@ def generate_classification_results(
     results = []
     run_id = str(ObjectId())
     fp_group_ids = {fp["group_id"] for fp in fingerprints}
-    fp_groups = [g for g in groups if g["s1_group_id"] in fp_group_ids]
+    fp_groups = [g for g in groups if g["source_id"] in fp_group_ids]
 
     # Classify a subset of agents
     sampled_agents = random.sample(agents, min(NUM_CLASSIFICATION_RESULTS, len(agents)))
@@ -598,7 +601,7 @@ def generate_classification_results(
             n_missing = random.randint(0, 5)
             match_scores.append(
                 {
-                    "group_id": sg["s1_group_id"],
+                    "group_id": sg["source_id"],
                     "group_name": sg["name"],
                     "score": score,
                     "matched_markers": [f"marker_{j}" for j in range(n_matched)],
@@ -630,7 +633,7 @@ def generate_classification_results(
             {
                 "_id": str(ObjectId()),
                 "run_id": run_id,
-                "agent_id": agent["s1_agent_id"],
+                "agent_id": agent["source_id"],
                 "hostname": agent["hostname"],
                 "current_group_id": agent["group_id"],
                 "current_group_name": agent["group_name"],
@@ -694,10 +697,10 @@ def main() -> None:
 
     # ── Idempotency checks ────────────────────────────────────────────
     collections_targets = {
-        "s1_sites": NUM_SITES,
-        "s1_groups": NUM_GROUPS,
-        "s1_agents": NUM_AGENTS,
-        "s1_installed_apps": NUM_APPS,
+        "sites": NUM_SITES,
+        "groups": NUM_GROUPS,
+        "agents": NUM_AGENTS,
+        "installed_apps": NUM_APPS,
         "software_taxonomy": NUM_TAXONOMY,
         "fingerprints": NUM_FINGERPRINTS,
         "classification_results": NUM_CLASSIFICATION_RESULTS,
@@ -748,31 +751,30 @@ def main() -> None:
     # ── Insert ────────────────────────────────────────────────────────
     print("\nInserting into MongoDB...\n")
 
-    if db["s1_sites"].count_documents({}) < NUM_SITES:
-        db["s1_sites"].delete_many({})
-        _bulk_insert(db["s1_sites"], sites, "s1_sites")
+    if db["sites"].count_documents({}) < NUM_SITES:
+        db["sites"].delete_many({})
+        _bulk_insert(db["sites"], sites, "sites")
     else:
-        print(f"  s1_sites: already seeded ({db['s1_sites'].count_documents({}):,} docs)")
+        print(f"  sites: already seeded ({db['sites'].count_documents({}):,} docs)")
 
-    if db["s1_groups"].count_documents({}) < NUM_GROUPS:
-        db["s1_groups"].delete_many({})
-        _bulk_insert(db["s1_groups"], groups, "s1_groups")
+    if db["groups"].count_documents({}) < NUM_GROUPS:
+        db["groups"].delete_many({})
+        _bulk_insert(db["groups"], groups, "groups")
     else:
-        print(f"  s1_groups: already seeded ({db['s1_groups'].count_documents({}):,} docs)")
+        print(f"  groups: already seeded ({db['groups'].count_documents({}):,} docs)")
 
-    if db["s1_agents"].count_documents({}) < NUM_AGENTS:
-        db["s1_agents"].delete_many({})
-        _bulk_insert(db["s1_agents"], agents, "s1_agents")
+    if db["agents"].count_documents({}) < NUM_AGENTS:
+        db["agents"].delete_many({})
+        _bulk_insert(db["agents"], agents, "agents")
     else:
-        print(f"  s1_agents: already seeded ({db['s1_agents'].count_documents({}):,} docs)")
+        print(f"  agents: already seeded ({db['agents'].count_documents({}):,} docs)")
 
-    if db["s1_installed_apps"].count_documents({}) < NUM_APPS:
-        db["s1_installed_apps"].delete_many({})
-        _bulk_insert(db["s1_installed_apps"], apps, "s1_installed_apps")
+    if db["installed_apps"].count_documents({}) < NUM_APPS:
+        db["installed_apps"].delete_many({})
+        _bulk_insert(db["installed_apps"], apps, "installed_apps")
     else:
         print(
-            "  s1_installed_apps: already seeded"
-            f" ({db['s1_installed_apps'].count_documents({}):,} docs)"
+            f"  installed_apps: already seeded ({db['installed_apps'].count_documents({}):,} docs)"
         )
 
     if db["software_taxonomy"].count_documents({}) < NUM_TAXONOMY:

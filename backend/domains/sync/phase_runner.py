@@ -2,7 +2,7 @@
 
 Each phase (sites, groups, agents, apps, tags) extends PhaseRunner and can
 be triggered, resumed, and cancelled independently.  Checkpoints are stored
-per-phase in ``s1_sync_checkpoint`` (keyed ``phase:<name>``).
+per-phase in the canonical ``sync_checkpoint`` collection (keyed ``phase:<name>``).
 
 All phases run in parallel with no dependency ordering.  The SyncManager
 is just a WebSocket hub and convenience wrapper — each runner is self-contained.
@@ -18,6 +18,7 @@ from typing import Any
 
 from loguru import logger
 
+from domains.sources.collections import SYNC_CHECKPOINT
 from utils.dt import utc_now
 
 # Type alias for the broadcast callback supplied by SyncManager
@@ -85,13 +86,13 @@ class PhaseRunner:
 
     async def load_checkpoint(self) -> dict[str, Any] | None:
         db = await self._get_db()
-        return await db["s1_sync_checkpoint"].find_one({"_id": f"phase:{self.phase_name}"})
+        return await db[SYNC_CHECKPOINT].find_one({"_id": f"phase:{self.phase_name}"})
 
     async def save_checkpoint(self, data: dict[str, Any]) -> None:
         db = await self._get_db()
         data["_id"] = f"phase:{self.phase_name}"
         data["updated_at"] = utc_now().isoformat()
-        await db["s1_sync_checkpoint"].replace_one(
+        await db[SYNC_CHECKPOINT].replace_one(
             {"_id": f"phase:{self.phase_name}"},
             data,
             upsert=True,
@@ -99,7 +100,7 @@ class PhaseRunner:
 
     async def clear_checkpoint(self) -> None:
         db = await self._get_db()
-        await db["s1_sync_checkpoint"].delete_one({"_id": f"phase:{self.phase_name}"})
+        await db[SYNC_CHECKPOINT].delete_one({"_id": f"phase:{self.phase_name}"})
 
     # ── Cancellation ────────────────────────────────────────────────────────
 

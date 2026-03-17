@@ -7,6 +7,8 @@ GET  /api/v1/branding    — return public branding info (no auth)
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from fastapi import APIRouter, Depends
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
@@ -58,6 +60,8 @@ _BOOL_FIELDS = (
     "password_require_digit",
     "password_require_special",
     "password_check_breached",
+    "oidc_enabled",
+    "saml_enabled",
 )
 _LIST_FIELDS = ("library_ingestion_sources",)
 _STR_FIELDS = (
@@ -67,7 +71,50 @@ _STR_FIELDS = (
     "brand_logo_url",
     "brand_favicon_url",
     "nvd_api_key",
+    "oidc_discovery_url",
+    "oidc_client_id",
+    "oidc_client_secret",
+    "oidc_redirect_uri",
+    "oidc_default_role",
+    "saml_idp_metadata_url",
+    "saml_sp_entity_id",
+    "saml_sp_acs_url",
+    "saml_default_role",
+    "backup_storage_type",
+    "backup_local_path",
+    "backup_s3_endpoint",
+    "backup_s3_bucket",
+    "backup_s3_access_key",
+    "backup_s3_secret_key",
+    "backup_s3_region",
 )
+# Fields that must be encrypted before persisting to MongoDB
+_ENCRYPTED_STR_FIELDS = frozenset(
+    {"nvd_api_key", "oidc_client_secret", "backup_s3_access_key", "backup_s3_secret_key"}
+)
+
+
+def _check_path_writable(path_str: str) -> bool:
+    """Check whether the server process can write to the given directory.
+
+    Creates the directory if it does not exist, then attempts to write
+    and immediately remove a small probe file.
+
+    Args:
+        path_str: Filesystem path to test.
+
+    Returns:
+        True if the directory is writable.
+    """
+    try:
+        p = Path(path_str).resolve()
+        p.mkdir(parents=True, exist_ok=True)
+        probe = p / ".sentora_write_probe"
+        probe.write_text("ok")
+        probe.unlink()
+        return True
+    except OSError:
+        return False
 
 
 def _to_response(cfg: object) -> AppConfigResponse:
@@ -97,6 +144,8 @@ def _to_response(cfg: object) -> AppConfigResponse:
         library_ingestion_interval_hours=cfg.library_ingestion_interval_hours,
         library_ingestion_sources=cfg.library_ingestion_sources,
         nvd_api_key_set=bool(cfg.nvd_api_key),
+        backup_local_path=cfg.backup_local_path,
+        backup_local_path_writable=_check_path_writable(cfg.backup_local_path),
         brand_app_name=cfg.brand_app_name,
         brand_tagline=cfg.brand_tagline,
         brand_primary_color=cfg.brand_primary_color,
@@ -132,9 +181,31 @@ async def update_config(
     # _STR_FIELDS in sync with AppConfigUpdateRequest if you add new fields.
     changed: dict[str, object] = {}
     for field in _FLOAT_FIELDS + _INT_FIELDS + _BOOL_FIELDS + _LIST_FIELDS + _STR_FIELDS:
-        value = getattr(payload, field)
+        value = getattr(payload, field, None)
         if value is not None:
             changed[field] = value
+
+    # Validate backup_local_path: must be non-empty, no null bytes, and
+    # the server process must be able to write to it.
+    if "backup_local_path" in changed:
+        raw_path = str(changed["backup_local_path"]).strip()
+        if not raw_path or "\x00" in raw_path:
+            from fastapi import HTTPException
+
+            raise HTTPException(
+                status_code=422,
+                detail="backup_local_path must be a non-empty path",
+            )
+        if not _check_path_writable(raw_path):
+            from fastapi import HTTPException
+
+            raise HTTPException(
+                status_code=422,
+                detail=f"Server cannot write to '{raw_path}'. "
+                "Check that the directory exists and the server process "
+                "has write permissions.",
+            )
+        changed["backup_local_path"] = raw_path
 
     # Build an updated copy and persist — only replace the in-memory config
     # object after the DB write succeeds to avoid inconsistency on failure.

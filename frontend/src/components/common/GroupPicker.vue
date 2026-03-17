@@ -1,11 +1,11 @@
 <!--
-  GroupPicker — multi-select for S1 groups fetched from the groups API.
+  GroupPicker — multi-select for groups fetched from the groups API.
   Displays group names with agent counts. Selected groups emit as an array
-  of group names (matching the s1_agents.group_name field).
+  of group names (matching the agents.group_name field).
 -->
 <script setup lang="ts">
 /**
- * Multi-select dropdown for SentinelOne groups.
+ * Multi-select dropdown for groups.
  *
  * @param modelValue - Currently selected group names.
  * @emits update:modelValue - When selection changes.

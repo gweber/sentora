@@ -15,6 +15,7 @@ from datetime import timedelta
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from domains.compliance.platform.entities import ControlResult, ControlStatus, Framework
+from domains.sources.collections import AGENTS
 from utils.dt import utc_now
 
 # ---------------------------------------------------------------------------
@@ -210,7 +211,7 @@ async def soc2_a1_1_availability(db: AsyncIOMotorDatabase) -> ControlResult:  # 
 async def soc2_cc3_1_risk_assessment(db: AsyncIOMotorDatabase) -> ControlResult:  # type: ignore[type-arg]
     """CC3.1 — Risk management: classification of assets."""
     classified = await db["classification_results"].count_documents({})
-    agents = await db["s1_agents"].count_documents({})
+    agents = await db[AGENTS].count_documents({})
 
     if agents == 0:
         status = ControlStatus.warning

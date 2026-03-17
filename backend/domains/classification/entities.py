@@ -51,9 +51,9 @@ class ClassificationResult(BaseModel):
     Attributes:
         id: MongoDB document identifier (string ObjectId).
         run_id: ID of the ClassificationRun that produced this result.
-        agent_id: SentinelOne agent ID (``s1_agent_id`` in ``s1_agents``).
+        agent_id: Source agent ID (``source_id`` in ``agents``).
         hostname: Agent hostname (denormalised for display).
-        current_group_id: Group the agent currently belongs to in SentinelOne.
+        current_group_id: Group the agent currently belongs to.
         current_group_name: Human-readable current group name.
         match_scores: Top-5 fingerprint match scores, sorted descending.
         classification: Verdict — ``"correct"``, ``"misclassified"``,

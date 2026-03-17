@@ -12,11 +12,15 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import uuid
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from fastapi import WebSocket
 from loguru import logger
 
+from domains.sources.collections import SYNC_RUNS
 from utils.dt import utc_now
 
 from .dto import PhaseProgress, SyncCounts, SyncProgressMessage, SyncRunResponse
@@ -28,11 +32,24 @@ from .phases import (
     TagsPhaseRunner,
 )
 
+# CrowdStrike phase runners (lazy import to avoid hard dependency on falconpy)
+def _cs_runners_available() -> bool:
+    """Check if the CrowdStrike adapter package is importable."""
+    try:
+        import domains.sources.crowdstrike.sync_groups  # noqa: F401
+        return True
+    except ImportError:
+        return False
+
 
 class SyncManager:
     """WebSocket hub + convenience wrappers around independent phase runners."""
 
-    ALL_PHASES = ["sites", "groups", "agents", "apps", "tags"]
+    # S1 phases — the original set
+    S1_PHASES = ["sites", "groups", "agents", "apps", "tags"]
+    # CrowdStrike phases — added dynamically if falconpy is available
+    CS_PHASES = ["cs_groups", "cs_agents", "cs_apps"]
+    ALL_PHASES = S1_PHASES  # Updated in __init__ if CS is available
 
     _PHASE_COUNT_FIELDS = {
         "sites": ("sites_synced", "sites_total"),
@@ -40,6 +57,10 @@ class SyncManager:
         "agents": ("agents_synced", "agents_total"),
         "apps": ("apps_synced", "apps_total"),
         "tags": ("tags_synced", "tags_total"),
+        # CS phases map to the same count fields (aggregated per source)
+        "cs_groups": ("groups_synced", "groups_total"),
+        "cs_agents": ("agents_synced", "agents_total"),
+        "cs_apps": ("apps_synced", "apps_total"),
     }
 
     _PUBSUB_CHANNEL = "sync_progress"
@@ -60,13 +81,28 @@ class SyncManager:
         self.apps = AppsPhaseRunner(broadcast=self._phase_broadcast)
         self.tags = TagsPhaseRunner(broadcast=self._phase_broadcast)
 
-        self._runners = {
+        self._runners: dict[str, Any] = {
             "sites": self.sites,
             "groups": self.groups,
             "agents": self.agents,
             "apps": self.apps,
             "tags": self.tags,
         }
+
+        # Register CrowdStrike phase runners if the adapter is available
+        if _cs_runners_available():
+            from domains.sources.crowdstrike.sync_agents import CSAgentsPhaseRunner
+            from domains.sources.crowdstrike.sync_apps import CSAppsPhaseRunner
+            from domains.sources.crowdstrike.sync_groups import CSGroupsPhaseRunner
+
+            self.cs_groups = CSGroupsPhaseRunner(broadcast=self._phase_broadcast)
+            self.cs_agents = CSAgentsPhaseRunner(broadcast=self._phase_broadcast)
+            self.cs_apps = CSAppsPhaseRunner(broadcast=self._phase_broadcast)
+            self._runners["cs_groups"] = self.cs_groups
+            self._runners["cs_agents"] = self.cs_agents
+            self._runners["cs_apps"] = self.cs_apps
+            SyncManager.ALL_PHASES = self.S1_PHASES + self.CS_PHASES
+            logger.info("SyncManager — CrowdStrike phases registered")
 
     def get_runner(self, phase: str) -> Any:  # noqa: ANN401
         return self._runners.get(phase)
@@ -77,7 +113,7 @@ class SyncManager:
             from database import get_db
 
             db = get_db()
-            cursor = db["s1_sync_runs"].find({}, {"_id": 0}).sort("started_at", -1).limit(100)
+            cursor = db[SYNC_RUNS].find({}, {"_id": 0}).sort("started_at", -1).limit(100)
             docs = [doc async for doc in cursor]
             self._history = [SyncRunResponse(**doc) for doc in reversed(docs)]
             for run in reversed(self._history):
@@ -269,6 +305,11 @@ class SyncManager:
         ws_type: str = "progress"
         ws_status = run.status if run else "running"
 
+        # Apps phase completed → rebuild app summaries cache immediately
+        # (don't wait for other phases — stats cache only depends on app data)
+        if msg_type == "phase_completed" and phase == "apps":
+            asyncio.create_task(self._rebuild_app_cache())
+
         # Terminal event — check if ALL phases are done
         if msg_type in (  # noqa: SIM102
             "phase_completed",
@@ -319,35 +360,75 @@ class SyncManager:
         self,
         mode: str = "auto",
         phases: list[str] | None = None,
+        source: str | None = None,
     ) -> dict[str, Any]:
         """Trigger phases independently in parallel.
 
-        Creates a single shared S1 client so all phases share one rate
-        limiter (preventing 5x the intended API rate when running in
-        parallel).  Each phase handles its own mode detection and timestamps.
+        Creates shared API clients per source so all phases of the same
+        source share one rate limiter.  Each phase handles its own mode
+        detection and timestamps.
+
+        Args:
+            mode: Sync mode (``"full"``, ``"incremental"``, ``"auto"``).
+            phases: Optional list of phase names to trigger (default: all).
+            source: Optional source filter — ``"sentinelone"``, ``"crowdstrike"``,
+                    or ``None`` for all sources.
         """
-        target = [p for p in self.ALL_PHASES if p in (phases or self.ALL_PHASES)]
+        # Determine target phases
+        if source == "sentinelone":
+            available = self.S1_PHASES
+        elif source == "crowdstrike":
+            available = self.CS_PHASES
+        else:
+            available = self.ALL_PHASES
+        target = [p for p in available if p in (phases or available)]
 
-        # Share a single S1 client across all phases for unified rate limiting
-        from .phase_runner import PhaseRunner
-
-        shared_client = await PhaseRunner._create_s1_client()
+        # Split targets by source for separate shared clients
+        s1_targets = [p for p in target if not p.startswith("cs_")]
+        cs_targets = [p for p in target if p.startswith("cs_")]
 
         started: list[str] = []
-        for phase_name in target:
-            runner = self._runners[phase_name]
-            if runner.is_running:
-                continue
-            result = await runner.trigger(mode=mode, s1_client=shared_client)
-            if result is not None:
-                started.append(phase_name)
 
-        if not started:
-            # No phases started — close the client immediately
-            await shared_client.close()
-        else:
-            # Close the shared client once all started phases finish
-            asyncio.create_task(self._close_client_when_done(shared_client, started))
+        # S1 phases — shared S1 client
+        if s1_targets:
+            from .phase_runner import PhaseRunner
+
+            shared_s1 = await PhaseRunner._create_s1_client()
+            s1_started: list[str] = []
+            for phase_name in s1_targets:
+                runner = self._runners[phase_name]
+                if runner.is_running:
+                    continue
+                result = await runner.trigger(mode=mode, s1_client=shared_s1)
+                if result is not None:
+                    s1_started.append(phase_name)
+            if not s1_started:
+                await shared_s1.close()
+            else:
+                asyncio.create_task(self._close_client_when_done(shared_s1, s1_started))
+            started.extend(s1_started)
+
+        # CS phases — shared CS client
+        if cs_targets:
+            try:
+                from domains.sources.crowdstrike.sync_groups import CSGroupsPhaseRunner
+
+                shared_cs = await CSGroupsPhaseRunner._create_cs_client()
+                cs_started: list[str] = []
+                for phase_name in cs_targets:
+                    runner = self._runners[phase_name]
+                    if runner.is_running:
+                        continue
+                    result = await runner.trigger(mode=mode, cs_client=shared_cs)
+                    if result is not None:
+                        cs_started.append(phase_name)
+                if not cs_started:
+                    await shared_cs.close()
+                else:
+                    asyncio.create_task(self._close_client_when_done(shared_cs, cs_started))
+                started.extend(cs_started)
+            except Exception as exc:
+                logger.warning("Could not create CrowdStrike client: {}", exc)
 
         return {"mode": mode, "phases_started": started}
 
@@ -413,17 +494,49 @@ class SyncManager:
             db = get_db()
             doc = run.model_dump()
             doc["_id"] = run.id
-            await db["s1_sync_runs"].replace_one({"_id": run.id}, doc, upsert=True)
+            await db[SYNC_RUNS].replace_one({"_id": run.id}, doc, upsert=True)
         except Exception as exc:
             logger.warning("Sync {} — failed to persist run: {}", run.id, exc)
 
+    async def _rebuild_app_cache(self) -> None:
+        """Rebuild app_summaries after the apps phase completes.
+
+        Runs as a fire-and-forget task so the sync progress broadcast
+        is not blocked by the rebuild.
+        """
+        try:
+            from domains.agents.app_cache import rebuild_app_summaries
+
+            await rebuild_app_summaries()
+        except Exception as exc:
+            logger.warning("App summaries rebuild failed: {}", exc)
+
     async def _post_sync_tasks(self, run: SyncRunResponse) -> None:
-        """Run after all phases complete — rebuild caches, audit log, webhooks."""
+        """Run after all phases complete — audit, webhooks, EOL, dashboard.
+
+        Independent tasks run in parallel for faster completion:
+        - audit log + webhooks (no data dependencies)
+        - fleet + fingerprinting dashboard stats (only need agents/groups)
+        - EOL matching → apps dashboard stats (must wait for app_summaries)
+        """
+        from database import get_db
+
+        db = get_db()
+
+        await asyncio.gather(
+            self._audit_and_webhook(db, run),
+            self._refresh_fleet_and_fingerprinting(db),
+            self._eol_and_apps_dashboard(db),
+        )
+
+    async def _audit_and_webhook(
+        self,
+        db: AsyncIOMotorDatabase,  # type: ignore[type-arg]
+        run: SyncRunResponse,
+    ) -> None:
+        """Audit log entry + webhook dispatch."""
         try:
             from audit.log import audit
-            from database import get_db
-
-            db = get_db()
 
             event = "sync.completed" if run.status == "completed" else "sync.failed"
             await audit(
@@ -439,8 +552,6 @@ class SyncManager:
                 ),
                 details=run.counts.model_dump(),
             )
-
-            # Dispatch webhook events
             try:
                 from domains.webhooks.service import dispatch_event
 
@@ -448,22 +559,74 @@ class SyncManager:
             except Exception as exc:
                 logger.warning("Webhook dispatch failed: {}", exc)
         except Exception as exc:
-            logger.warning("Post-sync tasks failed: {}", exc)
+            logger.warning("Audit/webhook post-sync tasks failed: {}", exc)
 
+    @staticmethod
+    async def _refresh_fleet_and_fingerprinting(
+        db: AsyncIOMotorDatabase,  # type: ignore[type-arg]
+    ) -> None:
+        """Refresh fleet + fingerprinting dashboard stats (no app data dependency)."""
         try:
-            from domains.agents.app_cache import rebuild_app_summaries
+            from domains.dashboard.cache import compute_fingerprinting, compute_fleet
 
-            await rebuild_app_summaries()
+            fleet_data, fp_data = await asyncio.gather(
+                compute_fleet(db), compute_fingerprinting(db)
+            )
+            now = utc_now().isoformat()
+            await asyncio.gather(
+                db["dashboard_stats"].replace_one(
+                    {"_id": "fleet"},
+                    {"_id": "fleet", "data": fleet_data, "computed_at": now},
+                    upsert=True,
+                ),
+                db["dashboard_stats"].replace_one(
+                    {"_id": "fingerprinting"},
+                    {"_id": "fingerprinting", "data": fp_data, "computed_at": now},
+                    upsert=True,
+                ),
+            )
         except Exception as exc:
-            logger.warning("App summaries rebuild failed: {}", exc)
+            logger.warning("Fleet/fingerprinting dashboard refresh failed: {}", exc)
 
+    @staticmethod
+    async def _eol_and_apps_dashboard(
+        db: AsyncIOMotorDatabase,  # type: ignore[type-arg]
+    ) -> None:
+        """Wait for app_summaries rebuild → EOL matching → apps dashboard stats.
+
+        This chain depends on ``app_summaries`` being fresh, so it waits
+        for the rebuild lock (populated by ``_rebuild_app_cache`` which
+        fires when the apps phase completes).
+        """
+        # Wait for any in-progress app_summaries rebuild to finish
         try:
-            from database import get_db
-            from domains.dashboard.cache import refresh_all
+            from domains.agents.app_cache import _rebuild_lock
 
-            await refresh_all(get_db())
+            async with _rebuild_lock:
+                pass
         except Exception as exc:
-            logger.warning("Dashboard cache refresh failed: {}", exc)
+            logger.warning("Failed waiting for app_summaries rebuild: {}", exc)
+
+        # EOL matching (reads from app_summaries, writes eol_match back)
+        try:
+            from domains.eol.service import run_eol_matching_for_apps
+
+            await run_eol_matching_for_apps(db)
+        except Exception as exc:
+            logger.warning("EOL matching after sync failed: {}", exc)
+
+        # Apps dashboard stats (reads from app_summaries — fast after H1 optimization)
+        try:
+            from domains.dashboard.cache import compute_apps
+
+            apps_data = await compute_apps(db)
+            await db["dashboard_stats"].replace_one(
+                {"_id": "apps"},
+                {"_id": "apps", "data": apps_data, "computed_at": utc_now().isoformat()},
+                upsert=True,
+            )
+        except Exception as exc:
+            logger.warning("Apps dashboard refresh failed: {}", exc)
 
 
 # Module-level singleton

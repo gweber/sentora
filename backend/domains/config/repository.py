@@ -31,14 +31,20 @@ async def get(db: AsyncIOMotorDatabase) -> AppConfig:  # type: ignore[type-arg]
         return AppConfig()
     doc.pop("_id", None)
 
-    # Decrypt nvd_api_key if stored encrypted (handles legacy plaintext too).
-    raw_key = doc.get("nvd_api_key")
-    if raw_key:
-        try:
-            doc["nvd_api_key"] = decrypt_field(raw_key) or ""
-        except ValueError:
-            logger.warning("Failed to decrypt nvd_api_key — returning empty")
-            doc["nvd_api_key"] = ""
+    # Decrypt sensitive fields stored encrypted (handles legacy plaintext too).
+    for field_name in (
+        "nvd_api_key",
+        "oidc_client_secret",
+        "backup_s3_access_key",
+        "backup_s3_secret_key",
+    ):
+        raw = doc.get(field_name)
+        if raw:
+            try:
+                doc[field_name] = decrypt_field(raw) or ""
+            except ValueError:
+                logger.warning("Failed to decrypt {} — returning empty", field_name)
+                doc[field_name] = ""
 
     return AppConfig(**doc)
 
@@ -53,9 +59,15 @@ async def save(db: AsyncIOMotorDatabase, config: AppConfig) -> AppConfig:  # typ
     doc = config.model_dump()
     doc["_id"] = _ID
 
-    # Encrypt nvd_api_key before persisting.
-    if doc.get("nvd_api_key"):
-        doc["nvd_api_key"] = encrypt_field(doc["nvd_api_key"])
+    # Encrypt sensitive fields before persisting.
+    for field_name in (
+        "nvd_api_key",
+        "oidc_client_secret",
+        "backup_s3_access_key",
+        "backup_s3_secret_key",
+    ):
+        if doc.get(field_name):
+            doc[field_name] = encrypt_field(doc[field_name])
 
     await db[_COLLECTION].replace_one({"_id": _ID}, doc, upsert=True)
     return config

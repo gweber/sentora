@@ -8,11 +8,11 @@ This document describes the entities stored in MongoDB, how they relate to each 
 
 | Entity | Context | Collection | Key Purpose |
 |---|---|---|---|
-| Site | Sync | `s1_sites` | A SentinelOne site, synced from the S1 API |
-| Group | Sync | `s1_groups` | A SentinelOne agent group, synced from the S1 API |
-| Agent | Sync | `s1_agents` | A SentinelOne managed endpoint |
-| InstalledApplication | Sync | `s1_installed_apps` | A single application record from an agent's inventory |
-| S1Tag | Sync | `s1_tags` | A SentinelOne tag definition |
+| Site | Sync | `sites` | A SentinelOne site, synced from the S1 API |
+| Group | Sync | `groups` | A SentinelOne agent group, synced from the S1 API |
+| Agent | Sync | `agents` | A SentinelOne managed endpoint |
+| InstalledApplication | Sync | `installed_apps` | A single application record from an agent's inventory |
+| SourceTag | Sync | `source_tags` | A SentinelOne tag definition |
 | SoftwareEntry | Taxonomy | `taxonomy_entries` | A known application in the software catalog, with glob patterns |
 | TaxonomyCategory | Taxonomy | `taxonomy_categories` | A software category in the taxonomy hierarchy |
 | Fingerprint | Fingerprint | `fingerprints` | A weighted set of markers that defines what a group's software should look like |
@@ -75,15 +75,16 @@ Represents a SentinelOne agent group. Synced from `GET /web/api/v2.1/groups`.
 
 | Field | Type | Description |
 |---|---|---|
-| `_id` | `string` | MongoDB document ID (string ObjectId) |
-| `s1_id` | `string` | SentinelOne's own group ID |
+| `_id` | `string` | UUID document ID |
+| `source` | `string` | Data source identifier (e.g. `sentinelone`) |
+| `source_id` | `string` | Source-native group ID (unique) |
 | `name` | `string` | Human-readable group name |
-| `site_id` | `string` | S1 site ID this group belongs to |
-| `site_name` | `string` | S1 site display name (denormalized for query convenience) |
-| `agent_count` | `int` | Number of agents in the group as reported by S1 |
+| `site_id` | `string` | Site ID this group belongs to |
+| `site_name` | `string` | Site display name (denormalized for query convenience) |
+| `agent_count` | `int` | Number of agents in the group as reported by the source |
 | `synced_at` | `datetime` | UTC timestamp of the last successful sync for this group |
 
-**Index:** `s1_id` (unique). Used for upsert during sync.
+**Index:** `source_id` (unique). Used for upsert during sync.
 
 ---
 
@@ -93,29 +94,30 @@ Represents a SentinelOne managed endpoint. Synced from `GET /web/api/v2.1/agents
 
 | Field | Type | Description |
 |---|---|---|
-| `_id` | `string` | MongoDB document ID |
-| `s1_id` | `string` | SentinelOne's own agent ID |
+| `_id` | `string` | UUID document ID |
+| `source` | `string` | Data source identifier (e.g. `sentinelone`) |
+| `source_id` | `string` | Source-native agent ID (unique) |
 | `hostname` | `string` | Endpoint hostname |
 | `os_type` | `string` | Operating system family (`windows`, `macos`, `linux`) |
 | `os_version` | `string` | Full OS version string |
-| `network_status` | `string` | S1 network status (`connected`, `disconnected`, etc.) |
-| `group_id` | `string` | Foreign key → `groups.s1_id` |
+| `agent_status` | `string` | Agent connection status (`connected`, `disconnected`, etc.) |
+| `group_id` | `string` | Foreign key → `groups.source_id` |
 | `group_name` | `string` | Denormalized group name |
-| `last_active` | `datetime` | Last time the agent checked in with S1 |
+| `last_active` | `datetime` | Last time the agent checked in |
 | `synced_at` | `datetime` | UTC timestamp of the last successful sync |
 
-**Index:** `s1_id` (unique), `group_id`.
+**Index:** `source_id` (unique), `group_id`.
 
 ---
 
 ### InstalledApplication
 
-A single application entry from a SentinelOne agent's application inventory. Synced from `GET /web/api/v2.1/agents/applications`.
+A single application entry from an agent's application inventory. Synced from `GET /web/api/v2.1/agents/applications`.
 
 | Field | Type | Description |
 |---|---|---|
-| `_id` | `string` | MongoDB document ID |
-| `agent_id` | `string` | Foreign key → `agents.s1_id` |
+| `_id` | `string` | UUID document ID |
+| `agent_id` | `string` | Foreign key → `agents.source_id` |
 | `name` | `string` | Raw application name as reported by S1 |
 | `normalized_name` | `string` | Lowercased, whitespace-normalized version of `name`. Used for glob pattern matching |
 | `publisher` | `string \| null` | Publisher / vendor name |
@@ -159,7 +161,7 @@ A weighted set of markers that describes what software should be present on agen
 | Field | Type | Description |
 |---|---|---|
 | `_id` | `string` | MongoDB document ID |
-| `group_id` | `string` | Foreign key → `groups.s1_id`. Must be unique across the collection. |
+| `group_id` | `string` | Foreign key → `groups.source_id`. Must be unique across the collection. |
 | `group_name` | `string` | Denormalized group name for display purposes |
 | `markers` | `Marker[]` | Ordered list of markers that define the fingerprint |
 | `created_at` | `datetime` | UTC timestamp when the fingerprint was created |
@@ -191,9 +193,9 @@ The scored verdict for one agent, produced by the Classification engine. Updated
 | Field | Type | Description |
 |---|---|---|
 | `_id` | `string` | MongoDB document ID |
-| `agent_id` | `string` | Foreign key → `agents.s1_id` |
+| `agent_id` | `string` | Foreign key → `agents.source_id` |
 | `hostname` | `string` | Denormalized hostname for query/display |
-| `group_id` | `string` | Foreign key → `groups.s1_id` |
+| `group_id` | `string` | Foreign key → `groups.source_id` |
 | `group_name` | `string` | Denormalized group name |
 | `classification` | `string` | Verdict: `correct` / `misclassified` / `ambiguous` / `unclassifiable` |
 | `best_match_group_id` | `string \| null` | The group whose fingerprint produced the highest score |
@@ -297,7 +299,7 @@ Links a library entry to an S1 group. When subscribed, the entry's markers are c
 | Field | Type | Description |
 |---|---|---|
 | `_id` | `string` | MongoDB document ID |
-| `group_id` | `string` | Foreign key → `groups.s1_id` |
+| `group_id` | `string` | Foreign key → `groups.source_id` |
 | `library_entry_id` | `string` | Foreign key → `library_entries._id` |
 | `synced_version` | `int` | Entry version last synced to the group |
 | `auto_update` | `bool` | Whether to auto-sync on entry updates |

@@ -16,6 +16,7 @@ from domains.compliance.checks import (
     classification_coverage,
     custom_app_presence,
     delta_detection,
+    eol_software,
     prohibited_app,
     required_app,
     sync_freshness,
@@ -35,6 +36,7 @@ _REGISTRY: dict[str, Any] = {
     CheckType.unclassified_threshold: unclassified_threshold.execute,
     CheckType.delta_detection: delta_detection.execute,
     CheckType.custom_app_presence: custom_app_presence.execute,
+    CheckType.eol_software: eol_software.execute,
 }
 
 

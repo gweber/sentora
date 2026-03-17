@@ -135,6 +135,7 @@ async def get_control_config(
         control_id=doc["control_id"],
         framework_id=doc["framework_id"],
         enabled=doc.get("enabled", True),
+        disable_reason=doc.get("disable_reason"),
         severity_override=(
             ControlSeverity(doc["severity_override"]) if doc.get("severity_override") else None
         ),
@@ -171,6 +172,7 @@ async def get_all_control_configs(
                 control_id=doc["control_id"],
                 framework_id=doc["framework_id"],
                 enabled=doc.get("enabled", True),
+                disable_reason=doc.get("disable_reason"),
                 severity_override=(
                     ControlSeverity(doc["severity_override"])
                     if doc.get("severity_override")
@@ -206,6 +208,12 @@ async def upsert_control_config(
         "updated_by": config.updated_by,
     }
     unset_fields: dict[str, str] = {}
+
+    # Persist disable_reason when provided, clear when None.
+    if config.disable_reason is not None:
+        set_fields["disable_reason"] = config.disable_reason
+    else:
+        unset_fields["disable_reason"] = ""
 
     # For each optional override, use $set when a value is provided and
     # $unset when the value is explicitly None (to clear the override).

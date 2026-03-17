@@ -403,10 +403,11 @@ class TestComputeSuggestions:
         """
         _NOW = "2025-01-01T00:00:00"
         # 3 in-group agents with "wincc runtime"
-        await test_db["s1_agents"].insert_many(
+        await test_db["agents"].insert_many(
             [
                 {
-                    "s1_agent_id": f"sugg_agent_{i}",
+                    "source": "sentinelone",
+                    "source_id": f"sugg_agent_{i}",
                     "group_id": fingerprint_id,
                     "group_name": "Test Group",
                     "hostname": f"host-{i}",
@@ -416,7 +417,7 @@ class TestComputeSuggestions:
                 for i in range(3)
             ]
         )
-        await test_db["s1_installed_apps"].insert_many(
+        await test_db["installed_apps"].insert_many(
             [
                 {
                     "agent_id": f"sugg_agent_{i}",
@@ -428,9 +429,10 @@ class TestComputeSuggestions:
             ]
         )
         # 1 out-of-group agent with different app (makes IDF > 0 for wincc runtime)
-        await test_db["s1_agents"].insert_one(
+        await test_db["agents"].insert_one(
             {
-                "s1_agent_id": "other_agent_s",
+                "source": "sentinelone",
+                "source_id": "other_agent_s",
                 "group_id": "other_group",
                 "group_name": "Other",
                 "hostname": "other",
@@ -438,7 +440,7 @@ class TestComputeSuggestions:
                 "synced_at": _NOW,
             }
         )
-        await test_db["s1_installed_apps"].insert_one(
+        await test_db["installed_apps"].insert_one(
             {
                 "agent_id": "other_agent_s",
                 "name": "Linux Tool",
@@ -475,10 +477,11 @@ class TestComputeSuggestions:
     ) -> None:
         """Apps already covered by a marker pattern should be excluded from suggestions."""
         _NOW = "2025-01-01T00:00:00"
-        await test_db["s1_agents"].insert_many(
+        await test_db["agents"].insert_many(
             [
                 {
-                    "s1_agent_id": f"exc_agent_{i}",
+                    "source": "sentinelone",
+                    "source_id": f"exc_agent_{i}",
                     "group_id": fingerprint_id,
                     "group_name": "Test Group",
                     "hostname": f"exc-host-{i}",
@@ -487,7 +490,7 @@ class TestComputeSuggestions:
                 for i in range(3)
             ]
         )
-        await test_db["s1_installed_apps"].insert_many(
+        await test_db["installed_apps"].insert_many(
             [
                 {
                     "agent_id": f"exc_agent_{i}",

@@ -7,31 +7,32 @@ Default database name: `sentora` (configurable via `MONGO_DB` env var).
 
 ## Collections
 
-### s1_agents
+### agents
 
-Stores one document per SentinelOne endpoint agent.
+Stores one document per endpoint agent.
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `_id` | ObjectId | MongoDB auto-generated |
-| `s1_agent_id` | string | SentinelOne agent ID (unique) |
-| `hostname` | string | Computer name from S1 |
+| `_id` | string (UUID) | Unique document identifier |
+| `source` | string | Data source identifier (`sentinelone` or `crowdstrike`) |
+| `source_id` | string | Source-native agent ID (unique) |
+| `hostname` | string | Computer name |
 | `os_type` | string | Lowercase OS family: `windows`, `linux`, `macos` |
 | `os_version` | string | Full OS version string (e.g. "Windows 10 19045") |
-| `group_id` | string | S1 group ID the agent belongs to |
+| `group_id` | string | Group ID the agent belongs to |
 | `group_name` | string | Denormalized group display name |
-| `site_id` | string | S1 site ID |
+| `site_id` | string | Site ID |
 | `site_name` | string | Denormalized site name |
-| `network_status` | string | `connected`, `disconnected`, `connecting` |
+| `agent_status` | string | `connected`, `disconnected`, `connecting` |
 | `last_active` | string | ISO 8601 timestamp of last activity |
 | `machine_type` | string | `desktop`, `laptop`, `server`, `vm` |
 | `domain` | string? | Windows domain name |
 | `ip_addresses` | string[] | IPv4/IPv6 addresses from network interfaces |
-| `tags` | string[] | Flattened S1 tag values |
+| `tags` | string[] | Flattened tag values |
 | `installed_app_names` | string[] | Denormalized normalized app names (for fast classification) |
 
 **Indexes:**
-- `s1_agent_id` (unique)
+- `source_id` (unique)
 - `site_id`
 - `group_id`
 - `hostname`
@@ -41,26 +42,26 @@ Stores one document per SentinelOne endpoint agent.
 
 ---
 
-### s1_installed_apps
+### installed_apps
 
-One document per installed application record from SentinelOne.
+One document per installed application record.
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `_id` | ObjectId | MongoDB auto-generated |
-| `id` | string | S1 app record ID (unique, sparse) |
-| `agent_id` | string | S1 agent ID this app belongs to |
-| `name` | string | Original app name from S1 |
+| `_id` | string (UUID) | Unique document identifier |
+| `id` | string | Source app record ID (unique, sparse) |
+| `agent_id` | string | Agent source ID this app belongs to |
+| `name` | string | Original app name from source |
 | `normalized_name` | string | Lowercase, version-stripped, diacritics removed |
 | `version` | string? | Application version |
 | `publisher` | string? | Software publisher |
 | `size` | number? | Install size in bytes |
 | `installed_at` | string? | ISO 8601 install timestamp |
-| `os_type` | string? | OS type from S1 |
-| `app_type` | string? | Application type from S1 |
-| `risk_level` | string? | S1 risk assessment level |
-| `s1_updated_at` | string? | S1 record updated timestamp |
-| `s1_created_at` | string? | S1 record created timestamp |
+| `os_type` | string? | OS type from source |
+| `app_type` | string? | Application type from source |
+| `risk_level` | string? | Source risk assessment level |
+| `source_updated_at` | string? | Source record updated timestamp |
+| `source_created_at` | string? | Source record created timestamp |
 | `synced_at` | string | ISO 8601 timestamp of the sync that wrote this |
 | `last_synced_at` | string | Most recent sync timestamp (for stale cleanup) |
 | `active` | boolean | Whether the app record is still current |
@@ -78,76 +79,79 @@ One document per installed application record from SentinelOne.
 
 ---
 
-### s1_groups
+### groups
 
-One document per SentinelOne group.
+One document per agent group.
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `_id` | ObjectId | MongoDB auto-generated |
-| `s1_group_id` | string | S1 group ID (unique) |
+| `_id` | string (UUID) | Unique document identifier |
+| `source` | string | Data source identifier (`sentinelone` or `crowdstrike`) |
+| `source_id` | string | Source-native group ID (unique) |
 | `name` | string | Group display name |
 | `description` | string? | Group description |
 | `type` | string | Group type (e.g. `static`, `dynamic`) |
 | `is_default` | boolean | Whether this is the site default group |
 | `filter_name` | string? | Dynamic group filter name |
-| `agent_count` | number | Total agents reported by S1 |
+| `agent_count` | number | Total agents reported by source |
 | `site_id` | string | Parent site ID |
 | `site_name` | string | Denormalized site name |
-| `created_at` | string? | S1 creation timestamp |
-| `updated_at` | string? | S1 updated timestamp |
+| `source_created_at` | string? | Source creation timestamp |
+| `source_updated_at` | string? | Source updated timestamp |
 
 **Indexes:**
-- `s1_group_id` (unique)
+- `source_id` (unique)
 - `site_id`
 
 ---
 
-### s1_sites
+### sites
 
-One document per SentinelOne site.
+One document per site.
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `_id` | ObjectId | MongoDB auto-generated |
-| `s1_site_id` | string | S1 site ID (unique) |
+| `_id` | string (UUID) | Unique document identifier |
+| `source` | string | Data source identifier (`sentinelone` or `crowdstrike`) |
+| `source_id` | string | Source-native site ID (unique) |
 | `name` | string | Site display name |
 | `state` | string | Site state |
 | `site_type` | string | Site type |
-| `account_id` | string | S1 account ID |
-| `account_name` | string | S1 account name |
+| `account_id` | string | Account ID |
+| `account_name` | string | Account name |
 
 **Indexes:**
-- `s1_site_id` (unique)
+- `source_id` (unique)
 - `name`
 
 ---
 
-### s1_tags
+### source_tags
 
-One document per SentinelOne tag definition.
+One document per tag definition from the data source.
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `_id` | ObjectId | MongoDB auto-generated |
-| `s1_tag_id` | string | S1 tag ID (unique) |
+| `_id` | string (UUID) | Unique document identifier |
+| `source` | string | Data source identifier (`sentinelone` or `crowdstrike`) |
+| `source_id` | string | Source-native tag ID (unique) |
 | `name` | string | Tag name |
 | `description` | string? | Tag description |
 | `type` | string | Tag type |
 | `scope` | string | Tag scope |
 | `creator` | string? | Who created the tag |
-| `created_at` | string? | S1 creation timestamp |
-| `updated_at` | string? | S1 updated timestamp |
+| `source_created_at` | string? | Source creation timestamp |
+| `source_updated_at` | string? | Source updated timestamp |
 | `synced_at` | string | When this tag was last synced |
 
 **Indexes:**
-- `s1_tag_id` (unique)
+- `source_id` (unique)
 - `name`
 - `scope`
 
 ---
 
-### s1_sync_runs
+### sync_runs
 
 One document per sync execution (full, incremental, per-phase).
 
@@ -171,7 +175,7 @@ One document per sync execution (full, incremental, per-phase).
 
 ---
 
-### s1_sync_meta
+### sync_meta
 
 Singleton document (`_id: "global"`) tracking global sync state.
 
@@ -186,7 +190,7 @@ No explicit indexes (singleton document).
 
 ---
 
-### s1_sync_checkpoint
+### sync_checkpoint
 
 Singleton document (`_id: "current"`) for resumable sync state. Deleted on successful completion.
 
@@ -1035,14 +1039,14 @@ Advisory locks for coordinating singleton operations across processes. Not used 
 
 ```mermaid
 erDiagram
-    s1_sites ||--o{ s1_groups : contains
-    s1_groups ||--o{ s1_agents : contains
-    s1_agents ||--o{ s1_installed_apps : "has installed"
-    s1_agents ||--o| classification_results : "classified as"
-    s1_groups ||--o| fingerprints : "defined by"
-    s1_groups ||--o{ fingerprint_suggestions : "suggested for"
-    s1_groups ||--o| auto_fingerprint_proposals : "proposed for"
-    s1_groups }o--o{ library_entries : "subscribes via library_subscriptions"
+    sites ||--o{ groups : contains
+    groups ||--o{ agents : contains
+    agents ||--o{ installed_apps : "has installed"
+    agents ||--o| classification_results : "classified as"
+    groups ||--o| fingerprints : "defined by"
+    groups ||--o{ fingerprint_suggestions : "suggested for"
+    groups ||--o| auto_fingerprint_proposals : "proposed for"
+    groups }o--o{ library_entries : "subscribes via library_subscriptions"
 
     taxonomy_categories ||--o{ taxonomy_entries : contains
     taxonomy_entries ||--o{ enforcement_rules : "governs"
@@ -1059,11 +1063,11 @@ erDiagram
 ### Relationship summary
 
 ```
-Account (from S1, denormalized on sites/agents)
-  └── s1_sites (1:N)
-       └── s1_groups (1:N)
-            ├── s1_agents (1:N, via group_id)
-            │    ├── s1_installed_apps (1:N, via agent_id)
+Account (denormalized on sites/agents)
+  └── sites (1:N)
+       └── groups (1:N)
+            ├── agents (1:N, via group_id)
+            │    ├── installed_apps (1:N, via agent_id)
             │    └── classification_results (1:1, via agent_id)
             ├── fingerprints (1:1, via group_id)
             ├── fingerprint_suggestions (1:N, via group_id)
@@ -1072,11 +1076,11 @@ Account (from S1, denormalized on sites/agents)
 taxonomy_categories (1:N) ── taxonomy_entries (via category key)
 enforcement_rules ── taxonomy_categories (via taxonomy_category_id)
 tag_rules (standalone, patterns matched against agent installed_app_names)
-app_summaries (materialized from s1_installed_apps + taxonomy_entries)
+app_summaries (materialized from installed_apps + taxonomy_entries)
 
-s1_sync_runs (standalone, ordered by started_at)
-s1_sync_meta (singleton, global sync cursor state)
-s1_sync_checkpoint (singleton, resumable sync state)
+sync_runs (standalone, ordered by started_at)
+sync_meta (singleton, global sync cursor state)
+sync_checkpoint (singleton, resumable sync state)
 
 classification_runs (1:N) ── classification_results (via run_id)
 
@@ -1113,8 +1117,8 @@ leader_election (singleton per election, TTL-based)
 ### Key relationship patterns
 
 - **Denormalization**: Group names, site names, and hostnames are copied into referencing documents to avoid joins. They are refreshed on each sync.
-- **Upsert keys**: `s1_agent_id`, `group_id` on fingerprints, `agent_id` on classification_results — these enforce one-to-one relationships.
+- **Upsert keys**: `source_id`, `group_id` on fingerprints, `agent_id` on classification_results — these enforce one-to-one relationships.
 - **Materialized views**: `app_summaries` is rebuilt (drop + bulk insert) after syncs and taxonomy changes.
-- **Singletons**: `app_config`, `s1_sync_meta`, `s1_sync_checkpoint`, `compliance_schedule` use fixed `_id` values.
+- **Singletons**: `app_config`, `sync_meta`, `sync_checkpoint`, `compliance_schedule` use fixed `_id` values.
 - **TTL collections**: `audit_log` (90 days), `compliance_results` (90 days), `enforcement_results` (90 days), `refresh_tokens` (at expiry), `oidc_pending_states` (10 min), `saml_pending_requests` (10 min), `saml_token_exchange` (5 min), `distributed_locks` (at expiry), `leader_election` (at expiry).
 - **Ephemeral auth state**: OIDC/SAML pending state collections are short-lived CSRF protection — they self-clean via TTL and should never be backed up.

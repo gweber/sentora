@@ -32,7 +32,7 @@ The following indexes must exist. They are created automatically on first startu
 
 ```javascript
 // agents collection
-db.agents.createIndex({ "s1_agent_id": 1 }, { unique: true })
+db.agents.createIndex({ "source_id": 1 }, { unique: true })
 db.agents.createIndex({ "group_id": 1 })
 db.agents.createIndex({ "verdict": 1 })
 db.agents.createIndex({ "last_seen": -1 })

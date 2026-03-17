@@ -30,6 +30,7 @@ from audit.router import router as audit_router
 from config import get_settings
 from database import DatabaseUnavailableError, close_db, connect_db
 from domains.admin.router import router as admin_router
+from domains.admin.router import ws_router as admin_ws_router
 
 # Domain routers
 from domains.agents.apps_router import router as apps_router
@@ -45,8 +46,11 @@ from domains.config.router import router as config_router
 from domains.dashboard.router import router as dashboard_router
 from domains.demo.router import router as demo_router
 from domains.enforcement.router import router as enforcement_router
+from domains.eol.router import router as eol_router
+from domains.export.router import router as export_router
 from domains.fingerprint.router import fingerprint_router, suggestions_router
 from domains.library.router import router as library_router
+from domains.sources.collections import INSTALLED_APPS, SYNC_CHECKPOINT, SYNC_META, SYNC_RUNS
 from domains.sync.router import router as sync_router
 from domains.tags.router import router as tags_router
 from domains.taxonomy.router import router as taxonomy_router
@@ -238,7 +242,7 @@ async def _phase_scheduler(phase_name: str) -> None:
 
                 # Check when this phase last ran — skip if not overdue
                 try:
-                    meta = await get_db()["s1_sync_meta"].find_one({"_id": "global"})
+                    meta = await get_db()[SYNC_META].find_one({"_id": "global"})
                     last_synced_at = meta.get(f"{phase_name}_synced_at") if meta else None
                 except Exception:
                     last_synced_at = None
@@ -361,7 +365,7 @@ async def _weekly_full_sync_scheduler() -> None:
 
     last_full_sync_date: date | None = None
     try:
-        meta = await get_db()["s1_sync_meta"].find_one({"_id": "global"})
+        meta = await get_db()[SYNC_META].find_one({"_id": "global"})
         if meta and meta.get("last_full_sync_date"):
             last_full_sync_date = date.fromisoformat(meta["last_full_sync_date"])
     except Exception as exc:
@@ -385,7 +389,7 @@ async def _weekly_full_sync_scheduler() -> None:
                     else:
                         logger.warning("Weekly scheduler — no phases started, will retry next hour")
                     try:
-                        await get_db()["s1_sync_meta"].update_one(
+                        await get_db()[SYNC_META].update_one(
                             {"_id": "global"},
                             {"$set": {"last_full_sync_date": today.isoformat()}},
                             upsert=True,
@@ -464,8 +468,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             )
         # Mark sync runs stuck in "running" — use "interrupted" if any
         # checkpoint exists (legacy or per-phase), "failed" otherwise.
-        checkpoint = await db["s1_sync_checkpoint"].find_one({"_id": "current"})
-        phase_checkpoints = await db["s1_sync_checkpoint"].count_documents(
+        checkpoint = await db[SYNC_CHECKPOINT].find_one({"_id": "current"})
+        phase_checkpoints = await db[SYNC_CHECKPOINT].count_documents(
             {"_id": {"$regex": "^phase:"}},
         )
         has_resumable = checkpoint is not None or phase_checkpoints > 0
@@ -475,7 +479,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             if has_resumable
             else "Process restarted while sync was in progress"
         )
-        result = await db["s1_sync_runs"].update_many(
+        result = await db[SYNC_RUNS].update_many(
             {"status": "running"},
             {
                 "$set": {
@@ -546,33 +550,33 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     except Exception as exc:
         logger.warning("Could not clean up stale runs on startup: {}", exc)
 
-    # Bootstrap max_app_id from existing s1_installed_apps if not yet set.
-    # normalize_app stores the S1 integer app ID in the "id" body field.
+    # Bootstrap max_app_id from existing installed_apps if not yet set.
+    # normalize_app stores the source integer app ID in the "source_id" field.
     # Legacy documents pre-dating this field simply won't match the filter and
     # are excluded; the watermark will be established by the next full sync.
     try:
         from database import get_db
 
         db = get_db()
-        meta = await db["s1_sync_meta"].find_one({"_id": "global"})
+        meta = await db[SYNC_META].find_one({"_id": "global"})
         if not (meta and meta.get("max_app_id")):
             pipeline: list[dict[str, Any]] = [
-                {"$match": {"id": {"$exists": True, "$ne": ""}}},
-                {"$addFields": {"id_long": {"$toLong": "$id"}}},
+                {"$match": {"source_id": {"$exists": True, "$ne": ""}}},
+                {"$addFields": {"id_long": {"$toLong": "$source_id"}}},
                 {"$group": {"_id": None, "max_id": {"$max": "$id_long"}}},
             ]
-            result = await db["s1_installed_apps"].aggregate(pipeline).next()
+            result = await db[INSTALLED_APPS].aggregate(pipeline).next()
             if result and result.get("max_id"):
-                await db["s1_sync_meta"].update_one(
+                await db[SYNC_META].update_one(
                     {"_id": "global"},
                     {"$set": {"max_app_id": str(result["max_id"])}},
                     upsert=True,
                 )
                 logger.info(
-                    "Bootstrapped max_app_id={} from existing s1_installed_apps", result["max_id"]
+                    "Bootstrapped max_app_id={} from existing installed_apps", result["max_id"]
                 )
     except StopAsyncIteration:
-        pass  # collection is empty or pre-dates id field — full sync will set watermark
+        pass  # collection is empty or pre-dates source_id field — full sync will set watermark
     except Exception as exc:
         logger.warning("Could not bootstrap max_app_id: {}", exc)
 
@@ -688,7 +692,7 @@ def create_app() -> FastAPI:
 
     app = FastAPI(
         title="Sentora",
-        description="SentinelOne EDR Software Fingerprint & Asset Classification Tool",
+        description="Software Fingerprint & Asset Classification Tool",
         version="0.1.0",
         docs_url="/api/docs" if settings.is_development else None,
         redoc_url="/api/redoc" if settings.is_development else None,
@@ -880,8 +884,11 @@ def create_app() -> FastAPI:
     app.include_router(library_router, prefix="/api/v1/library", tags=["library"])
     app.include_router(demo_router, prefix="/api/v1/demo", tags=["demo"])
     app.include_router(admin_router, prefix="/api/v1/admin", tags=["admin"])
+    app.include_router(admin_ws_router, prefix="/api/v1/admin", tags=["admin"])
     app.include_router(compliance_router, prefix="/api/v1/compliance", tags=["compliance"])
     app.include_router(enforcement_router, prefix="/api/v1/enforcement", tags=["enforcement"])
+    app.include_router(eol_router, prefix="/api/v1/eol", tags=["eol"])
+    app.include_router(export_router, prefix="/api/v1/export", tags=["export"])
     app.include_router(api_keys_router, prefix="/api/v1/api-keys", tags=["api-keys"])
     app.include_router(tenant_router, prefix="/api/v1/tenants", tags=["tenants"])
 

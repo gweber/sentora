@@ -4,6 +4,10 @@ All tests use an isolated in-process MongoDB (via mongomock-motor or a
 dedicated test database). Fixtures are function-scoped by default to ensure
 test isolation.
 
+When running with pytest-xdist (``-n auto``), each worker gets its own
+database (``sentora_test_gw0``, ``sentora_test_gw1``, …) so workers never
+interfere with each other.
+
 Conventions (per TESTING.md):
 - No module-scoped mutable state.
 - Fixtures must be idempotent — re-seeding always produces the same state.
@@ -24,9 +28,26 @@ from httpx import ASGITransport, AsyncClient
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from pymongo.errors import OperationFailure
 
-# Use a separate test database to avoid polluting the development database
-_TEST_DB_NAME = "sentora_test"
+# Use a separate test database to avoid polluting the development database.
+# When running under xdist, the worker_id fixture appends the worker name.
+_TEST_DB_BASE = "sentora_test"
 _MONGO_URI = os.environ.get("TEST_MONGO_URI", "mongodb://localhost:27017")
+
+
+def _worker_db_name(worker_id: str) -> str:
+    """Return a unique database name for the given xdist worker.
+
+    Args:
+        worker_id: xdist worker identifier (e.g. ``"gw0"``) or ``"master"``
+                   when running without xdist.
+
+    Returns:
+        Database name like ``sentora_test`` (single) or ``sentora_test_gw0``
+        (parallel).
+    """
+    if worker_id == "master":
+        return _TEST_DB_BASE
+    return f"{_TEST_DB_BASE}_{worker_id}"
 
 
 async def _safe_drop_database(client: AsyncIOMotorClient, db_name: str, retries: int = 3) -> None:  # type: ignore[type-arg]
@@ -54,27 +75,44 @@ def event_loop_policy() -> asyncio.DefaultEventLoopPolicy:
     return asyncio.DefaultEventLoopPolicy()
 
 
+@pytest.fixture(scope="session")
+def worker_id(request: pytest.FixtureRequest) -> str:
+    """Return the xdist worker id or ``'master'`` for non-parallel runs."""
+    if hasattr(request.config, "workerinput"):
+        return request.config.workerinput["workerid"]  # type: ignore[attr-defined]
+    return "master"
+
+
+@pytest.fixture(scope="session")
+def test_db_name(worker_id: str) -> str:
+    """Return a unique database name for this xdist worker."""
+    return _worker_db_name(worker_id)
+
+
 _indexes_created = False
 
 
 @pytest_asyncio.fixture(scope="function")
-async def test_db() -> AsyncGenerator[AsyncIOMotorDatabase, None]:  # type: ignore[type-arg]
+async def test_db(test_db_name: str) -> AsyncGenerator[AsyncIOMotorDatabase, None]:  # type: ignore[type-arg]
     """Provide a clean, isolated test MongoDB database for each test.
 
-    On first call, drops the database and creates all indexes.
+    On first call per worker, drops the database and creates all indexes.
     On subsequent calls, clears all documents (preserving indexes for speed).
 
+    When running under xdist, each worker uses a separate database
+    (e.g. ``sentora_test_gw0``) to guarantee full isolation.
+
     Yields:
-        AsyncIOMotorDatabase pointing at ``sentora_test``.
+        AsyncIOMotorDatabase pointing at the worker's test database.
     """
     global _indexes_created
 
     client: AsyncIOMotorClient = AsyncIOMotorClient(_MONGO_URI)  # type: ignore[type-arg]
-    db = client[_TEST_DB_NAME]
+    db = client[test_db_name]
 
     if not _indexes_created:
         # Full drop once to remove stale data from prior runs, then create indexes
-        await _safe_drop_database(client, _TEST_DB_NAME)
+        await _safe_drop_database(client, test_db_name)
         from db_indexes import ensure_all_indexes
 
         await ensure_all_indexes(db)
@@ -107,7 +145,7 @@ async def seeded_db(test_db: AsyncIOMotorDatabase) -> AsyncIOMotorDatabase:  # t
 
 
 @pytest_asyncio.fixture(scope="function")
-async def client(seeded_db: AsyncIOMotorDatabase) -> AsyncGenerator[AsyncClient, None]:  # type: ignore[type-arg]
+async def client(seeded_db: AsyncIOMotorDatabase, test_db_name: str) -> AsyncGenerator[AsyncClient, None]:  # type: ignore[type-arg]
     """Provide an HTTPX async test client against the FastAPI app.
 
     Patches the database dependency so all routes use the isolated test
@@ -115,6 +153,7 @@ async def client(seeded_db: AsyncIOMotorDatabase) -> AsyncGenerator[AsyncClient,
 
     Args:
         seeded_db: Pre-seeded test database (injected).
+        test_db_name: Worker-specific database name (injected).
 
     Yields:
         An HTTPX AsyncClient configured to talk to the test app.
@@ -134,7 +173,7 @@ async def client(seeded_db: AsyncIOMotorDatabase) -> AsyncGenerator[AsyncClient,
     settings = get_settings()
     original_mongo_db = settings.__dict__.get("mongo_db")
     original_s1_token = settings.__dict__.get("s1_api_token")
-    object.__setattr__(settings, "mongo_db", _TEST_DB_NAME)
+    object.__setattr__(settings, "mongo_db", test_db_name)
     object.__setattr__(settings, "s1_api_token", "")
     # Disable external API calls in tests (HaveIBeenPwned breach check).
     # The auth router reads from the persisted config (app_config collection),
@@ -172,10 +211,37 @@ async def client(seeded_db: AsyncIOMotorDatabase) -> AsyncGenerator[AsyncClient,
             break
         _mw_app = getattr(_mw_app, "app", None)
 
+    # Prevent the lifespan's connect_db/close_db from replacing the test motor
+    # client.  Without this, data inserted by test fixtures becomes invisible
+    # to the endpoint because the lifespan creates a separate motor client.
+    # Patch both the database module AND the main module (which imports them
+    # at module load time via ``from database import connect_db, close_db``).
+    import main as _main_module
+
+    _original_connect_db = database.connect_db
+    _original_close_db = database.close_db
+    _main_connect = _main_module.connect_db
+    _main_close = _main_module.close_db
+
+    async def _noop_connect() -> None:
+        pass
+
+    async def _noop_close() -> None:
+        pass
+
+    database.connect_db = _noop_connect  # type: ignore[assignment]
+    database.close_db = _noop_close  # type: ignore[assignment]
+    _main_module.connect_db = _noop_connect  # type: ignore[assignment]
+    _main_module.close_db = _noop_close  # type: ignore[assignment]
+
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac
 
     # Restore
+    database.connect_db = _original_connect_db  # type: ignore[assignment]
+    database.close_db = _original_close_db  # type: ignore[assignment]
+    _main_module.connect_db = _main_connect  # type: ignore[assignment]
+    _main_module.close_db = _main_close  # type: ignore[assignment]
     database._client = original_db
     if original_mongo_db is not None:
         object.__setattr__(settings, "mongo_db", original_mongo_db)
@@ -260,3 +326,29 @@ def make_software_entry(**overrides: object) -> dict[str, object]:
     }
     defaults.update(overrides)
     return defaults
+
+
+# ---------------------------------------------------------------------------
+# pytest configuration: markers + xdist cleanup
+# ---------------------------------------------------------------------------
+
+
+def pytest_configure(config: pytest.Config) -> None:
+    """Register custom markers for selective test execution."""
+    config.addinivalue_line("markers", "unit: Pure unit tests, no DB required")
+    config.addinivalue_line("markers", "integration: Integration tests requiring MongoDB")
+    config.addinivalue_line("markers", "slow: Tests that take >5 seconds individually")
+    config.addinivalue_line("markers", "compliance: Compliance framework tests")
+
+
+@pytest_asyncio.fixture(scope="session", autouse=True)
+async def _cleanup_worker_db(test_db_name: str) -> AsyncGenerator[None, None]:
+    """Drop the worker-specific test database after all tests complete.
+
+    This runs once per xdist worker (or once in single-process mode) to
+    clean up the database created for this session.
+    """
+    yield
+    client: AsyncIOMotorClient = AsyncIOMotorClient(_MONGO_URI)  # type: ignore[type-arg]
+    await _safe_drop_database(client, test_db_name)
+    client.close()

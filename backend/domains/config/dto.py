@@ -42,6 +42,8 @@ class AppConfigResponse(BaseModel):
     password_history_count: int = 5
     password_max_age_days: int = 0
     password_check_breached: bool = True
+    backup_local_path: str = "./backups"
+    backup_local_path_writable: bool = False
     brand_app_name: str
     brand_tagline: str
     brand_primary_color: str
@@ -87,6 +89,7 @@ class AppConfigUpdateRequest(BaseModel):
     password_history_count: int | None = Field(default=None, ge=0, le=24)
     password_max_age_days: int | None = Field(default=None, ge=0, le=365)
     password_check_breached: bool | None = None
+    backup_local_path: str | None = Field(default=None, max_length=500)
     brand_app_name: str | None = Field(default=None, max_length=50)
     brand_tagline: str | None = Field(default=None, max_length=100)
     brand_primary_color: str | None = Field(

@@ -8,7 +8,8 @@
 import client from './client'
 
 export interface Site {
-  s1_site_id: string
+  source_id: string
+  source: string
   name: string
   state: string
   site_type: string

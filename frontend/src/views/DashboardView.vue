@@ -64,40 +64,40 @@ function distBar(record: Record<string, number>, key: string) {
 
 // OS colours
 const osColor: Record<string, string> = {
-  windows: 'bg-blue-500',
-  macos: 'bg-slate-400',
-  linux: 'bg-orange-400',
+  windows: 'bg-[var(--info-bg)]0',
+  macos: 'bg-[var(--text-3)]',
+  linux: 'bg-[var(--warn-text)]',
 }
 // Machine type colours
 const mtColor: Record<string, string> = {
   desktop: 'bg-[var(--brand-primary)]',
-  laptop: 'bg-violet-400',
-  server: 'bg-teal-500',
+  laptop: 'bg-[var(--accent-text)]',
+  server: 'bg-[var(--scope-site-bg)]0',
   vm: 'bg-cyan-400',
 }
 
-// Network status colours
+// Agent status colours
 const nsColor: Record<string, string> = {
-  connected: 'bg-emerald-500',
-  disconnected: 'bg-rose-400',
-  connecting: 'bg-amber-400',
+  online: 'bg-[var(--success-bg)]0',
+  offline: 'bg-rose-400',
+  degraded: 'bg-[var(--status-warn-text)]',
 }
 
 // Classification bars
 const classificationBars = [
-  { label: 'Correct',        key: 'correct'        as const, color: 'bg-emerald-500', track: 'bg-emerald-500/10' },
-  { label: 'Misclassified',  key: 'misclassified'  as const, color: 'bg-amber-400',   track: 'bg-amber-500/10'   },
-  { label: 'Ambiguous',      key: 'ambiguous'       as const, color: 'bg-orange-400',  track: 'bg-orange-500/10'  },
-  { label: 'Unclassifiable', key: 'unclassifiable' as const, color: 'bg-slate-300',   track: 'bg-slate-500/10'   },
+  { label: 'Correct',        key: 'correct'        as const, color: 'bg-[var(--success-bg)]0', track: 'bg-[var(--success-bg)]0/10' },
+  { label: 'Misclassified',  key: 'misclassified'  as const, color: 'bg-[var(--status-warn-text)]',   track: 'bg-[var(--warn-bg)]0/10'   },
+  { label: 'Ambiguous',      key: 'ambiguous'       as const, color: 'bg-[var(--warn-text)]',  track: 'bg-[var(--warn-bg)]0/10'  },
+  { label: 'Unclassifiable', key: 'unclassifiable' as const, color: 'bg-[var(--text-3)]',   track: 'bg-[var(--badge-bg)]'   },
 ]
 
 // Risk level colours
 const riskColor: Record<string, string> = {
-  critical: 'bg-red-500',
+  critical: 'bg-[var(--error-bg)]0',
   high: 'bg-rose-400',
-  medium: 'bg-amber-400',
-  low: 'bg-emerald-400',
-  none: 'bg-slate-300',
+  medium: 'bg-[var(--status-warn-text)]',
+  low: 'bg-[var(--status-ok-text)]',
+  none: 'bg-[var(--text-3)]',
 }
 </script>
 
@@ -211,7 +211,7 @@ const riskColor: Record<string, string> = {
             <div class="flex-1 h-2 rounded-full overflow-hidden" style="background: var(--surface-hover);"
               role="progressbar" :aria-valuenow="distBar(fleet.os_distribution, os)" aria-valuemin="0" aria-valuemax="100" :aria-label="`${os} distribution`">
               <div class="h-full rounded-full transition-all duration-500"
-                :class="osColor[os] ?? 'bg-slate-400'"
+                :class="osColor[os] ?? 'bg-[var(--text-3)]'"
                 :style="{ width: `${distBar(fleet.os_distribution, os)}%` }" />
             </div>
             <span class="w-14 text-right text-[12px] font-medium tabular-nums shrink-0" style="color: var(--text-2);">{{ fmtNum(count) }}</span>
@@ -233,7 +233,7 @@ const riskColor: Record<string, string> = {
             <div class="flex-1 h-2 rounded-full overflow-hidden" style="background: var(--surface-hover);"
               role="progressbar" :aria-valuenow="distBar(fleet.machine_type, mt)" aria-valuemin="0" aria-valuemax="100" :aria-label="`${mt} distribution`">
               <div class="h-full rounded-full transition-all duration-500"
-                :class="mtColor[mt] ?? 'bg-slate-400'"
+                :class="mtColor[mt] ?? 'bg-[var(--text-3)]'"
                 :style="{ width: `${distBar(fleet.machine_type, mt)}%` }" />
             </div>
             <span class="w-14 text-right text-[12px] font-medium tabular-nums shrink-0" style="color: var(--text-2);">{{ fmtNum(count) }}</span>
@@ -244,19 +244,19 @@ const riskColor: Record<string, string> = {
 
       <!-- Fleet: Network status + Stale agents -->
       <div class="rounded-xl p-5" style="background: var(--surface); border: 1px solid var(--border);">
-        <h2 class="text-[12px] font-semibold mb-4" style="color: var(--text-2);">Network Status</h2>
+        <h2 class="text-[12px] font-semibold mb-4" style="color: var(--text-2);">Agent Status</h2>
         <div v-if="fleet" class="space-y-2.5 mb-5" aria-live="polite">
           <div
-            v-for="[ns, count] in Object.entries(fleet.network_status).sort((a,b) => b[1]-a[1])"
+            v-for="[ns, count] in Object.entries(fleet.agent_status).sort((a,b) => b[1]-a[1])"
             :key="ns"
             class="flex items-center gap-3"
           >
             <span class="w-24 text-[12px] capitalize shrink-0" style="color: var(--text-3);">{{ ns }}</span>
             <div class="flex-1 h-2 rounded-full overflow-hidden" style="background: var(--surface-hover);"
-              role="progressbar" :aria-valuenow="distBar(fleet.network_status, ns)" aria-valuemin="0" aria-valuemax="100" :aria-label="`${ns} network status`">
+              role="progressbar" :aria-valuenow="distBar(fleet.agent_status, ns)" aria-valuemin="0" aria-valuemax="100" :aria-label="`${ns} agent status`">
               <div class="h-full rounded-full transition-all duration-500"
-                :class="nsColor[ns] ?? 'bg-slate-400'"
-                :style="{ width: `${distBar(fleet.network_status, ns)}%` }" />
+                :class="nsColor[ns] ?? 'bg-[var(--text-3)]'"
+                :style="{ width: `${distBar(fleet.agent_status, ns)}%` }" />
             </div>
             <span class="w-14 text-right text-[12px] font-medium tabular-nums shrink-0" style="color: var(--text-2);">{{ fmtNum(count) }}</span>
           </div>
@@ -340,7 +340,7 @@ const riskColor: Record<string, string> = {
               class="flex items-center gap-1.5 px-2 py-1 rounded-lg"
               style="background: var(--surface-inset); border: 1px solid var(--border-light);"
             >
-              <span class="w-2 h-2 rounded-full shrink-0" :class="riskColor[level] ?? 'bg-slate-300'" aria-hidden="true" />
+              <span class="w-2 h-2 rounded-full shrink-0" :class="riskColor[level] ?? 'bg-[var(--text-3)]'" aria-hidden="true" />
               <span class="text-[11px] capitalize" style="color: var(--text-2);">{{ level }}</span>
               <span class="text-[11px] font-semibold tabular-nums" style="color: var(--text-2);">{{ fmtNum(count) }}</span>
             </div>
@@ -436,7 +436,7 @@ const riskColor: Record<string, string> = {
             Fingerprint Proposals
           </router-link>
           <router-link to="/fingerprints" aria-label="Fingerprint Editor" class="flex items-center gap-2 px-3 py-2.5 rounded-lg text-[12px] font-medium transition-colors no-underline" style="border: 1px solid var(--border); color: var(--text-2);">
-            <svg class="w-4 h-4 shrink-0 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <svg class="w-4 h-4 shrink-0 text-[var(--text-3)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18" />
             </svg>
             Fingerprint Editor

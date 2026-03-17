@@ -7,7 +7,7 @@ This module implements two distinct capabilities:
    fingerprint's marker set.
 
 2. **TF-IDF suggestions** (ADR-0003): Given a group ID, query
-   ``s1_installed_apps`` and ``s1_agents`` to identify which app names best
+   ``installed_apps`` and ``agents`` to identify which app names best
    distinguish that group from the rest of the agent population, then return
    the top-ranked suggestions as ``FingerprintSuggestion`` entities.
 
@@ -28,6 +28,7 @@ from loguru import logger
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from domains.fingerprint.entities import FingerprintSuggestion
+from domains.sources.collections import AGENTS, INSTALLED_APPS
 from utils.dt import utc_now
 
 # Maximum number of suggestions stored per compute call
@@ -108,10 +109,10 @@ async def compute_suggestions(
 
     Steps
     -----
-    1. Fetch agent IDs belonging to ``group_id`` from ``s1_agents``.
+    1. Fetch agent IDs belonging to ``group_id`` from ``agents``.
     2. For those agents, count app occurrences per ``normalized_name`` in
-       ``s1_installed_apps``.
-    3. Count per-app totals across *all* agents in ``s1_installed_apps`` to
+       ``installed_apps``.
+    3. Count per-app totals across *all* agents in ``installed_apps`` to
        compute document frequency.
     4. Compute TF-IDF:
        - ``tf`` = in_group_count / group_agent_count
@@ -122,12 +123,12 @@ async def compute_suggestions(
     6. Filter out apps with ``score <= 0``.
     7. Return top 200 suggestions sorted by score descending.
 
-    Handles the case where ``s1_agents`` or ``s1_installed_apps`` do not yet
+    Handles the case where ``agents`` or ``installed_apps`` do not yet
     exist (returns an empty list).
 
     Args:
         db: Motor database handle.
-        group_id: SentinelOne group ID to compute suggestions for.
+        group_id: Group ID to compute suggestions for.
 
     Returns:
         List of up to 20 ``FingerprintSuggestion`` entities, or empty list if
@@ -135,16 +136,19 @@ async def compute_suggestions(
     """
     try:
         # ── Step 1: Get agent IDs in the target group ──────────────────────
+        # Cap to 50k agents per group to bound memory. Groups larger than
+        # this are rare; the TF-IDF scoring degrades gracefully (uses a sample).
+        _MAX_GROUP_AGENTS = 50_000
         agent_docs: list[dict[str, Any]] = (
-            await db["s1_agents"]
-            .find({"group_id": group_id}, {"s1_agent_id": 1})
-            .to_list(length=None)
+            await db[AGENTS]
+            .find({"group_id": group_id}, {"source_id": 1})
+            .to_list(length=_MAX_GROUP_AGENTS)
         )
 
         if not agent_docs:
             return []
 
-        group_agent_ids: list[str] = [d["s1_agent_id"] for d in agent_docs if "s1_agent_id" in d]
+        group_agent_ids: list[str] = [d["source_id"] for d in agent_docs if "source_id" in d]
         group_agent_count: int = len(group_agent_ids)
 
         if group_agent_count == 0:
@@ -173,14 +177,14 @@ async def compute_suggestions(
             },
         ]
         in_group_results: list[dict[str, Any]] = (
-            await db["s1_installed_apps"].aggregate(in_group_pipeline).to_list(length=None)
+            await db[INSTALLED_APPS].aggregate(in_group_pipeline).to_list(length=50_000)
         )
 
         if not in_group_results:
             return []
 
         # ── Step 3: Get total unique agents and per-app global counts ──────
-        total_agent_count_result = await db["s1_agents"].count_documents({})
+        total_agent_count_result = await db[AGENTS].count_documents({})
         total_agents: int = int(total_agent_count_result)
 
         # Build set of names we need global counts for
@@ -203,7 +207,7 @@ async def compute_suggestions(
             },
         ]
         global_results: list[dict[str, Any]] = (
-            await db["s1_installed_apps"].aggregate(global_pipeline).to_list(length=None)
+            await db[INSTALLED_APPS].aggregate(global_pipeline).to_list(length=50_000)
         )
 
         global_counts: dict[str, int] = {
@@ -272,6 +276,6 @@ async def compute_suggestions(
 
     except KeyError as exc:
         # Expected when collections or required fields are missing (e.g.
-        # s1_agents/s1_installed_apps not yet populated).
+        # agents/installed_apps not yet populated).
         logger.warning("compute_suggestions failed (missing data): {}", exc)
         return []

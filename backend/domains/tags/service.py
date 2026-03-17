@@ -8,6 +8,7 @@ from loguru import logger
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from audit.log import audit
+from domains.sources.collections import AGENTS, SOURCE_TAGS
 from domains.tags import matcher, repository
 from domains.tags.dto import (
     TagApplyResponse,
@@ -229,7 +230,7 @@ async def _run_apply(
     settings = get_settings()
     try:
         agents, total = await matcher.find_matching_agents(db, rule, cap=None)
-        s1_ids = [a.s1_agent_id for a in agents]
+        s1_ids = [a.source_id for a in agents]
 
         if not s1_ids:
             await repository.set_apply_status(
@@ -250,23 +251,23 @@ async def _run_apply(
             settings.s1_rate_limit_per_minute,
         )
         try:
-            # Ensure the tag exists in S1 — create it if it's a new local rule
-            tag_doc = await db["s1_tags"].find_one({"name": rule.tag_name})
+            # Ensure the tag exists in the source — create it if it's a new local rule
+            tag_doc = await db[SOURCE_TAGS].find_one({"name": rule.tag_name})
             if not tag_doc:
-                logger.info("Tag '{}' not found in S1 — creating it", rule.tag_name)
+                logger.info("Tag '{}' not found in source — creating it", rule.tag_name)
                 created = await client.create_tag(rule.tag_name)
-                # Persist to local s1_tags collection so it's visible immediately
+                # Persist to local source_tags collection so it's visible immediately
                 from domains.sync.normalizer import normalize_tag
 
                 tag_doc = normalize_tag(created, utc_now().isoformat())
-                await db["s1_tags"].update_one(
-                    {"s1_tag_id": tag_doc["s1_tag_id"]},
+                await db[SOURCE_TAGS].update_one(
+                    {"source_id": tag_doc["source_id"]},
                     {"$set": tag_doc},
                     upsert=True,
                 )
-                logger.info("Tag '{}' created in S1 (id={})", rule.tag_name, tag_doc["s1_tag_id"])
+                logger.info("Tag '{}' created (id={})", rule.tag_name, tag_doc["source_id"])
 
-            tag_id = tag_doc["s1_tag_id"]
+            tag_id = tag_doc["source_id"]
             batch_size = 100
             for i in range(0, len(s1_ids), batch_size):
                 await client.tag_agents(s1_ids[i : i + batch_size], tag_id)
@@ -276,8 +277,8 @@ async def _run_apply(
         # Update local agent documents so tags are visible immediately
         # (without waiting for the next full sync)
         if s1_ids:
-            result = await db["s1_agents"].update_many(
-                {"s1_agent_id": {"$in": s1_ids}},
+            result = await db[AGENTS].update_many(
+                {"source_id": {"$in": s1_ids}},
                 {"$addToSet": {"tags": rule.tag_name}},
             )
             logger.info(

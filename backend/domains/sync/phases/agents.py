@@ -6,6 +6,8 @@ from typing import Any
 
 from loguru import logger
 
+from domains.sources.collections import AGENTS, GROUPS, INSTALLED_APPS, SYNC_META
+
 from ..phase_runner import PhaseRunner
 
 
@@ -50,11 +52,11 @@ class AgentsPhaseRunner(PhaseRunner):
 
         # Load group_name_map from DB (soft dependency — for denormalization)
         group_name_map: dict[str, str] = {}
-        async for doc in db["s1_groups"].find({}, {"s1_group_id": 1, "name": 1}):
-            group_name_map[doc["s1_group_id"]] = doc["name"]
+        async for doc in db[GROUPS].find({}, {"source_id": 1, "name": 1}):
+            group_name_map[doc["source_id"]] = doc["name"]
 
         # Resolve mode and last_sync_at from own timestamp
-        meta = await db["s1_sync_meta"].find_one({"_id": "global"})
+        meta = await db[SYNC_META].find_one({"_id": "global"})
         last_sync_at = meta.get("agents_synced_at") if meta else None
         if mode == "auto":
             is_full = last_sync_at is None
@@ -105,16 +107,13 @@ class AgentsPhaseRunner(PhaseRunner):
 
             doc = normalize_agent(raw_agent, group_name_map)
             doc["synced_at"] = sync_started_at
-            aid = doc["s1_agent_id"]
+            aid = doc["source_id"]
 
             full_sync_buffer.append(doc)
             # Flush buffer periodically to avoid OOM on large tenants
             if len(full_sync_buffer) >= 500:
-                ops = [
-                    ReplaceOne({"s1_agent_id": d["s1_agent_id"]}, d, upsert=True)
-                    for d in full_sync_buffer
-                ]
-                await db["s1_agents"].bulk_write(ops, ordered=False)
+                ops = [ReplaceOne({"_id": d["_id"]}, d, upsert=True) for d in full_sync_buffer]
+                await db[AGENTS].bulk_write(ops, ordered=False)
                 full_sync_buffer.clear()
 
             agents_synced += 1
@@ -141,17 +140,14 @@ class AgentsPhaseRunner(PhaseRunner):
 
         # Flush remaining buffer
         if full_sync_buffer:
-            ops = [
-                ReplaceOne({"s1_agent_id": doc["s1_agent_id"]}, doc, upsert=True)
-                for doc in full_sync_buffer
-            ]
-            await db["s1_agents"].bulk_write(ops, ordered=False)
+            ops = [ReplaceOne({"_id": doc["_id"]}, doc, upsert=True) for doc in full_sync_buffer]
+            await db[AGENTS].bulk_write(ops, ordered=False)
             full_sync_buffer.clear()
 
         if is_full:
             # Delete agents not touched in this sync — uses synced_at timestamp
             # instead of tracking 150k+ IDs in memory
-            stale = await db["s1_agents"].delete_many(
+            stale = await db[AGENTS].delete_many(
                 {"synced_at": {"$ne": sync_started_at}},
             )
             if stale.deleted_count:
@@ -163,12 +159,12 @@ class AgentsPhaseRunner(PhaseRunner):
                 updated_since=last_sync_at,
             )
             if decom_ids:
-                await db["s1_agents"].delete_many({"s1_agent_id": {"$in": decom_ids}})
-                await db["s1_installed_apps"].delete_many({"agent_id": {"$in": decom_ids}})
+                await db[AGENTS].delete_many({"source_id": {"$in": decom_ids}})
+                await db[INSTALLED_APPS].delete_many({"agent_id": {"$in": decom_ids}})
                 logger.info("Agents — removed {} decommissioned", len(decom_ids))
 
         # Record agents-specific timestamp
-        await db["s1_sync_meta"].update_one(
+        await db[SYNC_META].update_one(
             {"_id": "global"},
             {"$set": {"agents_synced_at": sync_started_at}},
             upsert=True,

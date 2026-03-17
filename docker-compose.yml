@@ -14,8 +14,10 @@ services:
   mongo:
     image: mongo:7
     restart: unless-stopped
-    ports:
-      - "27017:27017"
+    # No ports exposed — accessible only within the Docker network.
+    # For local development with external tools, uncomment:
+    # ports:
+    #   - "27017:27017"
     volumes:
       - mongo_data:/data/db
     environment:
@@ -29,16 +31,51 @@ services:
       retries: 5
       start_period: 20s
 
+  # ── MinIO (S3-compatible object storage for backups) ─────────────────────────
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    # No ports exposed — accessible only within the Docker network.
+    # To access the MinIO Console UI for debugging, uncomment:
+    # ports:
+    #   - "9001:9001"
+    volumes:
+      - minio_data:/data
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-sentora}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-sentora_minio_dev}
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # Create the default backup bucket on startup
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set sentora http://minio:9000 $${MINIO_ROOT_USER:-sentora} $${MINIO_ROOT_PASSWORD:-sentora_minio_dev};
+      mc mb sentora/sentora-backups --ignore-existing;
+      mc anonymous set none sentora/sentora-backups;
+      exit 0;
+      "
+
   # ── Jaeger (distributed tracing) ─────────────────────────────────────────────
   # Optional: start with `docker compose --profile tracing up`
   jaeger:
     image: jaegertracing/all-in-one:1.64
     profiles: [tracing]
     restart: unless-stopped
-    ports:
-      - "16686:16686"   # Jaeger UI
-      - "4317:4317"     # OTLP gRPC
-      - "4318:4318"     # OTLP HTTP
+    # Only the Jaeger UI is exposed for debugging. OTLP ports are internal-only.
+    # Uncomment to access the Jaeger UI:
+    # ports:
+    #   - "16686:16686"
     environment:
       COLLECTOR_OTLP_ENABLED: "true"
 
@@ -59,8 +96,15 @@ services:
       OTEL_ENABLED: ${OTEL_ENABLED:-false}
       OTEL_ENDPOINT: ${OTEL_ENDPOINT:-http://jaeger:4317}
       WORKERS: ${WORKERS:-1}
+      BACKUP_STORAGE_TYPE: ${BACKUP_STORAGE_TYPE:-s3}
+      BACKUP_S3_ENDPOINT: ${BACKUP_S3_ENDPOINT:-http://minio:9000}
+      BACKUP_S3_BUCKET: ${BACKUP_S3_BUCKET:-sentora-backups}
+      BACKUP_S3_ACCESS_KEY: ${MINIO_ROOT_USER:-sentora}
+      BACKUP_S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-sentora_minio_dev}
     depends_on:
       mongo:
+        condition: service_healthy
+      minio:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5002/health"]
@@ -79,4 +123,6 @@ services:
 
 volumes:
   mongo_data:
+    driver: local
+  minio_data:
     driver: local

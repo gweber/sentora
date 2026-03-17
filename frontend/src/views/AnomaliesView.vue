@@ -58,7 +58,7 @@ async function acknowledge(agentId: string) {
           :key="type"
           class="px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors capitalize"
           :class="filterType === type
-            ? 'bg-indigo-600 text-white'
+            ? 'bg-[var(--brand-primary)] text-white'
             : ''"
           :style="filterType === type ? '' : `background: var(--surface); border: 1px solid var(--border); color: var(--text-2);`"
           :aria-label="`Filter by ${type || 'all'} classification`"
@@ -118,7 +118,7 @@ async function acknowledge(agentId: string) {
             <td class="px-4 py-3">
               <router-link
                 :to="`/agents/${result.agent_id}`"
-                class="text-[13px] font-medium text-indigo-600 hover:text-indigo-800 no-underline"
+                class="text-[13px] font-medium text-[var(--info-text)] hover:text-[var(--heading)] no-underline"
               >
                 {{ result.hostname }}
               </router-link>
@@ -129,10 +129,9 @@ async function acknowledge(agentId: string) {
               <span
                 class="inline-flex px-2 py-0.5 rounded text-[11px] font-semibold capitalize"
                 :class="{
-                  'bg-amber-100 text-amber-700': result.classification === 'misclassified',
-                  'bg-orange-100 text-orange-700': result.classification === 'ambiguous',
+                  'bg-[var(--warn-bg)] text-[var(--warn-text)]': result.classification === 'misclassified' || result.classification === 'ambiguous',
                   ' text-muted': result.classification === 'unclassifiable',
-                  'bg-emerald-100 text-emerald-700': result.classification === 'correct',
+                  'bg-[var(--success-bg)] text-[var(--success-text)]': result.classification === 'correct',
                 }" style="background: var(--surface-hover);"
               >
                 {{ result.classification }}
@@ -150,7 +149,7 @@ async function acknowledge(agentId: string) {
               >
                 Acknowledge
               </button>
-              <span v-else class="text-[12px] font-medium text-emerald-500">Reviewed</span>
+              <span v-else class="text-[12px] font-medium text-[var(--success-text)]">Reviewed</span>
             </td>
           </tr>
         </tbody>

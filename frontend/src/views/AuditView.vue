@@ -163,16 +163,16 @@ function disconnectWs() {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const DOMAIN_COLORS: Record<string, string> = {
-  sync:           'bg-blue-100 text-blue-700',
-  config:         'bg-violet-100 text-violet-700',
-  fingerprint:    'bg-amber-100 text-amber-700',
-  classification: 'bg-indigo-100 text-indigo-700',
-  taxonomy:       'bg-teal-100 text-teal-700',
+  sync:           'bg-[var(--info-bg)] text-[var(--info-text)]',
+  config:         'bg-[var(--accent-bg)] text-[var(--accent-text)]',
+  fingerprint:    'bg-[var(--warn-bg)] text-[var(--warn-text)]',
+  classification: 'bg-[var(--info-bg)] text-[var(--info-text)]',
+  taxonomy:       'bg-[var(--scope-site-bg)] text-[var(--scope-site-text)]',
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  success: 'bg-emerald-100 text-emerald-700',
-  failure: 'bg-red-100 text-red-700',
+  success: 'bg-[var(--success-bg)] text-[var(--success-text)]',
+  failure: 'bg-[var(--error-bg)] text-[var(--error-text)]',
   info:    'badge-neutral',
 }
 
@@ -213,9 +213,9 @@ function detailsJson(entry: AuditEntry) {
         <span
           class="w-2 h-2 rounded-full shrink-0 mt-0.5"
           :class="{
-            'bg-emerald-400 animate-pulse': liveStatus === 'live',
-            'bg-amber-400 animate-pulse':   liveStatus === 'connecting',
-            'bg-slate-300':                  liveStatus === 'disconnected',
+            'bg-[var(--status-ok-text)] animate-pulse': liveStatus === 'live',
+            'bg-[var(--status-warn-text)] animate-pulse':   liveStatus === 'connecting',
+            'bg-[var(--text-3)]':                  liveStatus === 'disconnected',
           }"
           :title="liveStatus === 'live' ? 'Live — new events appear automatically' : liveStatus === 'connecting' ? 'Connecting…' : 'Disconnected'"
         />
@@ -272,7 +272,7 @@ function detailsJson(entry: AuditEntry) {
       <select
         v-model="filterDomain"
         aria-label="Filter by domain"
-        class="h-8 px-2.5 text-[12px] rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-300"
+        class="h-8 px-2.5 text-[12px] rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary-light)]"
         style="background: var(--surface); border: 1px solid var(--input-border); color: var(--text-2);"
       >
         <option value="">All domains</option>
@@ -287,7 +287,7 @@ function detailsJson(entry: AuditEntry) {
       <select
         v-model="filterActor"
         aria-label="Filter by actor"
-        class="h-8 px-2.5 text-[12px] rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-300"
+        class="h-8 px-2.5 text-[12px] rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary-light)]"
         style="background: var(--surface); border: 1px solid var(--input-border); color: var(--text-2);"
       >
         <option value="">All actors</option>
@@ -300,7 +300,7 @@ function detailsJson(entry: AuditEntry) {
       <select
         v-model="filterStatus"
         aria-label="Filter by status"
-        class="h-8 px-2.5 text-[12px] rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-300"
+        class="h-8 px-2.5 text-[12px] rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary-light)]"
         style="background: var(--surface); border: 1px solid var(--input-border); color: var(--text-2);"
       >
         <option value="">All statuses</option>
@@ -315,7 +315,7 @@ function detailsJson(entry: AuditEntry) {
         type="text"
         placeholder="Filter by action…"
         aria-label="Filter by action"
-        class="h-8 px-3 text-[12px] rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-300 w-44"
+        class="h-8 px-3 text-[12px] rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary-light)] w-44"
         style="background: var(--surface); border: 1px solid var(--input-border); color: var(--text-2);"
       />
 
@@ -340,12 +340,12 @@ function detailsJson(entry: AuditEntry) {
             v-model.number="pendingPageSize"
             type="number" min="10" max="1000" step="10"
             aria-label="Page size"
-            class="w-20 h-7 px-2 text-[12px] border border-indigo-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-300"
+            class="w-20 h-7 px-2 text-[12px] border border-[var(--border)] rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary-light)]"
             @keydown.enter="savePageSize"
             @keydown.escape="editingPageSize = false"
           />
           <button
-            class="h-7 px-2.5 text-[12px] font-medium bg-indigo-600 hover:bg-indigo-700 text-white rounded-md disabled:opacity-50 transition-colors"
+            class="h-7 px-2.5 text-[12px] font-medium bg-[var(--brand-primary)] hover:opacity-90 text-white rounded-md disabled:opacity-50 transition-colors"
             :disabled="savingPageSize"
             @click="savePageSize"
           >{{ savingPageSize ? '…' : 'Save' }}</button>
@@ -369,7 +369,7 @@ function detailsJson(entry: AuditEntry) {
     <button
       v-if="pendingCount > 0"
       aria-live="polite"
-      class="w-full flex items-center justify-center gap-2 py-2 text-[12px] font-medium text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-lg hover:bg-indigo-100 transition-colors"
+      class="w-full flex items-center justify-center gap-2 py-2 text-[12px] font-medium text-[var(--info-text)] bg-[var(--info-bg)] border border-[var(--border)] rounded-lg hover:bg-[var(--info-bg)] transition-colors"
       @click="page = 1; filterDomain = ''; filterActor = ''; filterStatus = ''; filterAction = ''; load()"
     >
       <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">

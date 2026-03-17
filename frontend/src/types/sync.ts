@@ -6,7 +6,12 @@
 export type SyncStatus = 'running' | 'completed' | 'failed' | 'interrupted'
 export type SyncTrigger = 'manual' | 'scheduled' | 'phase' | 'refresh' | 'resume'
 export type SyncMode = 'full' | 'incremental' | 'auto'
-export type SyncPhase = 'sites' | 'groups' | 'agents' | 'apps' | 'tags' | 'done' | null
+export type SyncPhase = 'sites' | 'groups' | 'agents' | 'apps' | 'tags'
+  | 'cs_groups' | 'cs_agents' | 'cs_apps'
+  | 'done' | null
+
+/** Supported data sources. */
+export type SyncSource = 'sentinelone' | 'crowdstrike'
 
 export interface SyncCounts {
   sites_synced: number
@@ -37,6 +42,7 @@ export interface SyncRun {
 export interface SyncTriggerRequest {
   mode: SyncMode
   phases?: string[]
+  source?: SyncSource
 }
 
 export interface SyncDbCounts {

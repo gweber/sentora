@@ -9,12 +9,13 @@ and database record management.
 from __future__ import annotations
 
 from pathlib import Path
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock
 
 import pytest
 from httpx import AsyncClient
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
+from config import get_settings
 from utils.backup import BackupRecord, _compute_sha256
 
 # ── Helpers ─────────────────────────────────────────────────────────────────
@@ -24,12 +25,13 @@ async def _seed_backup(
     db: AsyncIOMotorDatabase, backup_id: str = "b_test", **overrides: object
 ) -> None:
     """Insert a backup record directly into the test database."""
+    base = get_settings().backup_local_path
     defaults = {
         "id": backup_id,
         "timestamp": "2026-03-15T10:00:00",
         "status": "completed",
         "size_bytes": 1024,
-        "storage_path": f"/backups/{backup_id}",
+        "storage_path": f"{base}/{backup_id}",
     }
     defaults.update(overrides)
     record = BackupRecord(**defaults)  # type: ignore[arg-type]  # kwargs from dynamic dict
@@ -153,21 +155,13 @@ _MOCK_PROC_SUCCESS.returncode = 0
 
 @pytest.mark.asyncio
 async def test_trigger_backup(client: AsyncClient, admin_headers: dict, tmp_path: Path) -> None:
-    """POST /admin/backup triggers mongodump and returns a backup record."""
-    with (
-        patch("utils.backup.get_settings") as mock_settings,
-        patch("asyncio.create_subprocess_exec", return_value=_MOCK_PROC_SUCCESS),
-    ):
-        mock_settings.return_value.backup_local_path = str(tmp_path)
-        mock_settings.return_value.mongo_uri = "mongodb://localhost:27017"
-        mock_settings.return_value.mongo_db = "sentora_test"
+    """POST /admin/backup returns 202 Accepted and starts a background task."""
+    resp = await client.post("/api/v1/admin/backup", headers=admin_headers)
 
-        resp = await client.post("/api/v1/admin/backup", headers=admin_headers)
-
-    assert resp.status_code == 201
+    assert resp.status_code == 202
     data = resp.json()
-    assert data["status"] == "completed"
-    assert data["triggered_by"] == "manual"
+    assert data["status"] == "accepted"
+    assert "message" in data
 
 
 # ── Verify backup endpoint ─────────────────────────────────────────────────

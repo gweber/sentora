@@ -18,6 +18,7 @@ from domains.compliance.entities import (
     ComplianceViolation,
     ControlSeverity,
 )
+from domains.sources.collections import AGENTS
 from utils.dt import utc_now
 
 
@@ -51,7 +52,7 @@ async def execute(
     max_offline_days: int = parameters.get("max_offline_days", 7)
     cutoff = now - timedelta(days=max_offline_days)
 
-    total_agents = await db["s1_agents"].count_documents(scope_filter or {})
+    total_agents = await db[AGENTS].count_documents(scope_filter or {})
     if total_agents == 0:
         return not_applicable_result(
             control_id=control_id,
@@ -70,14 +71,14 @@ async def execute(
         stale_filter = {"$and": [scope_filter, stale_filter]}
 
     violations: list[ComplianceViolation] = []
-    projection = {"s1_agent_id": 1, "hostname": 1, "last_active": 1}
+    projection = {"source_id": 1, "hostname": 1, "last_active": 1}
 
-    async for agent in db["s1_agents"].find(stale_filter, projection):
+    async for agent in db[AGENTS].find(stale_filter, projection):
         last_active = agent.get("last_active")
         last_active_str = last_active.isoformat() if last_active else "never"
         violations.append(
             ComplianceViolation(
-                agent_id=agent["s1_agent_id"],
+                agent_id=agent["source_id"],
                 agent_hostname=agent.get("hostname", "unknown"),
                 violation_detail=(
                     f"Agent offline since {last_active_str} (>{max_offline_days} days)"

@@ -18,6 +18,7 @@ from domains.compliance.entities import (
     ComplianceViolation,
     ControlSeverity,
 )
+from domains.sources.collections import AGENTS, INSTALLED_APPS
 from utils.dt import utc_now
 
 
@@ -52,7 +53,7 @@ async def execute(
     lookback_hours: int = parameters.get("lookback_hours", 24)
     cutoff = now - timedelta(hours=lookback_hours)
 
-    total_agents = await db["s1_agents"].count_documents(scope_filter or {})
+    total_agents = await db[AGENTS].count_documents(scope_filter or {})
     if total_agents == 0:
         return not_applicable_result(
             control_id=control_id,
@@ -67,8 +68,8 @@ async def execute(
     # that are on scoped agents
     agent_ids: list[str] = []
     if scope_filter:
-        async for doc in db["s1_agents"].find(scope_filter, {"s1_agent_id": 1}):
-            agent_ids.append(doc["s1_agent_id"])
+        async for doc in db[AGENTS].find(scope_filter, {"source_id": 1}):
+            agent_ids.append(doc["source_id"])
     else:
         # No scope = all agents; use a pipeline that doesn't need IDs
         agent_ids = []
@@ -78,7 +79,7 @@ async def execute(
         app_filter["agent_id"] = {"$in": agent_ids}
 
     # Count new apps in the window
-    new_app_count = await db["s1_installed_apps"].count_documents(app_filter)
+    new_app_count = await db[INSTALLED_APPS].count_documents(app_filter)
 
     violations: list[ComplianceViolation] = []
     non_compliant_agents: set[str] = set()
@@ -106,7 +107,7 @@ async def execute(
         hostname_map: dict[str, str] = {}
         agent_new_apps: dict[str, list[dict[str, str]]] = {}
 
-        async for doc in db["s1_installed_apps"].aggregate(pipeline):
+        async for doc in db[INSTALLED_APPS].aggregate(pipeline):
             aid = doc["_id"]
             non_compliant_agents.add(aid)
             agent_new_apps[aid] = doc["new_apps"][:10]  # Cap per agent
@@ -114,11 +115,11 @@ async def execute(
 
         # Resolve hostnames
         if hostname_map:
-            async for agent_doc in db["s1_agents"].find(
-                {"s1_agent_id": {"$in": list(hostname_map.keys())}},
-                {"s1_agent_id": 1, "hostname": 1},
+            async for agent_doc in db[AGENTS].find(
+                {"source_id": {"$in": list(hostname_map.keys())}},
+                {"source_id": 1, "hostname": 1},
             ):
-                hostname_map[agent_doc["s1_agent_id"]] = agent_doc.get("hostname", "unknown")
+                hostname_map[agent_doc["source_id"]] = agent_doc.get("hostname", "unknown")
 
         for aid, apps in agent_new_apps.items():
             hostname = hostname_map.get(aid, "unknown")

@@ -24,7 +24,7 @@ GROUP_ID = "ie_test_group_1"
 async def group_with_fingerprint(
     client: AsyncClient, test_db: AsyncIOMotorDatabase, analyst_headers: dict
 ) -> str:
-    """Insert a group into s1_groups, create a fingerprint, add a marker, return group_id.
+    """Insert a group into groups, create a fingerprint, add a marker, return group_id.
 
     Args:
         client: HTTPX async test client (injected).
@@ -34,9 +34,10 @@ async def group_with_fingerprint(
     Returns:
         The group_id of the created fingerprint.
     """
-    await test_db["s1_groups"].insert_one(
+    await test_db["groups"].insert_one(
         {
-            "s1_group_id": GROUP_ID,
+            "source": "sentinelone",
+            "source_id": GROUP_ID,
             "name": "Import Export Test Group",
             "site_name": "Default Site",
         }
@@ -125,9 +126,10 @@ class TestFingerprintImport:
     ) -> None:
         """Importing markers for an existing group creates the fingerprint."""
         group_id = "import_target_group"
-        await test_db["s1_groups"].insert_one(
+        await test_db["groups"].insert_one(
             {
-                "s1_group_id": group_id,
+                "source": "sentinelone",
+                "source_id": group_id,
                 "name": "Import Target Group",
                 "site_name": "Default Site",
             }

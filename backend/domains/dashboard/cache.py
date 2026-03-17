@@ -1,6 +1,6 @@
 """Pre-computed dashboard stats.
 
-Expensive aggregations (especially on s1_installed_apps) run once after each
+Expensive aggregations (especially on installed_apps) run once after each
 sync completes and are stored in the ``dashboard_stats`` collection.  Router
 endpoints do a fast find_one instead of a live aggregation.
 
@@ -17,6 +17,7 @@ from typing import Any, cast
 from loguru import logger
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
+from domains.sources.collections import AGENTS, GROUPS, SITES
 from utils.dt import utc_now
 
 
@@ -27,38 +28,38 @@ async def compute_fleet(db: AsyncIOMotorDatabase) -> dict[str, Any]:  # type: ig
     cutoff_30d = (now - timedelta(days=30)).isoformat()
 
     gather_result = await asyncio.gather(
-        db["s1_agents"].count_documents({}),
-        db["s1_groups"].count_documents({}),
-        db["s1_sites"].count_documents({}),
-        db["s1_agents"]
+        db[AGENTS].count_documents({}),
+        db[GROUPS].count_documents({}),
+        db[SITES].count_documents({}),
+        db[AGENTS]
         .aggregate(
             [
-                {"$group": {"_id": "$network_status", "count": {"$sum": 1}}},
+                {"$group": {"_id": "$agent_status", "count": {"$sum": 1}}},
             ]
         )
         .to_list(None),
-        db["s1_agents"]
+        db[AGENTS]
         .aggregate(
             [
                 {"$group": {"_id": "$os_type", "count": {"$sum": 1}}},
             ]
         )
         .to_list(None),
-        db["s1_agents"]
+        db[AGENTS]
         .aggregate(
             [
                 {"$group": {"_id": "$machine_type", "count": {"$sum": 1}}},
             ]
         )
         .to_list(None),
-        db["s1_agents"].count_documents({"last_active": {"$lt": cutoff_7d}}),
-        db["s1_agents"].count_documents({"last_active": {"$lt": cutoff_14d}}),
-        db["s1_agents"].count_documents({"last_active": {"$lt": cutoff_30d}}),
+        db[AGENTS].count_documents({"last_active": {"$lt": cutoff_7d}}),
+        db[AGENTS].count_documents({"last_active": {"$lt": cutoff_14d}}),
+        db[AGENTS].count_documents({"last_active": {"$lt": cutoff_30d}}),
     )
     total_agents = gather_result[0]
     total_groups = gather_result[1]
     total_sites = gather_result[2]
-    network_status_docs = cast(list[dict[str, Any]], gather_result[3])
+    agent_status_docs = cast(list[dict[str, Any]], gather_result[3])
     os_docs = cast(list[dict[str, Any]], gather_result[4])
     machine_type_docs = cast(list[dict[str, Any]], gather_result[5])
     stale_7d = gather_result[6]
@@ -69,7 +70,7 @@ async def compute_fleet(db: AsyncIOMotorDatabase) -> dict[str, Any]:  # type: ig
         "total_agents": total_agents,
         "total_groups": total_groups,
         "total_sites": total_sites,
-        "network_status": {d["_id"]: d["count"] for d in network_status_docs if d["_id"]},
+        "agent_status": {d["_id"]: d["count"] for d in agent_status_docs if d["_id"]},
         "os_distribution": {d["_id"]: d["count"] for d in os_docs if d["_id"]},
         "machine_type": {d["_id"]: d["count"] for d in machine_type_docs if d["_id"]},
         "stale_7d": stale_7d,
@@ -79,68 +80,53 @@ async def compute_fleet(db: AsyncIOMotorDatabase) -> dict[str, Any]:  # type: ig
 
 
 async def compute_apps(db: AsyncIOMotorDatabase) -> dict[str, Any]:  # type: ignore[type-arg]
-    from domains.sync.app_filters import active_filter
+    """Compute app dashboard stats from the pre-built ``app_summaries`` cache.
 
-    # $facet branches after the expensive dedup pass — single scan of s1_installed_apps.
-    # allowDiskUse=True prevents hitting MongoDB's 100 MB in-memory aggregation limit.
-    total_agents, apps_facet, publisher_agg, risk_agg = await asyncio.gather(
-        db["s1_agents"].count_documents({}),
-        db["s1_installed_apps"]
+    Reads the lightweight materialized collection (one doc per distinct app)
+    instead of scanning the raw ``installed_apps`` collection.
+    """
+    total_agents, summary_agg, top_apps_docs, publisher_agg, risk_agg = await asyncio.gather(
+        db[AGENTS].count_documents({}),
+        db["app_summaries"]
         .aggregate(
             [
-                {"$match": active_filter(normalized_name={"$ne": None}, agent_id={"$ne": None})},
-                {"$group": {"_id": {"n": "$normalized_name", "a": "$agent_id"}}},
-                {"$group": {"_id": "$_id.n", "agent_count": {"$sum": 1}}},
                 {
-                    "$facet": {
-                        "summary": [
-                            {
-                                "$group": {
-                                    "_id": None,
-                                    "distinct_apps": {"$sum": 1},
-                                    "unique_apps": {
-                                        "$sum": {"$cond": [{"$eq": ["$agent_count", 1]}, 1, 0]}
-                                    },
-                                    "total_records": {"$sum": "$agent_count"},
-                                }
-                            },
-                        ],
-                        "top_apps": [
-                            {"$sort": {"agent_count": -1}},
-                            {"$limit": 10},
-                        ],
+                    "$group": {
+                        "_id": None,
+                        "distinct_apps": {"$sum": 1},
+                        "unique_apps": {"$sum": {"$cond": [{"$eq": ["$agent_count", 1]}, 1, 0]}},
+                        "total_records": {"$sum": "$agent_count"},
                     }
                 },
-            ],
-            allowDiskUse=True,
+            ]
         )
         .to_list(1),
-        db["s1_installed_apps"]
+        db["app_summaries"]
+        .find({}, {"normalized_name": 1, "display_name": 1, "agent_count": 1, "_id": 0})
+        .sort("agent_count", -1)
+        .limit(10)
+        .to_list(10),
+        db["app_summaries"]
         .aggregate(
             [
-                {"$match": active_filter(publisher={"$nin": [None, ""]})},
-                {"$group": {"_id": "$publisher", "app_count": {"$addToSet": "$normalized_name"}}},
-                {"$project": {"app_count": {"$size": "$app_count"}}},
+                {"$match": {"publisher": {"$nin": [None, ""]}}},
+                {"$group": {"_id": "$publisher", "app_count": {"$sum": 1}}},
                 {"$sort": {"app_count": -1}},
                 {"$limit": 10},
-            ],
-            allowDiskUse=True,
+            ]
         )
         .to_list(None),
-        db["s1_installed_apps"]
+        db["app_summaries"]
         .aggregate(
             [
-                {"$match": active_filter(risk_level={"$nin": [None, ""]})},
-                {"$group": {"_id": "$risk_level", "count": {"$sum": 1}}},
+                {"$match": {"risk_level": {"$nin": [None, ""]}}},
+                {"$group": {"_id": "$risk_level", "count": {"$sum": "$agent_count"}}},
             ]
         )
         .to_list(None),
     )
 
-    facet = apps_facet[0] if apps_facet else {}
-    summary = (facet.get("summary") or [{}])[0]
-    top_apps_docs = facet.get("top_apps") or []
-
+    summary = summary_agg[0] if summary_agg else {}
     distinct_apps = summary.get("distinct_apps", 0)
     unique_apps = summary.get("unique_apps", 0)
     total_records = summary.get("total_records", 0)
@@ -152,8 +138,8 @@ async def compute_apps(db: AsyncIOMotorDatabase) -> dict[str, Any]:  # type: ign
         "unique_apps": unique_apps,
         "top_apps": [
             {
-                "normalized_name": d["_id"],
-                "display_name": d["_id"].replace("-", " ").replace("_", " ").title(),
+                "normalized_name": d["normalized_name"],
+                "display_name": d.get("display_name") or d["normalized_name"],
                 "agent_count": d["agent_count"],
                 "coverage": round(d["agent_count"] / total_agents, 4) if total_agents else 0,
             }
@@ -168,7 +154,7 @@ async def compute_apps(db: AsyncIOMotorDatabase) -> dict[str, Any]:  # type: ign
 
 async def compute_fingerprinting(db: AsyncIOMotorDatabase) -> dict[str, Any]:  # type: ignore[type-arg]
     total_groups, fp_agg, pending_proposals = await asyncio.gather(
-        db["s1_groups"].count_documents({}),
+        db[GROUPS].count_documents({}),
         db["fingerprints"]
         .aggregate(
             [

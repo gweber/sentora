@@ -15,6 +15,7 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from database import get_tenant_db
 from domains.auth.entities import UserRole
+from domains.sources.collections import SYNC_META
 from middleware.auth import get_current_user, require_role
 
 from .cache import (
@@ -65,7 +66,7 @@ async def _from_cache_or_compute(
             if age <= _CACHE_TTL_SECONDS:
                 # Cache is fresh by TTL — but still recompute if a sync
                 # finished after the cache was written.
-                meta = await db["s1_sync_meta"].find_one({"_id": "global"})
+                meta = await db[SYNC_META].find_one({"_id": "global"})
                 if meta:
                     synced_at = meta.get("agents_synced_at")
                     if synced_at and synced_at > computed_at:

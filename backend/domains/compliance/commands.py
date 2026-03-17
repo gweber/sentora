@@ -107,6 +107,7 @@ async def configure_control(
     *,
     actor: str,
     enabled: bool | None = None,
+    disable_reason: str | None = None,
     severity_override: str | None = None,
     parameters_override: dict[str, Any] | None = None,
     scope_tags_override: list[str] | None = None,
@@ -119,6 +120,7 @@ async def configure_control(
         control_id: The control to configure.
         actor: Username performing the action.
         enabled: Override enabled state.
+        disable_reason: Justification for disabling (Statement of Applicability).
         severity_override: Override severity level.
         parameters_override: Override check parameters.
         scope_tags_override: Override scope tags.
@@ -149,6 +151,7 @@ async def configure_control(
         control_id=control_id,
         framework_id=framework_id,
         enabled=enabled if enabled is not None else True,
+        disable_reason=disable_reason,
         severity_override=parsed_severity,
         parameters_override=parameters_override or {},
         scope_tags_override=scope_tags_override,
@@ -203,8 +206,8 @@ async def create_custom_control(
         severity: Severity level string.
         check_type: Which check implementation to use.
         parameters: Check parameters.
-        scope_tags: S1 tags to scope.
-        scope_groups: S1 group names to scope.
+        scope_tags: Tags to scope.
+        scope_groups: Group names to scope.
         remediation: Remediation guidance.
 
     Returns:

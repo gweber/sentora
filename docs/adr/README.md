@@ -26,11 +26,20 @@ the context and consequences of each decision.
 | [0016](0016-soc2-iso27001-compliance.md)                | SOC 2 / ISO 27001 Compliance            | Accepted   | 2026-03-15 | Comprehensive compliance documentation suite mapping controls to SOC 2 and ISO 27001                      |
 | [0017](0017-dual-deployment-mode.md)                    | Dual Deployment Mode (On-Prem / SaaS)   | Accepted   | 2026-03-15 | Single codebase runtime switch between on-prem single-tenant and SaaS multi-tenant modes                  |
 | [0018](0018-jwt-authentication-with-rbac.md)            | JWT Authentication with RBAC            | Accepted   | 2026-03-15 | JWT + refresh rotation, four-role RBAC, TOTP 2FA, OIDC/SAML SSO; supersedes ADR-0010                      |
-| [0019](0019-compliance-monitoring-engine.md)            | Compliance Monitoring Engine            | Accepted   | 2026-03-15 | Built-in compliance engine with 61 controls across 4 frameworks, automated checks, and evidence snapshots |
+| [0019](0019-compliance-monitoring-engine.md)            | Compliance Monitoring Engine            | Accepted   | 2026-03-15 | Built-in compliance engine with 81 controls across 5 frameworks, automated checks, and evidence snapshots |
 | [0020](0020-enforcement-rules-engine.md)                | Enforcement Rules Engine                | Accepted   | 2026-03-15 | Taxonomy-anchored software policy enforcement with Required/Forbidden/Allowlist rule types                |
 | [0021](0021-enterprise-auth-hardening.md)               | Enterprise Auth Hardening               | Accepted   | 2026-03-15 | Server-side sessions, account lifecycle, password policy, token hardening, anomaly detection              |
 | [0021-forensic](0021-forensic-audit-hash-chain.md)      | Forensic Audit Hash-Chain               | Accepted   | 2026-03-15 | SHA-256 linked audit entries with epoch segmentation for tamper detection                                 |
 | [0022](0022-api-key-authentication.md)                  | API Key Authentication                  | Accepted   | 2026-03-15 | Tenant-scoped API keys for external integrations with scopes, rate limiting, and rotation                 |
+| [0023](0023-dora-framework.md)                          | DORA Framework                          | Accepted   | 2026-03-16 | DORA (EU 2022/2554) as 5th compliance framework with 20 controls, reusing existing check types           |
+| [0024](0024-eol-detection-and-cpe-export.md)            | EOL Detection and CPE Export            | Accepted   | 2026-03-16 | EOL software detection via endoflife.date + CPE-enriched software inventory export API                   |
+| [0025](0025-compliance-controls-audit.md)               | Compliance Controls E2E Audit           | Accepted   | 2026-03-16 | Full E2E audit of 84 controls, scope bug fixes, engine caching, operator handbook generation             |
+| [0026](0026-iso27001-framework.md)                     | ISO/IEC 27001:2022 Framework            | Accepted   | 2026-03-17 | ISO 27001 as 6th compliance framework with 16 controls, disable_reason for SoA support                  |
+| [0027](0027-nist-csf-framework.md)                     | NIST CSF 2.0 Framework                  | Accepted   | 2026-03-17 | NIST CSF 2.0 as 7th framework with 15 controls (Identify, Protect, Detect)                              |
+| [0028](0028-nis2-framework.md)                         | NIS2 Framework                          | Accepted   | 2026-03-17 | NIS2 (EU 2022/2555) as 8th framework with 13 controls (Art. 21.2 measures a, d, e, h, i)                |
+| [0029](0029-cis-v8-framework.md)                       | CIS Controls v8 Framework               | Accepted   | 2026-03-17 | CIS Controls v8 as 9th framework with 14 safeguards (Controls 1, 2, 7, 10)                              |
+| [0030](0030-canonical-data-model.md)                   | Canonical Data Model & Source Adapters   | Accepted   | 2026-03-17 | Source-agnostic data model with adapter pattern; deterministic UUID _id; replaces s1_-prefixed collections |
+| [0031](0031-crowdstrike-integration.md)                | CrowdStrike Falcon Integration           | Accepted   | 2026-03-17 | CrowdStrike as 2nd EDR source via FalconPy; scroll-based host sync, Discover API for apps                |
 
 ## Format
 

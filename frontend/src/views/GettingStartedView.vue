@@ -158,8 +158,8 @@ onUnmounted(() => {
             <h1 class="text-[22px] font-bold" style="color: var(--heading);">Getting Started</h1>
           </div>
           <p class="text-[14px] leading-relaxed mb-5" style="color: var(--text-2);">
-            Sentora classifies SentinelOne agents into the correct groups based on the software
-            installed on each endpoint. It pulls live data from the SentinelOne API, lets you define
+            Sentora classifies agents into the correct groups based on the software
+            installed on each endpoint. It pulls live data from your source API, lets you define
             per-group <strong>fingerprints</strong> (glob patterns that identify group membership),
             then runs a scoring pass and flags agents that appear to be in the wrong group.
           </p>
@@ -200,13 +200,13 @@ onUnmounted(() => {
             <h2 class="text-[18px] font-bold" style="color: var(--heading);">Configure Settings</h2>
           </div>
           <p class="text-[14px] leading-relaxed mb-4" style="color: var(--text-2);">
-            Before anything works, Sentora needs a SentinelOne API token and your account scope.
+            Before anything works, Sentora needs an API token and your account scope.
             Open <strong>Settings</strong> and fill in:
           </p>
           <ul class="space-y-2 mb-5 ml-1">
             <li class="flex gap-3 text-[14px]">
               <span class="shrink-0 mt-1 w-1.5 h-1.5 rounded-full" style="background: var(--text-3);"></span>
-              <div><span class="font-medium" style="color: var(--text-2);">API URL</span> <span style="color: var(--text-3);">&mdash; your SentinelOne management console base URL.</span></div>
+              <div><span class="font-medium" style="color: var(--text-2);">API URL</span> <span style="color: var(--text-3);">&mdash; your management console base URL.</span></div>
             </li>
             <li class="flex gap-3 text-[14px]">
               <span class="shrink-0 mt-1 w-1.5 h-1.5 rounded-full" style="background: var(--text-3);"></span>
@@ -232,7 +232,7 @@ onUnmounted(() => {
         <section id="step-sync" class="scroll-mt-4">
           <div class="flex items-center gap-3 mb-4">
             <span class="w-7 h-7 rounded-full text-[13px] font-bold flex items-center justify-center shrink-0" style="background: var(--info-bg); color: var(--info-text);">2</span>
-            <h2 class="text-[18px] font-bold" style="color: var(--heading);">Sync Data from SentinelOne</h2>
+            <h2 class="text-[18px] font-bold" style="color: var(--heading);">Sync Data</h2>
           </div>
           <p class="text-[14px] leading-relaxed mb-4" style="color: var(--text-2);">
             Everything starts with a sync. Sentora pulls four datasets in sequence:
@@ -253,7 +253,7 @@ onUnmounted(() => {
             <h2 class="text-[18px] font-bold" style="color: var(--heading);">Browse Groups</h2>
           </div>
           <p class="text-[14px] leading-relaxed mb-4" style="color: var(--text-2);">
-            The Groups page shows every SentinelOne group pulled during sync as a card grid.
+            The Groups page shows every group pulled during sync as a card grid.
             Each card displays agent count, OS breakdown, and fingerprint status.
             Click any card to jump directly into its Fingerprint Editor.
           </p>
@@ -294,9 +294,9 @@ onUnmounted(() => {
             <h2 class="text-[18px] font-bold" style="color: var(--heading);">Configure Tag Rules</h2>
           </div>
           <p class="text-[14px] leading-relaxed mb-4" style="color: var(--text-2);">
-            Tag rules let you automatically apply SentinelOne tags to agents based on their installed software,
+            Tag rules let you automatically apply tags to agents based on their installed software,
             OS, or group membership. Rules are evaluated during sync and classification &mdash; matching agents
-            receive the specified tag in SentinelOne.
+            receive the specified tag.
           </p>
           <ul class="space-y-2 mb-5 ml-1">
             <li class="flex gap-3 text-[14px]">
@@ -475,7 +475,7 @@ onUnmounted(() => {
             <tbody class="divide-y" style="border-color: var(--border-light);">
               <tr v-for="row in [
                 { page: 'Dashboard',          purpose: 'Health overview',               actions: 'Counts, last sync time, anomaly summary' },
-                { page: 'Sync',               purpose: 'Pull SentinelOne data',         actions: 'Trigger full/incremental sync, watch 4-phase progress' },
+                { page: 'Sync',               purpose: 'Pull source data',              actions: 'Trigger full/incremental sync, watch 4-phase progress' },
                 { page: 'Groups',             purpose: 'Browse agent groups',           actions: 'View counts, OS breakdown, open fingerprint editor' },
                 { page: 'Taxonomy',           purpose: 'Software catalog',              actions: 'Add/edit entries, test glob patterns, manage categories' },
                 { page: 'Tag Rules',          purpose: 'Auto-tag agents',               actions: 'Create rules with conditions, preview matches, activate' },

@@ -44,8 +44,8 @@ Common issues and their solutions when running Sentora.
    ```javascript
    // In mongosh
    use sentora
-   db.s1_sync_checkpoint.deleteOne({_id: "current"})
-   db.s1_sync_runs.updateMany({status: "running"}, {$set: {status: "failed"}})
+   db.sync_checkpoint.deleteOne({_id: "current"})
+   db.sync_runs.updateMany({status: "running"}, {$set: {status: "failed"}})
    ```
 
 ---
@@ -60,7 +60,7 @@ Common issues and their solutions when running Sentora.
    - Navigate to Groups, select a group, and create a fingerprint with at least one marker.
    - Use "Generate Proposals" for automated marker suggestions.
 
-2. **No agents synced.** Classification operates on agents stored in `s1_agents`.
+2. **No agents synced.** Classification operates on agents stored in the `agents` collection.
    - Run a full sync first: go to the Sync page and click "Full Sync".
 
 3. **No installed app data.** The `installed_app_names` field on agents must be populated.

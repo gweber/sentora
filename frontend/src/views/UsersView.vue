@@ -77,10 +77,10 @@ async function revokeSessions(username: string) {
 
 const statusBadge: Record<string, string> = {
   active: 'bg-[var(--success-bg)] text-[var(--success-text)] border-[var(--success-border)]',
-  invited: 'bg-blue-50 text-blue-700 border-blue-200',
+  invited: 'bg-[var(--info-bg)] text-[var(--info-text)] border-[var(--border)]',
   suspended: 'bg-[var(--warn-bg)] text-[var(--warn-text)] border-[var(--warn-border)]',
   deactivated: 'bg-[var(--error-bg)] text-[var(--error-text)] border-[var(--error-border)]',
-  deleted: 'bg-gray-50 text-gray-500 border-gray-200',
+  deleted: 'bg-[var(--surface-alt)] text-[var(--text-3)] border-[var(--border)]',
 }
 
 async function handleDelete(username: string) {
@@ -165,7 +165,7 @@ onMounted(fetchUsers)
                 <div class="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
                   :class="u.disabled ? '' : 'bg-[var(--brand-primary-light)]'" style="background: var(--surface-hover);"
                 >
-                  <span class="text-xs font-semibold uppercase" :class="u.disabled ? 'text-gray-400' : 'text-[var(--brand-primary)]'">
+                  <span class="text-xs font-semibold uppercase" :class="u.disabled ? 'text-[var(--text-3)]' : 'text-[var(--brand-primary)]'">
                     {{ u.username.charAt(0) }}
                   </span>
                 </div>

@@ -104,10 +104,11 @@ class TestSuggestionActions:
         """Compute suggestions, then accept one — it should become a marker."""
         _NOW = "2025-01-01T00:00:00"
         # Seed agents + apps
-        await test_db["s1_agents"].insert_many(  # type: ignore[index]
+        await test_db["agents"].insert_many(  # type: ignore[index]
             [
                 {
-                    "s1_agent_id": f"acc_agent_{i}",
+                    "source": "sentinelone",
+                    "source_id": f"acc_agent_{i}",
                     "group_id": fp_group,
                     "group_name": "Test",
                     "hostname": f"h-{i}",
@@ -117,7 +118,7 @@ class TestSuggestionActions:
                 for i in range(3)
             ]
         )
-        await test_db["s1_installed_apps"].insert_many(  # type: ignore[index]
+        await test_db["installed_apps"].insert_many(  # type: ignore[index]
             [
                 {
                     "agent_id": f"acc_agent_{i}",
@@ -129,9 +130,10 @@ class TestSuggestionActions:
             ]
         )
         # Out-of-group agent
-        await test_db["s1_agents"].insert_one(  # type: ignore[index]
+        await test_db["agents"].insert_one(  # type: ignore[index]
             {
-                "s1_agent_id": "other_acc",
+                "source": "sentinelone",
+                "source_id": "other_acc",
                 "group_id": "other",
                 "group_name": "Other",
                 "hostname": "x",
@@ -139,7 +141,7 @@ class TestSuggestionActions:
                 "synced_at": _NOW,
             }
         )
-        await test_db["s1_installed_apps"].insert_one(  # type: ignore[index]
+        await test_db["installed_apps"].insert_one(  # type: ignore[index]
             {
                 "agent_id": "other_acc",
                 "name": "Other App",
@@ -176,10 +178,11 @@ class TestSuggestionActions:
     ) -> None:
         """Compute suggestions, then reject one — it should disappear from the list."""
         _NOW = "2025-01-01T00:00:00"
-        await test_db["s1_agents"].insert_many(  # type: ignore[index]
+        await test_db["agents"].insert_many(  # type: ignore[index]
             [
                 {
-                    "s1_agent_id": f"rej_agent_{i}",
+                    "source": "sentinelone",
+                    "source_id": f"rej_agent_{i}",
                     "group_id": fp_group,
                     "group_name": "Test",
                     "hostname": f"hr-{i}",
@@ -189,7 +192,7 @@ class TestSuggestionActions:
                 for i in range(3)
             ]
         )
-        await test_db["s1_installed_apps"].insert_many(  # type: ignore[index]
+        await test_db["installed_apps"].insert_many(  # type: ignore[index]
             [
                 {
                     "agent_id": f"rej_agent_{i}",
@@ -200,9 +203,10 @@ class TestSuggestionActions:
                 for i in range(3)
             ]
         )
-        await test_db["s1_agents"].insert_one(  # type: ignore[index]
+        await test_db["agents"].insert_one(  # type: ignore[index]
             {
-                "s1_agent_id": "other_rej",
+                "source": "sentinelone",
+                "source_id": "other_rej",
                 "group_id": "other",
                 "group_name": "Other",
                 "hostname": "y",
@@ -210,7 +214,7 @@ class TestSuggestionActions:
                 "synced_at": _NOW,
             }
         )
-        await test_db["s1_installed_apps"].insert_one(  # type: ignore[index]
+        await test_db["installed_apps"].insert_one(  # type: ignore[index]
             {
                 "agent_id": "other_rej",
                 "name": "Linux Stuff",

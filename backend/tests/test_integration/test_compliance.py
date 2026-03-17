@@ -37,7 +37,8 @@ async def compliance_db(seeded_db: AsyncIOMotorDatabase) -> AsyncIOMotorDatabase
 
     agents = [
         {
-            "s1_agent_id": "int-agent-1",
+            "source": "sentinelone",
+            "source_id": "int-agent-1",
             "hostname": "srv-web-01",
             "agent_version": "23.3.1.500",
             "last_active": now - timedelta(hours=1),
@@ -49,7 +50,8 @@ async def compliance_db(seeded_db: AsyncIOMotorDatabase) -> AsyncIOMotorDatabase
             "synced_at": now,
         },
         {
-            "s1_agent_id": "int-agent-2",
+            "source": "sentinelone",
+            "source_id": "int-agent-2",
             "hostname": "srv-db-01",
             "agent_version": "23.3.1.500",
             "last_active": now - timedelta(hours=2),
@@ -61,7 +63,7 @@ async def compliance_db(seeded_db: AsyncIOMotorDatabase) -> AsyncIOMotorDatabase
             "synced_at": now,
         },
     ]
-    await seeded_db["s1_agents"].insert_many(agents)
+    await seeded_db["agents"].insert_many(agents)
 
     apps = [
         {
@@ -107,9 +109,9 @@ async def compliance_db(seeded_db: AsyncIOMotorDatabase) -> AsyncIOMotorDatabase
             "last_synced_at": now,
         },
     ]
-    await seeded_db["s1_installed_apps"].insert_many(apps)
+    await seeded_db["installed_apps"].insert_many(apps)
 
-    await seeded_db["s1_sync_runs"].insert_one(
+    await seeded_db["sync_runs"].insert_one(
         {
             "run_id": "int-sync-1",
             "status": "completed",
@@ -152,9 +154,19 @@ class TestFrameworkEndpoints:
         resp = await client.get("/api/v1/compliance/frameworks", headers=admin_headers)
         assert resp.status_code == 200
         data = resp.json()
-        assert len(data["frameworks"]) == 4
+        assert len(data["frameworks"]) == 9
         ids = {f["id"] for f in data["frameworks"]}
-        assert ids == {"soc2", "pci_dss_4", "hipaa", "bsi_grundschutz"}
+        assert ids == {
+            "soc2",
+            "pci_dss_4",
+            "hipaa",
+            "bsi_grundschutz",
+            "dora",
+            "iso27001",
+            "nist_csf",
+            "nis2",
+            "cis_v8",
+        }
 
     @pytest.mark.asyncio
     async def test_enable_and_disable_framework(

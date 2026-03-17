@@ -293,7 +293,7 @@ function ringDashArray(score: number) {
 // ── Lift chip color ───────────────────────────────────────────────────────────
 
 function liftChipClass(lift: number) {
-  if (lift >= 10) return 'bg-teal-50 text-teal-700 border border-teal-200'
+  if (lift >= 10) return 'bg-[var(--scope-site-bg)] text-[var(--scope-site-text)] border border-[var(--border)]'
   if (lift >= 5)  return 'bg-[var(--brand-primary-light)] text-[var(--brand-primary)] border border-[var(--brand-primary-light)]'
   return 'badge-neutral border'
 }
@@ -407,7 +407,7 @@ function showToast(msg: string, type: 'success' | 'error') {
       class="rounded-xl px-6 py-16 text-center"
       style="background: var(--surface); border: 1px solid var(--border);"
     >
-      <svg class="w-10 h-10 text-slate-200 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+      <svg class="w-10 h-10 text-[var(--text-3)] mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
         <path stroke-linecap="round" stroke-linejoin="round" d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18" />
       </svg>
       <p class="text-[14px] font-medium" style="color: var(--text-3);">No proposals yet</p>
@@ -691,7 +691,7 @@ function showToast(msg: string, type: 'success' | 'error') {
                     @input="markerSearch[proposal.group_id] = ($event.target as HTMLInputElement).value"
                     placeholder="Search markers…"
                     aria-label="Search markers in this proposal"
-                    class="w-full max-w-xs text-[12px] px-3 py-1.5 rounded-lg focus:outline-none focus:ring-1 focus:ring-[var(--brand-primary)] placeholder-slate-400"
+                    class="w-full max-w-xs text-[12px] px-3 py-1.5 rounded-lg focus:outline-none focus:ring-1 focus:ring-[var(--brand-primary)] placeholder-[var(--text-3)]"
                     style="background: var(--input-bg); border: 1px solid var(--input-border); color: var(--text-1);"
                     @click.stop
                   />
@@ -801,9 +801,9 @@ function showToast(msg: string, type: 'success' | 'error') {
                                   </svg>
                                 </span>
                                 <div class="absolute z-10 bottom-full right-0 mb-1.5 hidden group-hover/conflict:block">
-                                  <div class="bg-gray-900 text-white text-[11px] rounded-lg px-3 py-2 whitespace-nowrap shadow-lg">
-                                    <p class="font-semibold mb-1 text-gray-300">Also proposed for:</p>
-                                    <p v-for="gid in marker.shared_with_groups" :key="gid" class="text-gray-100">
+                                  <div class="bg-[var(--surface)] text-[var(--text-1)] text-[11px] rounded-lg px-3 py-2 whitespace-nowrap shadow-lg">
+                                    <p class="font-semibold mb-1 text-[var(--text-3)]">Also proposed for:</p>
+                                    <p v-for="gid in marker.shared_with_groups" :key="gid" class="text-[var(--text-2)]">
                                       {{ groupNameMap[gid] ?? gid }}
                                     </p>
                                   </div>

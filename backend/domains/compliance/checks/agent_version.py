@@ -1,4 +1,4 @@
-"""Check: SentinelOne agent version currency.
+"""Check: agent version currency.
 
 Compares each scoped agent's ``agent_version`` against either a
 configured ``min_version`` parameter or the most common version
@@ -18,6 +18,7 @@ from domains.compliance.entities import (
     ComplianceViolation,
     ControlSeverity,
 )
+from domains.sources.collections import AGENTS
 from utils.dt import utc_now
 
 
@@ -52,7 +53,7 @@ async def execute(
     parameters: dict[str, Any],
     scope_filter: dict[str, Any],
 ) -> CheckResult:
-    """Identify agents running outdated SentinelOne agent versions.
+    """Identify agents running outdated agent versions.
 
     Args:
         db: Motor database handle.
@@ -69,7 +70,7 @@ async def execute(
         CheckResult with violations for each outdated agent.
     """
     now = utc_now()
-    total_agents = await db["s1_agents"].count_documents(scope_filter or {})
+    total_agents = await db[AGENTS].count_documents(scope_filter or {})
 
     if total_agents == 0:
         return not_applicable_result(
@@ -95,7 +96,7 @@ async def execute(
                 {"$limit": 1},
             ]
         )
-        cursor = db["s1_agents"].aggregate(pipeline)
+        cursor = db[AGENTS].aggregate(pipeline)
         top = await cursor.to_list(length=1)
         if top and top[0]["_id"]:
             min_version_str = top[0]["_id"]
@@ -118,21 +119,21 @@ async def execute(
     min_version = _version_tuple(min_version_str)
     violations: list[ComplianceViolation] = []
 
-    projection = {"s1_agent_id": 1, "hostname": 1, "agent_version": 1}
-    async for agent in db["s1_agents"].find(scope_filter or {}, projection):
+    projection = {"source_id": 1, "hostname": 1, "agent_version": 1}
+    async for agent in db[AGENTS].find(scope_filter or {}, projection):
         agent_version_str = agent.get("agent_version", "")
         if not agent_version_str:
             continue
         if _version_tuple(agent_version_str) < min_version:
             violations.append(
                 ComplianceViolation(
-                    agent_id=agent["s1_agent_id"],
+                    agent_id=agent["source_id"],
                     agent_hostname=agent.get("hostname", "unknown"),
                     violation_detail=(
                         f"Agent version {agent_version_str} is below minimum {min_version_str}"
                     ),
                     remediation=(
-                        f"Update SentinelOne agent on {agent.get('hostname', 'unknown')} "
+                        f"Update agent on {agent.get('hostname', 'unknown')} "
                         f"from {agent_version_str} to {min_version_str} or later"
                     ),
                 )

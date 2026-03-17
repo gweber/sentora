@@ -1,4 +1,4 @@
-"""Agents domain router — read-only queries over synced S1 agent data."""
+"""Agents domain router — read-only queries over synced agent data."""
 
 from __future__ import annotations
 
@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from database import get_tenant_db
+from domains.sources.collections import AGENTS, INSTALLED_APPS
 from middleware.auth import get_current_user
 
 
@@ -43,9 +44,9 @@ async def list_agents(
 
     skip = (page - 1) * limit
 
-    total = await db["s1_agents"].count_documents(query)
+    total = await db[AGENTS].count_documents(query)
 
-    cursor = db["s1_agents"].find(query, {"_id": 0}).sort("hostname", 1).skip(skip).limit(limit)
+    cursor = db[AGENTS].find(query, {"_id": 0}).sort("hostname", 1).skip(skip).limit(limit)
     agents = [doc async for doc in cursor]
 
     return _json_response({"agents": agents, "total": total, "page": page, "limit": limit})
@@ -57,15 +58,13 @@ async def get_agent(
     db: AsyncIOMotorDatabase = Depends(get_tenant_db),
 ) -> JSONResponse:
     """Get full agent detail including installed apps and classification."""
-    agent = await db["s1_agents"].find_one({"s1_agent_id": agent_id}, {"_id": 0})
+    agent = await db[AGENTS].find_one({"source_id": agent_id}, {"_id": 0})
     if not agent:
         return JSONResponse({"detail": "Agent not found"}, status_code=404)
 
     from domains.sync.app_filters import active_filter
 
-    apps_cursor = (
-        db["s1_installed_apps"].find(active_filter(agent_id=agent_id), {"_id": 0}).limit(500)
-    )
+    apps_cursor = db[INSTALLED_APPS].find(active_filter(agent_id=agent_id), {"_id": 0}).limit(500)
     installed_apps = [doc async for doc in apps_cursor]
 
     classification = await db["classification_results"].find_one({"agent_id": agent_id}, {"_id": 0})
@@ -82,13 +81,13 @@ async def get_agent_apps(
     db: AsyncIOMotorDatabase = Depends(get_tenant_db),
 ) -> JSONResponse:
     """Get installed applications for a specific agent."""
-    agent = await db["s1_agents"].find_one({"s1_agent_id": agent_id}, {"_id": 0})
+    agent = await db[AGENTS].find_one({"source_id": agent_id}, {"_id": 0})
     if agent is None:
         return JSONResponse({"detail": "Agent not found"}, status_code=404)
     from domains.sync.app_filters import active_filter
 
     cursor = (
-        db["s1_installed_apps"]
+        db[INSTALLED_APPS]
         .find(
             active_filter(agent_id=agent_id),
             {

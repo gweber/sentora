@@ -1,8 +1,12 @@
 """Automated MongoDB backup and restore manager.
 
-Provides backup creation via ``mongodump``, restoration via ``mongorestore``,
-retention enforcement, and checksum verification. Backup metadata is stored
-in the ``backup_history`` MongoDB collection.
+Supports two storage backends:
+- **local**: ``mongodump --gzip`` to a local filesystem directory (default).
+- **s3**: ``mongodump --archive --gzip`` piped to S3-compatible storage
+  (MinIO, AWS S3, GCS). No filesystem required.
+
+Backup metadata is always stored in the ``backup_history`` MongoDB collection.
+The storage backend is selected via ``BACKUP_STORAGE_TYPE`` (``local`` or ``s3``).
 """
 
 from __future__ import annotations
@@ -124,6 +128,73 @@ async def _run_mongo_tool(
             os.unlink(config_path)
 
 
+def _get_s3_client():  # noqa: ANN202
+    """Create a boto3 S3 client using backup config settings.
+
+    Returns:
+        A boto3 S3 client configured for the backup endpoint.
+    """
+    import boto3
+
+    settings = get_settings()
+    return boto3.client(
+        "s3",
+        endpoint_url=settings.backup_s3_endpoint,
+        aws_access_key_id=settings.backup_s3_access_key,
+        aws_secret_access_key=settings.backup_s3_secret_key,
+        region_name=settings.backup_s3_region,
+    )
+
+
+async def _upload_to_s3(local_path: Path, s3_key: str) -> int:
+    """Upload a file or archive to S3 and return its size in bytes.
+
+    Args:
+        local_path: Path to the local file to upload.
+        s3_key: The S3 object key (path within the bucket).
+
+    Returns:
+        Size of the uploaded file in bytes.
+    """
+    settings = get_settings()
+    s3 = _get_s3_client()
+    size = local_path.stat().st_size
+    s3.upload_file(str(local_path), settings.backup_s3_bucket, s3_key)
+    logger.info(
+        "Uploaded {} to s3://{}/{} ({} bytes)",
+        local_path.name,
+        settings.backup_s3_bucket,
+        s3_key,
+        size,
+    )
+    return size
+
+
+async def _download_from_s3(s3_key: str, local_path: Path) -> None:
+    """Download an object from S3 to a local file.
+
+    Args:
+        s3_key: The S3 object key to download.
+        local_path: Local path to write the downloaded file.
+    """
+    settings = get_settings()
+    s3 = _get_s3_client()
+    s3.download_file(settings.backup_s3_bucket, s3_key, str(local_path))
+    logger.info("Downloaded s3://{}/{} → {}", settings.backup_s3_bucket, s3_key, local_path)
+
+
+async def _delete_from_s3(s3_key: str) -> None:
+    """Delete an object from S3.
+
+    Args:
+        s3_key: The S3 object key to delete.
+    """
+    settings = get_settings()
+    s3 = _get_s3_client()
+    s3.delete_object(Bucket=settings.backup_s3_bucket, Key=s3_key)
+    logger.info("Deleted s3://{}/{}", settings.backup_s3_bucket, s3_key)
+
+
 class BackupManager:
     """Manages MongoDB backup and restore operations."""
 
@@ -144,13 +215,12 @@ class BackupManager:
         settings = get_settings()
         now = utc_now()
         backup_id = now.strftime("backup_%Y%m%d_%H%M%S") + "_" + _uuid.uuid4().hex[:6]
-        backup_dir = Path(settings.backup_local_path) / backup_id
-        backup_dir.mkdir(parents=True, exist_ok=True)
+        use_s3 = settings.backup_storage_type == "s3"
 
         record = BackupRecord(
             id=backup_id,
             timestamp=now.isoformat(),
-            storage_path=str(backup_dir),
+            storage_type="s3" if use_s3 else "local",
             triggered_by=triggered_by,
         )
 
@@ -159,32 +229,62 @@ class BackupManager:
 
         start = time.monotonic()
         try:
-            logger.info("Starting backup {} → {}", backup_id, backup_dir)
+            if use_s3:
+                # Archive mode → single gzipped file → upload to S3
+                archive_path = Path(tempfile.mkdtemp()) / f"{backup_id}.archive.gz"
+                logger.info("Starting backup {} → S3 ({})", backup_id, settings.backup_s3_bucket)
 
-            returncode, _stdout, stderr = await _run_mongo_tool(
-                "mongodump",
-                settings.mongo_uri,
-                [
-                    f"--db={settings.mongo_db}",
-                    f"--out={backup_dir}",
-                    "--gzip",
-                ],
-            )
+                returncode, _stdout, stderr = await _run_mongo_tool(
+                    "mongodump",
+                    settings.mongo_uri,
+                    [
+                        f"--db={settings.mongo_db}",
+                        f"--archive={archive_path}",
+                        "--gzip",
+                    ],
+                )
+                if returncode != 0:
+                    raise RuntimeError(stderr.decode().strip() if stderr else "mongodump failed")
 
-            if returncode != 0:
-                error_msg = stderr.decode().strip() if stderr else "mongodump failed"
-                raise RuntimeError(error_msg)
+                s3_key = f"backups/{backup_id}.archive.gz"
+                record.size_bytes = await _upload_to_s3(archive_path, s3_key)
+                record.checksum_sha256 = _compute_sha256(archive_path)
+                record.storage_path = f"s3://{settings.backup_s3_bucket}/{s3_key}"
+
+                # Clean up local temp file
+                with contextlib.suppress(OSError):
+                    archive_path.unlink()
+                    archive_path.parent.rmdir()
+            else:
+                # Directory mode → local filesystem
+                backup_dir = Path(settings.backup_local_path) / backup_id
+                backup_dir.mkdir(parents=True, exist_ok=True)
+                record.storage_path = str(backup_dir)
+                logger.info("Starting backup {} → {}", backup_id, backup_dir)
+
+                returncode, _stdout, stderr = await _run_mongo_tool(
+                    "mongodump",
+                    settings.mongo_uri,
+                    [
+                        f"--db={settings.mongo_db}",
+                        f"--out={backup_dir}",
+                        "--gzip",
+                    ],
+                )
+                if returncode != 0:
+                    raise RuntimeError(stderr.decode().strip() if stderr else "mongodump failed")
+
+                record.size_bytes = _dir_size(backup_dir)
+                record.checksum_sha256 = _compute_sha256(backup_dir)
 
             record.duration_seconds = round(time.monotonic() - start, 2)
-            record.size_bytes = _dir_size(backup_dir)
-            record.checksum_sha256 = _compute_sha256(backup_dir)
             record.status = "completed"
-
             logger.info(
-                "Backup {} completed — {:.1f}s, {} bytes",
+                "Backup {} completed — {:.1f}s, {} bytes, storage={}",
                 backup_id,
                 record.duration_seconds,
                 record.size_bytes,
+                record.storage_type,
             )
         except Exception as exc:
             record.duration_seconds = round(time.monotonic() - start, 2)
@@ -220,47 +320,72 @@ class BackupManager:
             raise ValueError(f"Backup '{backup_id}' not found")
 
         record = BackupRecord.from_doc(doc)
-        backup_dir = Path(record.storage_path).resolve()
 
-        # Guard against path traversal
-        expected_base = Path(settings.backup_local_path).resolve()
-        if not backup_dir.is_relative_to(expected_base):
-            raise ValueError(f"Backup path '{backup_dir}' is outside the expected backup directory")
+        if record.storage_type == "s3":
+            # Download archive from S3, restore, then clean up
+            s3_key = record.storage_path.replace(f"s3://{settings.backup_s3_bucket}/", "")
+            tmp_dir = Path(tempfile.mkdtemp())
+            archive_path = tmp_dir / f"{backup_id}.archive.gz"
+            try:
+                await _download_from_s3(s3_key, archive_path)
 
-        if not backup_dir.exists():
-            raise ValueError(f"Backup directory does not exist: {backup_dir}")
+                if record.checksum_sha256:
+                    current = _compute_sha256(archive_path)
+                    if current != record.checksum_sha256:
+                        raise ValueError(
+                            f"Checksum mismatch: expected {record.checksum_sha256}, got {current}"
+                        )
 
-        # Verify checksum before restoring
-        if record.checksum_sha256:
-            current = _compute_sha256(backup_dir)
-            if current != record.checksum_sha256:
-                raise ValueError(
-                    f"Checksum mismatch for backup '{backup_id}': "
-                    f"expected {record.checksum_sha256}, got {current}"
+                logger.info("Restoring from S3 backup {}", backup_id)
+                returncode, _stdout, stderr = await _run_mongo_tool(
+                    "mongorestore",
+                    settings.mongo_uri,
+                    [
+                        f"--db={settings.mongo_db}",
+                        f"--archive={archive_path}",
+                        "--gzip",
+                        "--drop",
+                    ],
                 )
+                if returncode != 0:
+                    raise RuntimeError(stderr.decode().strip() if stderr else "mongorestore failed")
+            finally:
+                with contextlib.suppress(OSError):
+                    archive_path.unlink()
+                    tmp_dir.rmdir()
+        else:
+            # Local filesystem restore
+            backup_dir = Path(record.storage_path).resolve()
+            expected_base = Path(settings.backup_local_path).resolve()
+            if not backup_dir.is_relative_to(expected_base):
+                raise ValueError("Backup path outside expected directory")
+            if not backup_dir.exists():
+                raise ValueError(f"Backup directory does not exist: {backup_dir}")
 
-        # The dump output is in a subdirectory named after the database
-        dump_path = backup_dir / settings.mongo_db
-        if not dump_path.exists():
-            # Fall back to the backup dir itself
-            dump_path = backup_dir
+            if record.checksum_sha256:
+                current = _compute_sha256(backup_dir)
+                if current != record.checksum_sha256:
+                    raise ValueError(
+                        f"Checksum mismatch: expected {record.checksum_sha256}, got {current}"
+                    )
 
-        logger.info("Restoring from backup {} ({})", backup_id, dump_path)
+            dump_path = backup_dir / settings.mongo_db
+            if not dump_path.exists():
+                dump_path = backup_dir
 
-        returncode, _stdout, stderr = await _run_mongo_tool(
-            "mongorestore",
-            settings.mongo_uri,
-            [
-                f"--db={settings.mongo_db}",
-                "--gzip",
-                "--drop",
-                str(dump_path),
-            ],
-        )
-
-        if returncode != 0:
-            error_msg = stderr.decode().strip() if stderr else "mongorestore failed"
-            raise RuntimeError(f"Restore failed: {error_msg}")
+            logger.info("Restoring from local backup {} ({})", backup_id, dump_path)
+            returncode, _stdout, stderr = await _run_mongo_tool(
+                "mongorestore",
+                settings.mongo_uri,
+                [
+                    f"--db={settings.mongo_db}",
+                    "--gzip",
+                    "--drop",
+                    str(dump_path),
+                ],
+            )
+            if returncode != 0:
+                raise RuntimeError(stderr.decode().strip() if stderr else "mongorestore failed")
 
         logger.info("Restore from backup {} completed successfully", backup_id)
 
@@ -418,22 +543,26 @@ class BackupManager:
             return False
 
         record = BackupRecord.from_doc(doc)
-        backup_path = Path(record.storage_path).resolve()
-
-        # Guard against path traversal
         settings = get_settings()
-        expected_base = Path(settings.backup_local_path).resolve()
-        if not backup_path.is_relative_to(expected_base):
-            raise ValueError(
-                f"Backup path '{backup_path}' is outside the expected backup directory"
-            )
 
-        if backup_path.exists():
+        if record.storage_type == "s3":
+            s3_key = record.storage_path.replace(f"s3://{settings.backup_s3_bucket}/", "")
             try:
-                shutil.rmtree(backup_path)
-            except OSError as exc:
-                logger.warning("Failed to delete backup files {}: {}", backup_path, exc)
+                await _delete_from_s3(s3_key)
+            except Exception as exc:
+                logger.warning("Failed to delete S3 object {}: {}", s3_key, exc)
                 raise
+        else:
+            backup_path = Path(record.storage_path).resolve()
+            expected_base = Path(settings.backup_local_path).resolve()
+            if not backup_path.is_relative_to(expected_base):
+                raise ValueError("Backup path outside expected directory")
+            if backup_path.exists():
+                try:
+                    shutil.rmtree(backup_path)
+                except OSError as exc:
+                    logger.warning("Failed to delete backup files {}: {}", backup_path, exc)
+                    raise
 
         await db["backup_history"].delete_one({"_id": backup_id})
         logger.info("Deleted backup {}", backup_id)

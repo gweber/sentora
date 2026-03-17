@@ -9,6 +9,8 @@ checks.
 from __future__ import annotations
 
 import asyncio
+import hashlib
+import json
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -189,11 +191,68 @@ async def resolve_active_controls(
     return resolved
 
 
+def _cache_key(check_type: str, parameters: dict[str, Any], scope_filter: dict[str, Any]) -> str:
+    """Build a deterministic cache key for check deduplication.
+
+    Controls that share the same check type, parameters, and scope will
+    produce identical query results.  This key allows the engine to
+    execute the query once and map the result to all matching controls.
+
+    Args:
+        check_type: The check type string.
+        parameters: Merged check parameters.
+        scope_filter: Pre-built MongoDB scope filter.
+
+    Returns:
+        A hex digest string uniquely identifying this query.
+    """
+    raw = json.dumps(
+        {"t": check_type, "p": parameters, "s": scope_filter},
+        sort_keys=True,
+        default=str,
+    )
+    return hashlib.sha256(raw.encode()).hexdigest()[:16]
+
+
+def _remap_result(source: CheckResult, ctrl: ResolvedControl) -> CheckResult:
+    """Create a copy of a check result remapped to a different control.
+
+    Used when a cached check result needs to be attributed to another
+    control that shares the same check type, parameters, and scope.
+
+    Args:
+        source: The original check result to copy data from.
+        ctrl: The target control to remap to.
+
+    Returns:
+        A new CheckResult with the target control's identity.
+    """
+    return CheckResult(
+        control_id=ctrl.control_id,
+        framework_id=ctrl.framework_id,
+        status=source.status,
+        checked_at=source.checked_at,
+        total_endpoints=source.total_endpoints,
+        compliant_endpoints=source.compliant_endpoints,
+        non_compliant_endpoints=source.non_compliant_endpoints,
+        violations=list(source.violations),
+        evidence_summary=source.evidence_summary,
+        severity=ctrl.severity,
+        category=ctrl.category,
+        control_name=ctrl.name,
+    )
+
+
 async def run_compliance_checks(
     db: AsyncIOMotorDatabase,  # type: ignore[type-arg]
     framework_id: str | None = None,
 ) -> tuple[str, list[CheckResult], int]:
     """Execute all active compliance checks and persist results.
+
+    Implements check-result caching: controls that share the same
+    check type, parameters, and scope are only executed once.  The
+    result is then remapped to each duplicate control with the
+    correct control identity metadata.
 
     Args:
         db: Motor database handle.
@@ -216,9 +275,11 @@ async def run_compliance_checks(
         len({c.framework_id for c in controls}),
     )
 
-    # Execute all checks concurrently
-    tasks = []
-    executed_controls: list[ResolvedControl] = []
+    # Group controls by cache key to deduplicate identical queries.
+    # Only the first control per key is executed; results are remapped.
+    cache_key_map: dict[str, list[ResolvedControl]] = {}
+    primary_controls: list[ResolvedControl] = []
+
     for ctrl in controls:
         executor = get_executor(ctrl.check_type)
         if executor is None:
@@ -230,45 +291,68 @@ async def run_compliance_checks(
             continue
 
         scope_filter = build_scope_filter(ctrl.scope_tags, ctrl.scope_groups)
-        tasks.append(
-            _execute_check(
-                executor,
-                db,
-                ctrl=ctrl,
-                scope_filter=scope_filter,
-            )
+        key = _cache_key(ctrl.check_type, ctrl.parameters, scope_filter)
+
+        if key not in cache_key_map:
+            cache_key_map[key] = [ctrl]
+            primary_controls.append(ctrl)
+        else:
+            cache_key_map[key].append(ctrl)
+
+    deduplicated = len(controls) - len(primary_controls)
+    if deduplicated > 0:
+        logger.info(
+            "Check deduplication: {} unique queries for {} controls ({} cached)",
+            len(primary_controls),
+            len(controls),
+            deduplicated,
         )
-        executed_controls.append(ctrl)
+
+    # Execute unique checks concurrently.  Track the cache key for each
+    # primary control so we can map results back correctly.
+    tasks = []
+    primary_keys: list[str] = []
+    for ctrl in primary_controls:
+        executor = get_executor(ctrl.check_type)
+        assert executor is not None  # Already validated above  # noqa: S101
+        sf = build_scope_filter(ctrl.scope_tags, ctrl.scope_groups)
+        key = _cache_key(ctrl.check_type, ctrl.parameters, sf)
+        primary_keys.append(key)
+        tasks.append(_execute_check(executor, db, ctrl=ctrl, scope_filter=sf))
 
     raw_results = await asyncio.gather(*tasks, return_exceptions=True)
 
+    # Map results back to all controls (including duplicates)
     results: list[CheckResult] = []
     for idx, result in enumerate(raw_results):
+        ctrl = primary_controls[idx]
+        key = primary_keys[idx]
+
         if isinstance(result, BaseException):
-            ctrl = executed_controls[idx]
-            logger.error(
-                "Check {} failed with error: {}",
-                ctrl.control_id,
-                result,
+            logger.error("Check {} failed with error: {}", ctrl.control_id, result)
+            error_result = CheckResult(
+                control_id=ctrl.control_id,
+                framework_id=ctrl.framework_id,
+                status=CheckStatus.error,
+                checked_at=utc_now(),
+                total_endpoints=0,
+                compliant_endpoints=0,
+                non_compliant_endpoints=0,
+                violations=[],
+                evidence_summary=f"Check execution error: {result}",
+                severity=ctrl.severity,
+                category=ctrl.category,
+                control_name=ctrl.name,
             )
-            results.append(
-                CheckResult(
-                    control_id=ctrl.control_id,
-                    framework_id=ctrl.framework_id,
-                    status=CheckStatus.error,
-                    checked_at=utc_now(),
-                    total_endpoints=0,
-                    compliant_endpoints=0,
-                    non_compliant_endpoints=0,
-                    violations=[],
-                    evidence_summary=f"Check execution error: {result}",
-                    severity=ctrl.severity,
-                    category=ctrl.category,
-                    control_name=ctrl.name,
-                )
-            )
+            results.append(error_result)
+            # Remap error to duplicates
+            for dup_ctrl in cache_key_map[key][1:]:
+                results.append(_remap_result(error_result, dup_ctrl))
         else:
             results.append(result)
+            # Remap successful result to duplicates
+            for dup_ctrl in cache_key_map[key][1:]:
+                results.append(_remap_result(result, dup_ctrl))
 
     # Persist results
     await store_check_results(db, run_id, results)

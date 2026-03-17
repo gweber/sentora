@@ -27,7 +27,8 @@ async def enforcement_db(test_db: AsyncIOMotorDatabase) -> AsyncIOMotorDatabase:
 
     agents = [
         {
-            "s1_agent_id": "agent-a",
+            "source": "sentinelone",
+            "source_id": "agent-a",
             "hostname": "ws-alpha",
             "group_name": "Office",
             "tags": ["PCI-CDE"],
@@ -35,7 +36,8 @@ async def enforcement_db(test_db: AsyncIOMotorDatabase) -> AsyncIOMotorDatabase:
             "synced_at": now,
         },
         {
-            "s1_agent_id": "agent-b",
+            "source": "sentinelone",
+            "source_id": "agent-b",
             "hostname": "ws-beta",
             "group_name": "Office",
             "tags": [],
@@ -43,7 +45,8 @@ async def enforcement_db(test_db: AsyncIOMotorDatabase) -> AsyncIOMotorDatabase:
             "synced_at": now,
         },
         {
-            "s1_agent_id": "agent-c",
+            "source": "sentinelone",
+            "source_id": "agent-c",
             "hostname": "ws-gamma",
             "group_name": "Remote",
             "tags": [],
@@ -51,7 +54,7 @@ async def enforcement_db(test_db: AsyncIOMotorDatabase) -> AsyncIOMotorDatabase:
             "synced_at": now,
         },
     ]
-    await test_db["s1_agents"].insert_many(agents)
+    await test_db["agents"].insert_many(agents)
 
     # Taxonomy entries
     await test_db["taxonomy_entries"].insert_many(

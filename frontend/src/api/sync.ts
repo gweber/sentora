@@ -40,7 +40,7 @@ export async function cancelSync(): Promise<void> {
   await client.post('/sync/cancel')
 }
 
-/** Backfill installed_app_names onto all s1_agents documents (one-time migration). */
+/** Backfill installed_app_names onto all agent documents (one-time migration). */
 export async function backfillAppNames(): Promise<void> {
   await client.post('/sync/backfill-app-names')
 }

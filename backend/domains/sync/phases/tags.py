@@ -1,10 +1,12 @@
-"""Tags phase runner — fetches and upserts all S1 tags."""
+"""Tags phase runner — fetches and upserts all source tags."""
 
 from __future__ import annotations
 
 from typing import Any
 
 from loguru import logger
+
+from domains.sources.collections import SOURCE_TAGS, SYNC_META
 
 from ..phase_runner import PhaseRunner
 
@@ -34,7 +36,7 @@ class TagsPhaseRunner(PhaseRunner):
         db = await self._get_db()
         sync_started_at = utc_now().isoformat()
 
-        await self._update(message="Fetching S1 tags…")
+        await self._update(message="Fetching source tags…")
 
         from pymongo import ReplaceOne
 
@@ -45,18 +47,18 @@ class TagsPhaseRunner(PhaseRunner):
             tags_docs.append(doc)
 
         if tags_docs:
-            ops = [ReplaceOne({"s1_tag_id": d["s1_tag_id"]}, d, upsert=True) for d in tags_docs]
-            await db["s1_tags"].bulk_write(ops, ordered=False)
+            ops = [ReplaceOne({"_id": d["_id"]}, d, upsert=True) for d in tags_docs]
+            await db[SOURCE_TAGS].bulk_write(ops, ordered=False)
 
         # Only clean up stale tags if we actually received data.
         # An empty response likely means an API error — never wipe the collection.
         if tags_docs:
-            current_ids = [d["s1_tag_id"] for d in tags_docs]
-            await db["s1_tags"].delete_many({"s1_tag_id": {"$nin": current_ids}})
+            current_ids = [d["_id"] for d in tags_docs]
+            await db[SOURCE_TAGS].delete_many({"_id": {"$nin": current_ids}})
         else:
-            logger.warning("Tags — S1 returned 0 tags, skipping stale cleanup")
+            logger.warning("Tags — source returned 0 tags, skipping stale cleanup")
 
-        await db["s1_sync_meta"].update_one(
+        await db[SYNC_META].update_one(
             {"_id": "global"},
             {"$set": {"tags_synced_at": sync_started_at}},
             upsert=True,

@@ -1,10 +1,12 @@
-"""Sites phase runner — fetches and upserts all S1 sites."""
+"""Sites phase runner — fetches and upserts all sites."""
 
 from __future__ import annotations
 
 from typing import Any
 
 from loguru import logger
+
+from domains.sources.collections import SITES, SYNC_META
 
 from ..phase_runner import PhaseRunner
 
@@ -35,7 +37,7 @@ class SitesPhaseRunner(PhaseRunner):
         db = await self._get_db()
         sync_started_at = utc_now().isoformat()
 
-        await self._update(message="Fetching S1 sites…")
+        await self._update(message="Fetching sites…")
 
         from pymongo import ReplaceOne
 
@@ -46,16 +48,16 @@ class SitesPhaseRunner(PhaseRunner):
             sites_docs.append(doc)
 
         if sites_docs:
-            ops = [ReplaceOne({"s1_site_id": d["s1_site_id"]}, d, upsert=True) for d in sites_docs]
-            await db["s1_sites"].bulk_write(ops, ordered=False)
+            ops = [ReplaceOne({"_id": d["_id"]}, d, upsert=True) for d in sites_docs]
+            await db[SITES].bulk_write(ops, ordered=False)
 
         if sites_docs:
-            current_ids = [d["s1_site_id"] for d in sites_docs]
-            await db["s1_sites"].delete_many({"s1_site_id": {"$nin": current_ids}})
+            current_ids = [d["_id"] for d in sites_docs]
+            await db[SITES].delete_many({"_id": {"$nin": current_ids}})
         else:
-            logger.warning("Sites — S1 returned 0 sites, skipping stale cleanup")
+            logger.warning("Sites — source returned 0 sites, skipping stale cleanup")
 
-        await db["s1_sync_meta"].update_one(
+        await db[SYNC_META].update_one(
             {"_id": "global"},
             {"$set": {"sites_synced_at": sync_started_at}},
             upsert=True,

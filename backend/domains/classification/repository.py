@@ -19,6 +19,7 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from domains.classification.dto import ClassificationResultFilter
 from domains.classification.entities import ClassificationResult, ClassificationRun
+from domains.sources.collections import GROUPS
 
 COLLECTION = "classification_results"
 RUNS_COLLECTION = "classification_runs"
@@ -90,7 +91,7 @@ async def get_by_agent_id(
 
     Args:
         db: Motor database handle.
-        agent_id: SentinelOne agent ID (``s1_agent_id``).
+        agent_id: Agent source ID (``source_id``).
 
     Returns:
         The ClassificationResult entity if found, otherwise None.
@@ -149,7 +150,7 @@ async def acknowledge(
 
     Args:
         db: Motor database handle.
-        agent_id: SentinelOne agent ID.
+        agent_id: Agent source ID.
 
     Returns:
         True if the document was found and updated, False otherwise.
@@ -168,7 +169,7 @@ async def get_overview(
 
     Uses a ``$facet`` aggregation on ``classification_results`` to obtain
     verdict counts and the most recent ``computed_at`` timestamp in a single
-    round-trip. A separate query to ``s1_agents`` provides the distinct group
+    round-trip. A separate query to ``agents`` provides the distinct group
     count.
 
     Returns a dict with keys: ``total``, ``correct``, ``misclassified``,
@@ -218,9 +219,9 @@ async def get_overview(
 
     total = sum(verdict_counts.values())
 
-    # Group count from s1_groups collection
+    # Group count from groups collection
     try:
-        groups_count = await db["s1_groups"].count_documents({})
+        groups_count = await db[GROUPS].count_documents({})
     except Exception:
         groups_count = 0
 

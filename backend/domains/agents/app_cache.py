@@ -4,7 +4,7 @@ Pre-computes and stores a ``app_summaries`` collection containing one document
 per distinct ``normalized_name`` with agent count, display name, publisher, and
 resolved taxonomy category.  The list endpoint reads directly from this
 lightweight collection instead of running a heavy aggregation on
-``s1_installed_apps`` on every request.
+``installed_apps`` on every request.
 
 Rebuild is triggered:
 - After each sync run completes (apps phase)
@@ -25,6 +25,7 @@ from loguru import logger
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from database import get_db
+from domains.sources.collections import AGENTS, INSTALLED_APPS
 
 COLLECTION = "app_summaries"
 
@@ -182,9 +183,15 @@ async def invalidate_taxonomy_cache() -> None:
 async def rebuild_app_summaries(db: AsyncIOMotorDatabase | None = None) -> int:  # type: ignore[type-arg]
     """Rebuild the ``app_summaries`` materialized collection.
 
-    1. Aggregate ``s1_installed_apps`` → one doc per normalized_name
-    2. Match each against taxonomy patterns
-    3. Bulk-write into ``app_summaries`` (drop + insert for atomicity)
+    1. Aggregate ``installed_apps`` → one doc per normalized_name with
+       version distribution, risk distribution, and agent IDs
+    2. Look up agent group/site from ``agents`` for breakdown counts
+    3. Match each against taxonomy patterns
+    4. Bulk-write into ``app_summaries`` (drop + insert for atomicity)
+
+    The detail stats (versions, risk, group/site breakdowns) are pre-computed
+    here so the ``/stats/`` endpoint can serve them from a single
+    ``find_one()`` instead of running expensive aggregation pipelines.
 
     Returns the number of distinct apps written.
     """
@@ -194,9 +201,9 @@ async def rebuild_app_summaries(db: AsyncIOMotorDatabase | None = None) -> int: 
 
         t0 = time.monotonic()
 
-        # Step 1: aggregate distinct apps (exclude soft-deleted).
-        # Two-stage $group: first deduplicate (agent, app) pairs, then count.
-        # This avoids building 150k-element $addToSet arrays for universal apps.
+        # Step 1: aggregate distinct apps with version + risk distributions.
+        # Two-stage $group: first per (agent, app) to get per-agent version/risk,
+        # then per app to count agents and collect distributions.
         from domains.sync.app_filters import active_match_stage
 
         pipeline: list[dict] = [
@@ -207,25 +214,51 @@ async def rebuild_app_summaries(db: AsyncIOMotorDatabase | None = None) -> int: 
                     "_id": {"n": "$normalized_name", "a": "$agent_id"},
                     "display_name": {"$first": "$name"},
                     "publisher": {"$first": "$publisher"},
+                    "version": {"$first": "$version"},
+                    "risk_level": {"$first": "$risk_level"},
                 }
             },
-            # Stage 2: count distinct agents per app
+            # Stage 2: count distinct agents, collect version/risk per app
             {
                 "$group": {
                     "_id": "$_id.n",
                     "display_name": {"$first": "$display_name"},
                     "publisher": {"$first": "$publisher"},
                     "agent_count": {"$sum": 1},
+                    "agent_ids": {"$push": "$_id.a"},
+                    "agent_versions": {"$push": "$version"},
+                    "agent_risks": {"$push": "$risk_level"},
                 }
             },
         ]
-        rows = [doc async for doc in db["s1_installed_apps"].aggregate(pipeline, allowDiskUse=True)]
+        rows = [doc async for doc in db[INSTALLED_APPS].aggregate(pipeline, allowDiskUse=True)]
 
         if not rows:
             logger.info("App summaries rebuild: no apps found")
             return 0
 
-        # Step 2: load taxonomy matcher
+        # Step 2: build agent_id → (group, site) lookup for breakdown
+        # Pre-load all agents referenced in results (single query).
+        all_agent_ids: set[str] = set()
+        for r in rows:
+            all_agent_ids.update(r.get("agent_ids", []))
+
+        agent_lookup: dict[str, dict] = {}
+        if all_agent_ids:
+            async for agent in db[AGENTS].find(
+                {"source_id": {"$in": list(all_agent_ids)}},
+                {
+                    "_id": 0,
+                    "source_id": 1,
+                    "group_id": 1,
+                    "group_name": 1,
+                    "site_id": 1,
+                    "site_name": 1,
+                },
+            ):
+                agent_lookup[agent["source_id"]] = agent
+
+        # Step 3: load taxonomy matcher
         entries = await _load_taxonomy_entries(db)
         matcher = TaxonomyMatcher(entries)
 
@@ -234,11 +267,52 @@ async def rebuild_app_summaries(db: AsyncIOMotorDatabase | None = None) -> int: 
         _taxonomy_matchers[db_name] = matcher
         _detail_matchers.pop(db_name, None)  # force re-load on next detail request
 
-        # Step 3: build summary docs
+        # Step 4: build summary docs with pre-computed detail stats
         docs = []
         for r in rows:
             nname = r["_id"]
             cat, cat_display = matcher.match(nname)
+
+            # Version distribution (top 50)
+            version_counts: dict[str, int] = {}
+            for v in r.get("agent_versions", []):
+                key = v or "unknown"
+                version_counts[key] = version_counts.get(key, 0) + 1
+            versions_sorted = sorted(version_counts.items(), key=lambda x: x[1], reverse=True)[:50]
+
+            # Risk distribution
+            risk_counts: dict[str, int] = {}
+            for rl in r.get("agent_risks", []):
+                key = rl or "unknown"
+                risk_counts[key] = risk_counts.get(key, 0) + 1
+            top_risk = max(risk_counts, key=risk_counts.get, default=None) if risk_counts else None  # type: ignore[arg-type]
+
+            # Group/site breakdowns
+            group_counts: dict[str, dict] = {}  # group_id → {name, count}
+            site_counts: dict[str, dict] = {}  # site_id → {name, count}
+            for aid in r.get("agent_ids", []):
+                ag = agent_lookup.get(aid)
+                if not ag:
+                    continue
+                gid = ag.get("group_id")
+                if gid:
+                    if gid not in group_counts:
+                        group_counts[gid] = {
+                            "name": ag.get("group_name") or gid,
+                            "count": 0,
+                        }
+                    group_counts[gid]["count"] += 1
+                sid = ag.get("site_id")
+                if sid:
+                    if sid not in site_counts:
+                        site_counts[sid] = {
+                            "name": ag.get("site_name") or sid,
+                            "count": 0,
+                        }
+                    site_counts[sid]["count"] += 1
+            groups_sorted = sorted(group_counts.values(), key=lambda x: x["count"], reverse=True)
+            sites_sorted = sorted(site_counts.values(), key=lambda x: x["count"], reverse=True)
+
             docs.append(
                 {
                     "normalized_name": nname,
@@ -247,10 +321,22 @@ async def rebuild_app_summaries(db: AsyncIOMotorDatabase | None = None) -> int: 
                     "agent_count": r["agent_count"],
                     "category": cat,
                     "category_display": cat_display,
+                    # Pre-computed detail stats
+                    "risk_level": top_risk,
+                    "versions": [{"version": v, "count": c} for v, c in versions_sorted],
+                    "risk_distribution": risk_counts,
+                    "group_breakdown": [
+                        {"name": g["name"], "count": g["count"]} for g in groups_sorted
+                    ],
+                    "site_breakdown": [
+                        {"name": s["name"], "count": s["count"]} for s in sites_sorted
+                    ],
+                    "group_count": len(groups_sorted),
+                    "site_count": len(sites_sorted),
                 }
             )
 
-        # Step 4: atomic swap — write to temp, then rename
+        # Step 5: atomic swap — write to temp, then rename
         tmp = f"{COLLECTION}_tmp"
         await db[tmp].drop()
         await db[tmp].insert_many(docs, ordered=False)
@@ -276,7 +362,7 @@ async def ensure_app_summaries_exist(db: AsyncIOMotorDatabase) -> None:  # type:
     count = await db[COLLECTION].estimated_document_count()
     if count == 0:
         # Check if there are any apps to summarize
-        app_count = await db["s1_installed_apps"].estimated_document_count()
+        app_count = await db[INSTALLED_APPS].estimated_document_count()
         if app_count > 0:
             logger.info("App summaries collection empty, triggering rebuild")
             await rebuild_app_summaries(db)

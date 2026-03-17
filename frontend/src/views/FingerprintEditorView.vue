@@ -183,18 +183,18 @@ function weightLabel(w: number): string {
 }
 
 function weightColor(w: number): string {
-  if (w >= 1.8) return 'text-red-600'
-  if (w >= 1.2) return 'text-orange-500'
-  if (w >= 0.8) return 'text-indigo-600'
-  return 'text-slate-400'
+  if (w >= 1.8) return 'text-[var(--error-text)]'
+  if (w >= 1.2) return 'text-[var(--warn-text)]'
+  if (w >= 0.8) return 'text-[var(--info-text)]'
+  return 'text-[var(--text-3)]'
 }
 
 function sourceColor(source: string): string {
   return source === 'statistical'
-    ? 'bg-violet-50 text-violet-700'
+    ? 'bg-[var(--accent-bg)] text-[var(--accent-text)]'
     : source === 'seed'
-      ? 'bg-emerald-50 text-emerald-700'
-      : 'bg-blue-50 text-blue-700'
+      ? 'bg-[var(--success-bg)] text-[var(--success-text)]'
+      : 'bg-[var(--info-bg)] text-[var(--info-text)]'
 }
 
 // ── Suggestions ───────────────────────────────────────────────────────────────
@@ -339,8 +339,8 @@ function triggerImportDialog() {
       class="shrink-0 flex items-center gap-3 px-6 py-3"
       style="background: var(--surface); border-bottom: 1px solid var(--border);"
     >
-      <div class="flex items-center justify-center w-7 h-7 rounded-lg bg-indigo-500/10 shrink-0">
-        <svg class="w-[15px] h-[15px] text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+      <div class="flex items-center justify-center w-7 h-7 rounded-lg bg-[var(--info-bg)]0/10 shrink-0">
+        <svg class="w-[15px] h-[15px] text-[var(--brand-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
           <path stroke-linecap="round" stroke-linejoin="round" d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18" />
         </svg>
       </div>
@@ -356,7 +356,7 @@ function triggerImportDialog() {
       </div>
       <div class="ml-auto flex items-center gap-2">
         <!-- Import result toast -->
-        <span v-if="importResult" class="text-[11px] font-medium" :class="importResult.errors.length > 0 ? 'text-red-500' : 'text-emerald-600'">
+        <span v-if="importResult" class="text-[11px] font-medium" :class="importResult.errors.length > 0 ? 'text-[var(--error-text)]' : 'text-[var(--success-text)]'">
           {{ importResult.errors.length > 0 ? importResult.errors[0] : `Imported ${importResult.imported}, skipped ${importResult.skipped}` }}
         </span>
 
@@ -415,7 +415,7 @@ function triggerImportDialog() {
       </div>
       <router-link
         to="/groups"
-        class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-indigo-600 text-white text-[13px] font-medium hover:bg-indigo-700 transition-colors no-underline"
+        class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[var(--brand-primary)] text-white text-[13px] font-medium hover:opacity-90 transition-colors no-underline"
       >
         Browse Groups
         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -438,7 +438,7 @@ function triggerImportDialog() {
             type="text"
             placeholder="Search categories…"
             aria-label="Search taxonomy categories"
-            class="w-full text-[12px] px-2.5 py-1.5 rounded-md focus:outline-none focus:ring-1 placeholder:text-slate-300"
+            class="w-full text-[12px] px-2.5 py-1.5 rounded-md focus:outline-none focus:ring-1 placeholder:text-[var(--text-3)]"
             style="background: var(--input-bg); border: 1px solid var(--input-border); color: var(--text-1);"
           />
         </div>
@@ -482,11 +482,11 @@ function triggerImportDialog() {
                 :key="entry.id"
                 draggable="true"
                 @dragstart="onDragStart($event, entry)"
-                class="group flex items-center justify-between px-4 pl-8 py-1.5 hover:bg-indigo-50 cursor-grab transition-colors"
+                class="group flex items-center justify-between px-4 pl-8 py-1.5 hover:bg-[var(--info-bg)] cursor-grab transition-colors"
               >
                 <span class="text-[11px] truncate flex-1 min-w-0" style="color: var(--text-2);">{{ entry.name }}</span>
                 <button
-                  class="ml-2 shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100 w-5 h-5 flex items-center justify-center rounded bg-indigo-100 hover:bg-indigo-600 text-indigo-600 hover:text-white transition-all text-[14px] leading-none"
+                  class="ml-2 shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100 w-5 h-5 flex items-center justify-center rounded bg-[var(--info-bg)] hover:bg-[var(--brand-primary)] text-[var(--info-text)] hover:text-white transition-all text-[14px] leading-none"
                   title="Add as marker"
                   :aria-label="`Add ${entry.name} as marker`"
                   @click.stop="addEntryAsMarker(entry)"
@@ -503,14 +503,14 @@ function triggerImportDialog() {
           <button
             class="w-full flex items-center justify-between px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors border"
             :class="isComputing
-              ? 'bg-violet-50 text-violet-400 border-violet-200 cursor-not-allowed'
-              : 'bg-violet-50 text-violet-700 hover:bg-violet-100 border-violet-200'"
+              ? 'bg-[var(--accent-bg)] text-violet-400 border-[var(--accent-muted)] cursor-not-allowed'
+              : 'bg-[var(--accent-bg)] text-[var(--accent-text)] hover:bg-[var(--accent-bg)] border-[var(--accent-muted)]'"
             :disabled="isComputing"
             @click="computeSuggestions"
           >
             <span>{{ isComputing ? 'Computing…' : 'Suggestions' }}</span>
             <span v-if="isComputing" class="animate-spin text-[10px]">⟳</span>
-            <span v-else-if="pendingSuggestions.length > 0" class="font-bold text-violet-600">{{ pendingSuggestions.length }}</span>
+            <span v-else-if="pendingSuggestions.length > 0" class="font-bold text-[var(--accent-text)]">{{ pendingSuggestions.length }}</span>
             <span v-else class="text-[10px]" style="color: var(--text-3);">click to compute</span>
           </button>
         </div>
@@ -537,7 +537,7 @@ function triggerImportDialog() {
               <div>
                 <p class="text-[15px] font-semibold" style="color: var(--heading);">
                   Suggestions
-                  <span v-if="pendingSuggestions.length > 0" class="ml-1.5 text-[13px] font-bold text-violet-600">{{ pendingSuggestions.length }}</span>
+                  <span v-if="pendingSuggestions.length > 0" class="ml-1.5 text-[13px] font-bold text-[var(--accent-text)]">{{ pendingSuggestions.length }}</span>
                 </p>
                 <p class="text-[12px] mt-0.5" style="color: var(--text-3);">TF-IDF ranked apps that distinguish this group — accept to add as markers.</p>
               </div>
@@ -560,7 +560,7 @@ function triggerImportDialog() {
                   type="text"
                   placeholder="Filter by name…"
                   aria-label="Filter suggestions by name"
-                  class="w-full pl-8 pr-3 py-1.5 text-[12px] rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                  class="w-full pl-8 pr-3 py-1.5 text-[12px] rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary-light)]"
                   style="background: var(--input-bg); border: 1px solid var(--input-border); color: var(--text-1);"
                   autofocus
                 />
@@ -611,7 +611,7 @@ function triggerImportDialog() {
                   <tr
                     v-for="s in filteredSortedSuggestions"
                     :key="s.id"
-                    class="last:border-0 hover:bg-violet-50/50 transition-colors group"
+                    class="last:border-0 hover:bg-[var(--accent-bg)]/50 transition-colors group"
                     style="border-bottom: 1px solid var(--border-light);"
                   >
                     <td class="px-4 py-3">
@@ -621,8 +621,8 @@ function triggerImportDialog() {
                     <td class="px-4 py-3">
                       <span
                         class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold tabular-nums"
-                        :class="s.score >= 10 ? 'bg-teal-50 text-teal-700 border border-teal-200'
-                              : s.score >= 5  ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+                        :class="s.score >= 10 ? 'bg-[var(--scope-site-bg)] text-[var(--scope-site-text)] border border-[var(--border)]'
+                              : s.score >= 5  ? 'bg-[var(--info-bg)] text-[var(--info-text)] border border-[var(--border)]'
                               : ' text-muted border-muted border'" style="background: var(--surface-hover);"
                       >
                         {{ s.score >= 99 ? '>99×' : Number.isInteger(s.score) ? `${s.score}×` : `${s.score.toFixed(1)}×` }}
@@ -631,7 +631,7 @@ function triggerImportDialog() {
                     <td class="px-4 py-3">
                       <div class="flex items-center gap-2">
                         <div class="w-20  rounded-full h-1.5" style="background: var(--surface-hover);">
-                          <div class="bg-violet-500 h-1.5 rounded-full" :style="`width: ${Math.round(s.group_coverage * 100)}%`"></div>
+                          <div class="bg-[var(--accent-bg)]0 h-1.5 rounded-full" :style="`width: ${Math.round(s.group_coverage * 100)}%`"></div>
                         </div>
                         <span class="text-[12px]" style="color: var(--text-2);">{{ Math.round(s.group_coverage * 100) }}%</span>
                         <span class="text-[11px]" style="color: var(--text-3);">({{ s.agent_count_in_group }})</span>
@@ -640,7 +640,7 @@ function triggerImportDialog() {
                     <td class="px-4 py-3">
                       <div class="flex items-center gap-2">
                         <div class="w-20  rounded-full h-1.5" style="background: var(--surface-hover);">
-                          <div class="bg-amber-400 h-1.5 rounded-full" :style="`width: ${Math.round(s.outside_coverage * 100)}%`"></div>
+                          <div class="bg-[var(--status-warn-text)] h-1.5 rounded-full" :style="`width: ${Math.round(s.outside_coverage * 100)}%`"></div>
                         </div>
                         <span class="text-[12px]" style="color: var(--text-2);">{{ Math.round(s.outside_coverage * 100) }}%</span>
                         <span class="text-[11px]" style="color: var(--text-3);">({{ s.agent_count_outside }})</span>
@@ -649,7 +649,7 @@ function triggerImportDialog() {
                     <td class="px-4 py-3">
                       <div class="flex items-center justify-end gap-1.5">
                         <button
-                          class="px-2.5 py-1 rounded-md text-[11px] font-medium bg-violet-600 text-white hover:bg-violet-700 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                          class="px-2.5 py-1 rounded-md text-[11px] font-medium bg-[var(--brand-primary)] text-white hover:opacity-90 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
                           :aria-label="`Accept suggestion ${s.display_name}`"
                           @click="acceptSuggestionKeepOpen(s.id)"
                         >Accept</button>
@@ -695,7 +695,7 @@ function triggerImportDialog() {
         <!-- Drop zone / marker list -->
         <div
           class="flex-1 overflow-y-auto p-5 transition-colors"
-          :class="isDragOver ? 'bg-indigo-50' : ''"
+          :class="isDragOver ? 'bg-[var(--info-bg)]' : ''"
           @dragover="onDragOver"
           @dragleave="onDragLeave"
           @drop="onDrop"
@@ -704,7 +704,7 @@ function triggerImportDialog() {
           <div
             v-if="!hasMarkers"
             class="flex flex-col items-center justify-center h-full border-2 border-dashed rounded-xl gap-3 transition-colors"
-            :class="isDragOver ? 'border-indigo-400 bg-indigo-50 text-indigo-500' : 'text-slate-400'"
+            :class="isDragOver ? 'border-[var(--brand-primary)] bg-[var(--info-bg)] text-[var(--brand-primary)]' : 'text-[var(--text-3)]'"
             :style="!isDragOver ? 'border-color: var(--border);' : ''"
           >
             <svg class="w-10 h-10 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
@@ -722,8 +722,8 @@ function triggerImportDialog() {
               class="rounded-lg transition-all cursor-pointer group"
               :class="
                 selectedMarkerId === marker.id
-                  ? 'border-indigo-300 bg-indigo-50 shadow-sm'
-                  : 'hover:border-indigo-200 hover:shadow-sm'
+                  ? 'border-[var(--border)] bg-[var(--info-bg)] shadow-sm'
+                  : 'hover:border-[var(--border)] hover:shadow-sm'
               "
               :style="selectedMarkerId === marker.id
                 ? 'border: 1px solid rgb(165 180 252);'
@@ -764,7 +764,7 @@ function triggerImportDialog() {
 
                 <!-- Delete button -->
                 <button
-                  class="shrink-0 w-6 h-6 flex items-center justify-center rounded text-slate-300 hover:text-red-400 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                  class="shrink-0 w-6 h-6 flex items-center justify-center rounded text-[var(--text-3)] hover:text-[var(--error-text)] hover:bg-[var(--error-bg)] transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
                   title="Remove marker"
                   :aria-label="`Remove marker ${marker.display_name}`"
                   @click.stop="removeMarker(marker.id)"
@@ -778,7 +778,7 @@ function triggerImportDialog() {
               <!-- Weight slider (expanded when selected) -->
               <div
                 v-if="selectedMarkerId === marker.id"
-                class="px-4 pb-3 border-t border-indigo-100"
+                class="px-4 pb-3 border-t border-[var(--border-light)]"
                 @click.stop
               >
                 <div class="flex items-center gap-3 pt-2">
@@ -793,7 +793,7 @@ function triggerImportDialog() {
                     @input="onWeightInput(marker.id, $event)"
                     @change="commitWeight(marker)"
                   />
-                  <span class="text-[12px] font-semibold text-indigo-600 w-8 text-right shrink-0">
+                  <span class="text-[12px] font-semibold text-[var(--info-text)] w-8 text-right shrink-0">
                     {{ getDisplayWeight(marker).toFixed(1) }}
                   </span>
                 </div>
@@ -803,7 +803,7 @@ function triggerImportDialog() {
             <!-- Drop hint while dragging over existing markers -->
             <div
               v-if="isDragOver"
-              class="flex items-center justify-center h-12 rounded-lg border-2 border-dashed border-indigo-300 text-indigo-400 text-[12px] font-medium"
+              class="flex items-center justify-center h-12 rounded-lg border-2 border-dashed border-[var(--border)] text-[var(--brand-primary)] text-[12px] font-medium"
             >
               Drop to add marker
             </div>
@@ -838,7 +838,7 @@ function triggerImportDialog() {
           class="flex flex-col items-center justify-center flex-1 gap-2"
           style="color: var(--text-3);"
         >
-          <svg class="w-5 h-5 animate-spin text-indigo-500" fill="none" viewBox="0 0 24 24">
+          <svg class="w-5 h-5 animate-spin text-[var(--brand-primary)]" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
             <path class="opacity-75" fill="currentColor"
               d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
@@ -851,13 +851,13 @@ function triggerImportDialog() {
 
           <!-- Selected marker info -->
           <div v-if="selectedMarker" class="px-4 py-3 shrink-0" style="border-bottom: 1px solid var(--border); background: var(--surface);">
-            <code class="text-[12px] font-mono text-indigo-700 block truncate">{{ selectedMarker.pattern }}</code>
+            <code class="text-[12px] font-mono text-[var(--info-text)] block truncate">{{ selectedMarker.pattern }}</code>
             <div class="mt-1.5 flex items-center gap-2">
               <span
                 class="text-[11px] font-semibold px-2 py-0.5 rounded-full"
                 :class="
                   patternPreview && patternPreview.total_apps > 0
-                    ? 'bg-emerald-50 text-emerald-700'
+                    ? 'bg-[var(--success-bg)] text-[var(--success-text)]'
                     : ' text-muted'
                 " style="background: var(--surface-hover);"
               >
@@ -867,7 +867,7 @@ function triggerImportDialog() {
                 class="text-[11px] font-semibold px-2 py-0.5 rounded-full"
                 :class="
                   patternPreview && patternPreview.total_agents > 0
-                    ? 'bg-blue-50 text-blue-700'
+                    ? 'bg-[var(--info-bg)] text-[var(--info-text)]'
                     : ' text-muted'
                 " style="background: var(--surface-hover);"
               >

@@ -1,10 +1,12 @@
-"""Groups phase runner — fetches and upserts S1 groups."""
+"""Groups phase runner — fetches and upserts groups."""
 
 from __future__ import annotations
 
 from typing import Any
 
 from loguru import logger
+
+from domains.sources.collections import GROUPS, SITES, SYNC_META
 
 from ..phase_runner import PhaseRunner
 
@@ -35,7 +37,7 @@ class GroupsPhaseRunner(PhaseRunner):
         db = await self._get_db()
 
         # Read own timestamp once, then decide mode
-        meta = await db["s1_sync_meta"].find_one({"_id": "global"})
+        meta = await db[SYNC_META].find_one({"_id": "global"})
         last_sync_at = meta.get("groups_synced_at") if meta else None
         if mode == "auto":
             is_full = last_sync_at is None
@@ -44,12 +46,12 @@ class GroupsPhaseRunner(PhaseRunner):
             is_full = mode == "full"
 
         sync_started_at = utc_now().isoformat()
-        await self._update(message="Fetching S1 groups…")
+        await self._update(message="Fetching groups…")
 
         # Load site_name_map from DB (soft dependency — for denormalization)
         site_name_map: dict[str, str] = {}
-        async for doc in db["s1_sites"].find({}, {"s1_site_id": 1, "name": 1}):
-            site_name_map[doc["s1_site_id"]] = doc["name"]
+        async for doc in db[SITES].find({}, {"source_id": 1, "name": 1}):
+            site_name_map[doc["source_id"]] = doc["name"]
 
         updated_since = None if is_full else last_sync_at
 
@@ -62,18 +64,16 @@ class GroupsPhaseRunner(PhaseRunner):
             groups_docs.append(doc)
 
         if groups_docs:
-            ops = [
-                ReplaceOne({"s1_group_id": d["s1_group_id"]}, d, upsert=True) for d in groups_docs
-            ]
-            await db["s1_groups"].bulk_write(ops, ordered=False)
+            ops = [ReplaceOne({"_id": d["_id"]}, d, upsert=True) for d in groups_docs]
+            await db[GROUPS].bulk_write(ops, ordered=False)
 
         if is_full:
-            current_ids = [d["s1_group_id"] for d in groups_docs]
+            current_ids = [d["_id"] for d in groups_docs]
             if current_ids:
-                await db["s1_groups"].delete_many({"s1_group_id": {"$nin": current_ids}})
+                await db[GROUPS].delete_many({"_id": {"$nin": current_ids}})
 
         # Record own timestamp
-        await db["s1_sync_meta"].update_one(
+        await db[SYNC_META].update_one(
             {"_id": "global"},
             {"$set": {"groups_synced_at": sync_started_at}},
             upsert=True,

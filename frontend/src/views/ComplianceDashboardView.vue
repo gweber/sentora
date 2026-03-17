@@ -14,6 +14,14 @@ const toast = useToast()
 
 const store = useComplianceStore()
 const router = useRouter()
+
+const frameworkDisclaimers = computed(() => {
+  const map: Record<string, string> = {}
+  for (const fw of store.frameworks) {
+    if (fw.disclaimer) map[fw.id] = fw.disclaimer
+  }
+  return map
+})
 const filterFramework = ref<string>('')
 const filterSeverity = ref<string>('')
 const violationPage = ref(1)
@@ -106,6 +114,7 @@ async function loadUnifiedViolations(page: number = 1) {
 
 async function loadAll() {
   await Promise.all([
+    store.fetchFrameworks(),
     store.fetchDashboard(),
     store.fetchLatestResults(),
     loadUnifiedViolations(1),
@@ -122,7 +131,7 @@ onMounted(loadAll)
       <div>
         <h1 class="text-2xl font-bold" style="color: var(--heading);">Compliance Dashboard</h1>
         <p class="text-sm mt-1" style="color: var(--text-3);">
-          Endpoint software compliance monitoring across SOC 2, PCI DSS, HIPAA, and BSI IT-Grundschutz
+          Endpoint software compliance monitoring across enabled frameworks
         </p>
       </div>
       <div class="flex gap-2">
@@ -197,6 +206,14 @@ onMounted(loadAll)
             <span class="text-[var(--success-text)]">{{ fw.passed }} pass</span>
             <span class="text-[var(--error-text)]">{{ fw.failed }} fail</span>
             <span class="text-[var(--warn-text)]">{{ fw.warning }} warn</span>
+          </div>
+          <div
+            v-if="frameworkDisclaimers[fw.framework_id]"
+            class="mt-2 text-xs leading-tight"
+            style="color: var(--text-3); opacity: 0.7;"
+            :title="frameworkDisclaimers[fw.framework_id]"
+          >
+            Automated monitoring — not certification
           </div>
         </div>
       </div>

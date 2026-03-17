@@ -20,6 +20,14 @@ class BackupResponse(BaseModel):
     error: str | None = None
 
 
+class BackupStartedResponse(BaseModel):
+    """Returned immediately when a backup is triggered (202 Accepted)."""
+
+    backup_id: str
+    status: str = "accepted"
+    message: str = ""
+
+
 class BackupListResponse(BaseModel):
     """Paginated list of backup records."""
 

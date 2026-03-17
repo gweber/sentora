@@ -25,7 +25,7 @@ class SoftwareEntry(BaseModel):
         id: MongoDB ObjectId (string representation).
         name: Human-readable display name (e.g. "Siemens WinCC").
         patterns: Glob patterns matched against ``normalized_name`` fields in
-            ``s1_installed_apps``. Patterns are OR-combined.
+            ``installed_apps``. Patterns are OR-combined.
         publisher: Optional software publisher / vendor name.
         category: Primary category key (matches the top-level YAML key, e.g. "scada_hmi").
         category_display: Human-readable category label (e.g. "SCADA / HMI / Process Control").

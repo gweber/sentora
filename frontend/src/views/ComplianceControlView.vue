@@ -100,7 +100,7 @@ watch(controlId, (newId, oldId) => {
         </div>
         <button
           :disabled="isRunning"
-          class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 text-sm font-medium"
+          class="px-4 py-2 bg-[var(--brand-primary)] text-white rounded-lg hover:opacity-90 disabled:opacity-50 text-sm font-medium"
           @click="handleRunCheck"
         >
           {{ isRunning ? 'Running...' : 'Run Check Now' }}
@@ -115,11 +115,11 @@ watch(controlId, (newId, oldId) => {
         </div>
         <div class="rounded-xl p-4" style="background: var(--surface); border: 1px solid var(--border);">
           <div class="text-xs" style="color: var(--text-3);">Compliant</div>
-          <div class="text-2xl font-bold mt-1 text-green-600">{{ currentResult.compliant_endpoints }}</div>
+          <div class="text-2xl font-bold mt-1 text-[var(--success-text)]">{{ currentResult.compliant_endpoints }}</div>
         </div>
         <div class="rounded-xl p-4" style="background: var(--surface); border: 1px solid var(--border);">
           <div class="text-xs" style="color: var(--text-3);">Non-Compliant</div>
-          <div class="text-2xl font-bold mt-1" :class="currentResult.non_compliant_endpoints > 0 ? 'text-red-600' : 'text-green-600'">
+          <div class="text-2xl font-bold mt-1" :class="currentResult.non_compliant_endpoints > 0 ? 'text-[var(--error-text)]' : 'text-[var(--success-text)]'">
             {{ currentResult.non_compliant_endpoints }}
           </div>
         </div>

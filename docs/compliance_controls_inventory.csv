@@ -1,0 +1,143 @@
+Control ID,Framework,Category,Title,Check Type,Parameters,Severity,Requires Configuration,Enabled by Default
+SOC2-CC6.1,SOC 2 Type II,CC6 — Access Controls,Complete Software Inventory,sync_freshness,"{""max_hours_since_sync"": 24}",high,no,yes
+SOC2-CC6.1-SW,SOC 2 Type II,CC6 — Access Controls,Software Asset Classification,classification_coverage,"{""min_classified_percent"": 90}",medium,no,yes
+SOC2-CC6.6,SOC 2 Type II,CC6 — Access Controls,EDR Protection on All Endpoints,agent_version,{},critical,no,yes
+SOC2-CC6.7,SOC 2 Type II,CC6 — Access Controls,No Prohibited Software,prohibited_app,{},critical,no,yes
+SOC2-CC6.8,SOC 2 Type II,CC6 — Access Controls,Required Software Installed,required_app,"{""required_apps"": []}",high,yes,yes
+SOC2-CC7.1,SOC 2 Type II,CC7 — System Operations,Endpoint Software Change Monitoring,delta_detection,"{""lookback_hours"": 24}",medium,no,yes
+SOC2-CC7.2,SOC 2 Type II,CC7 — System Operations,Classification Anomaly Detection,classification_coverage,"{""min_classified_percent"": 80}",high,no,yes
+SOC2-CC7.3,SOC 2 Type II,CC7 — System Operations,Unclassified Application Threshold,unclassified_threshold,"{""max_unclassified_percent"": 10}",medium,no,yes
+SOC2-CC8.1,SOC 2 Type II,CC8 — Change Management,Software Change Tracking,delta_detection,"{""lookback_hours"": 48}",medium,no,yes
+SOC2-A1.1,SOC 2 Type II,A1 — Availability,Endpoint Availability,agent_online,"{""max_offline_days"": 7}",high,no,yes
+SOC2-A1.2,SOC 2 Type II,A1 — Availability,Data Freshness,sync_freshness,"{""max_hours_since_sync"": 48}",high,no,yes
+SOC2-CC3.1,SOC 2 Type II,CC3 — Risk Assessment,Asset Classification Coverage,classification_coverage,"{""min_classified_percent"": 70}",medium,no,yes
+SOC2-CC3.2,SOC 2 Type II,CC3 — Risk Assessment,Software Version Currency,app_version,"{""max_outdated_percent"": 20}",medium,no,yes
+SOC2-CC6.1-EOL,SOC 2 Type II,CC6 — Access Controls,End-of-Life Software Detection,eol_software,"{""flag_security_only"": true, ""min_match_confidence"": 0.8}",high,no,yes
+SOC2-CC9.1,SOC 2 Type II,CC9 — Risk Mitigation,Endpoint Protection Currency,agent_version,{},high,no,yes
+SOC2-CC9.2,SOC 2 Type II,CC9 — Risk Mitigation,Prohibited Software Enforcement,prohibited_app,{},critical,no,yes
+PCI-2.2.1,PCI DSS 4.0.1,Req 2 — Secure Configurations,System Inventory Current,sync_freshness,"{""max_hours_since_sync"": 24}",high,no,yes
+PCI-2.2.5,PCI DSS 4.0.1,Req 2 — Secure Configurations,Only Authorised Software on CDE,unclassified_threshold,"{""max_unclassified_percent"": 0}",critical,no,yes
+PCI-2.2.5-P,PCI DSS 4.0.1,Req 2 — Secure Configurations,No Prohibited Software in CDE,prohibited_app,{},critical,no,yes
+PCI-5.2.1,PCI DSS 4.0.1,Req 5 — Malware Protection,Anti-Malware on All Systems,agent_online,"{""max_offline_days"": 1}",critical,no,yes
+PCI-5.2.2,PCI DSS 4.0.1,Req 5 — Malware Protection,Anti-Malware Definitions Current,agent_version,{},high,no,yes
+PCI-5.2.3,PCI DSS 4.0.1,Req 5 — Malware Protection,Regular Security Scans,sync_freshness,"{""max_hours_since_sync"": 12}",medium,no,yes
+PCI-5.3.1,PCI DSS 4.0.1,Req 5 — Malware Protection,Anti-Malware Active on CDE Systems,agent_online,"{""max_offline_days"": 1}",critical,no,yes
+PCI-6.3.1,PCI DSS 4.0.1,Req 6 — Secure Software,Known Vulnerability Identification,classification_coverage,"{""min_classified_percent"": 95}",high,no,yes
+PCI-6.3.3,PCI DSS 4.0.1,Req 6 — Secure Software,Security Patches Timely,app_version,"{""max_outdated_percent"": 10}",high,no,yes
+PCI-6.3.3-CDE,PCI DSS 4.0.1,Req 6 — Secure Software,CDE Patch Currency,app_version,"{""max_outdated_percent"": 0}",critical,no,yes
+PCI-6.3.3-EOL,PCI DSS 4.0.1,Req 6 — Secure Software,End-of-Life Software Patching,eol_software,"{""flag_security_only"": false, ""min_match_confidence"": 0.8}",critical,no,yes
+PCI-11.5.1,PCI DSS 4.0.1,Req 11 — Regular Testing,Change Detection on CDE,delta_detection,"{""lookback_hours"": 24}",critical,no,yes
+PCI-11.5.1-ALL,PCI DSS 4.0.1,Req 11 — Regular Testing,Fleet-Wide Change Detection,delta_detection,"{""lookback_hours"": 48}",medium,no,yes
+PCI-12.5.1,PCI DSS 4.0.1,Req 12 — Security Policy,Complete System Component Inventory,classification_coverage,"{""min_classified_percent"": 90}",high,no,yes
+PCI-12.5.1-UNCL,PCI DSS 4.0.1,Req 12 — Security Policy,Unclassified Software Below Threshold,unclassified_threshold,"{""max_unclassified_percent"": 5}",medium,no,yes
+PCI-12.5.2,PCI DSS 4.0.1,Req 12 — Security Policy,Required Security Software,required_app,"{""required_apps"": []}",high,yes,yes
+HIPAA-308a1,HIPAA Security Rule,§164.308 — Administrative Safeguards,Risk Analysis — Software Inventory,classification_coverage,"{""min_classified_percent"": 90}",high,no,yes
+HIPAA-308a1-SYNC,HIPAA Security Rule,§164.308 — Administrative Safeguards,Risk Analysis — Data Currency,sync_freshness,"{""max_hours_since_sync"": 24}",high,no,yes
+HIPAA-308a5,HIPAA Security Rule,§164.308 — Administrative Safeguards,Security Awareness — Training Software,custom_app_presence,"{""app_pattern"": """", ""must_exist"": true}",low,yes,yes
+HIPAA-308a6,HIPAA Security Rule,§164.308 — Administrative Safeguards,Security Incident — EDR Active,agent_online,"{""max_offline_days"": 1}",critical,no,yes
+HIPAA-312a1,HIPAA Security Rule,§164.312 — Technical Safeguards,Access Control — Authorised Software Only,prohibited_app,{},critical,no,yes
+HIPAA-312a1-UNCL,HIPAA Security Rule,§164.312 — Technical Safeguards,Access Control — Unclassified Threshold,unclassified_threshold,"{""max_unclassified_percent"": 5}",high,no,yes
+HIPAA-312a2iv,HIPAA Security Rule,§164.312 — Technical Safeguards,Encryption Software Installed,custom_app_presence,"{""app_pattern"": ""BitLocker*"", ""must_exist"": true}",critical,no,yes
+HIPAA-312b,HIPAA Security Rule,§164.312 — Technical Safeguards,Audit Controls — Software Change Tracking,delta_detection,"{""lookback_hours"": 24}",high,no,yes
+HIPAA-312c1,HIPAA Security Rule,§164.312 — Technical Safeguards,Integrity Controls — Unauthorised Changes,delta_detection,"{""lookback_hours"": 12}",high,no,yes
+HIPAA-312e1,HIPAA Security Rule,§164.312 — Technical Safeguards,Transmission Security — VPN Software,custom_app_presence,"{""app_pattern"": """", ""must_exist"": true}",medium,yes,yes
+HIPAA-312a1-EOL,HIPAA Security Rule,§164.312 — Technical Safeguards,EOL Software Access Risk,eol_software,"{""flag_security_only"": true, ""min_match_confidence"": 0.8}",high,no,yes
+HIPAA-312d,HIPAA Security Rule,§164.312 — Technical Safeguards,Person Authentication — EDR Version,agent_version,{},high,no,yes
+HIPAA-AVAIL-1,HIPAA Security Rule,§164.312 — Technical Safeguards,ePHI System Availability,agent_online,"{""max_offline_days"": 3}",high,no,yes
+HIPAA-SW-CURR,HIPAA Security Rule,§164.312 — Technical Safeguards,ePHI Software Currency,app_version,"{""max_outdated_percent"": 10}",medium,no,yes
+HIPAA-REQ-SW,HIPAA Security Rule,§164.312 — Technical Safeguards,Required Security Software on ePHI,required_app,"{""required_apps"": []}",high,yes,yes
+HIPAA-CLASS-COV,HIPAA Security Rule,§164.308 — Administrative Safeguards,ePHI Classification Coverage,classification_coverage,"{""min_classified_percent"": 95}",high,no,yes
+BSI-SYS.2.1.A3,BSI IT-Grundschutz,SYS.2.1 — Allgemeiner Client,Aktivierung von Auto-Update-Mechanismen,app_version,"{""max_outdated_percent"": 15}",high,no,yes
+BSI-SYS.2.1.A4,BSI IT-Grundschutz,SYS.2.1 — Allgemeiner Client,Regelmäßige Datensicherung,custom_app_presence,"{""app_pattern"": """", ""must_exist"": true}",medium,yes,yes
+BSI-SYS.2.1.A6,BSI IT-Grundschutz,SYS.2.1 — Allgemeiner Client,Einsatz von Virenschutzprogrammen,agent_version,{},critical,no,yes
+BSI-SYS.2.1.A6-ONLINE,BSI IT-Grundschutz,SYS.2.1 — Allgemeiner Client,Virenschutz — Agent-Erreichbarkeit,agent_online,"{""max_offline_days"": 3}",critical,no,yes
+BSI-SYS.2.1.A42,BSI IT-Grundschutz,SYS.2.1 — Allgemeiner Client,Nutzung von Allowlists,prohibited_app,{},high,no,yes
+BSI-SYS.2.1.A42-UNCL,BSI IT-Grundschutz,SYS.2.1 — Allgemeiner Client,Allowlists — Unklassifizierte Apps,unclassified_threshold,"{""max_unclassified_percent"": 10}",medium,no,yes
+BSI-APP.6.A1,BSI IT-Grundschutz,APP.6 — Allgemeine Software,Planung des Software-Einsatzes,classification_coverage,"{""min_classified_percent"": 85}",high,no,yes
+BSI-APP.6.A1-SYNC,BSI IT-Grundschutz,APP.6 — Allgemeine Software,Software-Inventar — Aktualität,sync_freshness,"{""max_hours_since_sync"": 24}",high,no,yes
+BSI-APP.6.A2,BSI IT-Grundschutz,APP.6 — Allgemeine Software,Erstellung eines Anforderungskatalogs,required_app,"{""required_apps"": []}",medium,yes,yes
+BSI-APP.6.A4,BSI IT-Grundschutz,APP.6 — Allgemeine Software,Sicherstellung der Integrität von Software,delta_detection,"{""lookback_hours"": 24}",high,no,yes
+BSI-APP.6.A5,BSI IT-Grundschutz,APP.6 — Allgemeine Software,Deinstallation nicht benötigter Software,unclassified_threshold,"{""max_unclassified_percent"": 5}",medium,no,yes
+BSI-OPS.1.1.3.A1,BSI IT-Grundschutz,OPS.1.1.3 — Patch-Management,Konzept für Patch- und Änderungsmanagement,app_version,"{""max_outdated_percent"": 10}",high,no,yes
+BSI-SYS.2.1-EOL,BSI IT-Grundschutz,SYS.2.1 — Allgemeiner Client,End-of-Life Software Identification,eol_software,"{""flag_security_only"": true, ""min_match_confidence"": 0.8}",high,no,yes
+BSI-OPS.1.1.3.A15,BSI IT-Grundschutz,OPS.1.1.3 — Patch-Management,Regelmäßige Aktualisierung der IT,app_version,"{""max_outdated_percent"": 5}",high,no,yes
+BSI-OPS.1.1.3.A15-EDR,BSI IT-Grundschutz,OPS.1.1.3 — Patch-Management,EDR-Agent Aktualisierung,agent_version,{},critical,no,yes
+BSI-SYS.2.1.A9,BSI IT-Grundschutz,SYS.2.1 — Allgemeiner Client,Festlegung einer Sicherheitsrichtlinie für Clients,prohibited_app,{},high,no,yes
+DORA-8.1-01,DORA — Digital Operational Resilience Act,ICT Asset Identification (Art. 8),ICT Asset Inventory Completeness,classification_coverage,"{""min_classified_percent"": 95}",critical,no,yes
+DORA-8.1-02,DORA — Digital Operational Resilience Act,ICT Asset Identification (Art. 8),ICT Asset Classification Coverage,unclassified_threshold,"{""max_unclassified_percent"": 5}",high,no,yes
+DORA-8.4-01,DORA — Digital Operational Resilience Act,ICT Asset Identification (Art. 8),Critical ICT Asset Identification,required_app,"{""required_apps"": []}",high,yes,yes
+DORA-8.6-01,DORA — Digital Operational Resilience Act,ICT Asset Identification (Art. 8),ICT Inventory Freshness,sync_freshness,"{""max_hours_since_sync"": 24}",high,no,yes
+DORA-8.2-01,DORA — Digital Operational Resilience Act,ICT Asset Identification (Art. 8),ICT Risk Source Detection,delta_detection,"{""lookback_hours"": 24}",medium,no,yes
+DORA-8.7-01,DORA — Digital Operational Resilience Act,ICT Asset Identification (Art. 8),Legacy ICT System Assessment,eol_software,"{""flag_security_only"": true, ""min_match_confidence"": 0.8}",high,no,yes
+DORA-9.1-01,DORA — Digital Operational Resilience Act,ICT Protection & Prevention (Art. 9),Endpoint Security Monitoring Active,agent_online,"{""max_offline_days"": 3}",critical,no,yes
+DORA-9.2-01,DORA — Digital Operational Resilience Act,ICT Protection & Prevention (Art. 9),EDR Protection on All Endpoints,required_app,"{""required_apps"": []}",critical,yes,yes
+DORA-9.2-02,DORA — Digital Operational Resilience Act,ICT Protection & Prevention (Art. 9),Encryption Software Present,required_app,"{""required_apps"": []}",high,yes,yes
+DORA-9.3-01,DORA — Digital Operational Resilience Act,ICT Protection & Prevention (Art. 9),Unauthorized Software Restriction,prohibited_app,{},critical,no,yes
+DORA-9.3-02,DORA — Digital Operational Resilience Act,ICT Protection & Prevention (Art. 9),ICT Change Detection,delta_detection,"{""lookback_hours"": 24}",medium,no,yes
+DORA-9.4-01,DORA — Digital Operational Resilience Act,ICT Protection & Prevention (Art. 9),Security Agent Version Currency,agent_version,{},high,no,yes
+DORA-9.4-02,DORA — Digital Operational Resilience Act,ICT Protection & Prevention (Art. 9),Software Patch Currency,app_version,"{""max_outdated_percent"": 15}",medium,no,yes
+DORA-10.1-01,DORA — Digital Operational Resilience Act,ICT Anomaly Detection (Art. 10),Software Change Anomaly Detection,delta_detection,"{""lookback_hours"": 24}",high,no,yes
+DORA-10.1-02,DORA — Digital Operational Resilience Act,ICT Anomaly Detection (Art. 10),Unclassified Software Anomaly,unclassified_threshold,"{""max_unclassified_percent"": 10}",medium,no,yes
+DORA-11.1-01,DORA — Digital Operational Resilience Act,ICT Business Continuity (Art. 11),Endpoint Monitoring Continuity,agent_online,"{""max_offline_days"": 7}",high,no,yes
+DORA-11.2-01,DORA — Digital Operational Resilience Act,ICT Business Continuity (Art. 11),Data Collection Continuity,sync_freshness,"{""max_hours_since_sync"": 48}",medium,no,yes
+DORA-28.1-01,DORA — Digital Operational Resilience Act,ICT Third-Party Software Risk (Art. 28),Third-Party Software Inventory,classification_coverage,"{""min_classified_percent"": 90}",high,no,yes
+DORA-28.1-02,DORA — Digital Operational Resilience Act,ICT Third-Party Software Risk (Art. 28),Unapproved Third-Party Software,prohibited_app,{},critical,no,yes
+DORA-28.3-01,DORA — Digital Operational Resilience Act,ICT Third-Party Software Risk (Art. 28),Third-Party Software Documentation,unclassified_threshold,"{""max_unclassified_percent"": 3}",high,no,yes
+ISO-A.5.9,ISO/IEC 27001:2022,A.5 Organizational Controls,Inventory of Information and Associated Assets,classification_coverage,"{""min_classified_percent"": 90}",high,no,yes
+ISO-A.5.9-SYNC,ISO/IEC 27001:2022,A.5 Organizational Controls,Asset Inventory Currency,sync_freshness,"{""max_hours_since_sync"": 24}",high,no,yes
+ISO-A.5.10,ISO/IEC 27001:2022,A.5 Organizational Controls,Acceptable Use of Information and Assets,prohibited_app,{},critical,no,yes
+ISO-A.5.14,ISO/IEC 27001:2022,A.5 Organizational Controls,Information Transfer — Data Sync Continuity,sync_freshness,"{""max_hours_since_sync"": 48}",medium,no,yes
+ISO-A.8.1,ISO/IEC 27001:2022,A.8 Technological Controls,User Endpoint Devices — Protection Active,agent_online,"{""max_offline_days"": 7}",high,no,yes
+ISO-A.8.1-VER,ISO/IEC 27001:2022,A.8 Technological Controls,User Endpoint Devices — Agent Currency,agent_version,{},high,no,yes
+ISO-A.8.7,ISO/IEC 27001:2022,A.8 Technological Controls,Protection Against Malware — Agent Active,agent_online,"{""max_offline_days"": 1}",critical,no,yes
+ISO-A.8.8,ISO/IEC 27001:2022,A.8 Technological Controls,Management of Technical Vulnerabilities — EOL Software,eol_software,"{""flag_security_only"": true, ""min_match_confidence"": 0.8}",high,no,yes
+ISO-A.8.8-VER,ISO/IEC 27001:2022,A.8 Technological Controls,Management of Technical Vulnerabilities — Patch Currency,app_version,"{""max_outdated_percent"": 15}",medium,no,yes
+ISO-A.8.9,ISO/IEC 27001:2022,A.8 Technological Controls,Configuration Management — Change Detection,delta_detection,"{""lookback_hours"": 24}",high,no,yes
+ISO-A.8.9-UNCL,ISO/IEC 27001:2022,A.8 Technological Controls,Configuration Management — Known Software State,unclassified_threshold,"{""max_unclassified_percent"": 10}",medium,no,yes
+ISO-A.8.16,ISO/IEC 27001:2022,A.8 Technological Controls,Monitoring Activities — Endpoint Visibility,classification_coverage,"{""min_classified_percent"": 80}",high,no,yes
+ISO-A.8.19,ISO/IEC 27001:2022,A.8 Technological Controls,Installation of Software — Authorized Only,prohibited_app,{},critical,no,yes
+ISO-A.8.19-REQ,ISO/IEC 27001:2022,A.8 Technological Controls,Installation of Software — Required Security Tools,required_app,"{""required_apps"": []}",high,yes,yes
+ISO-A.8.25,ISO/IEC 27001:2022,A.8 Technological Controls,Secure Development — Software Asset Classification,classification_coverage,"{""min_classified_percent"": 95}",medium,no,yes
+ISO-A.8.32,ISO/IEC 27001:2022,A.8 Technological Controls,Change Management — Software Change Tracking,delta_detection,"{""lookback_hours"": 48}",medium,no,yes
+NIST-ID.AM-01,NIST CSF 2.0,Identify (ID),Asset Inventory Completeness,classification_coverage,"{""min_classified_percent"": 90}",high,no,yes
+NIST-ID.AM-01-SYNC,NIST CSF 2.0,Identify (ID),Asset Inventory Currency,sync_freshness,"{""max_hours_since_sync"": 24}",medium,no,yes
+NIST-ID.AM-02,NIST CSF 2.0,Identify (ID),Software Inventory Classification,unclassified_threshold,"{""max_unclassified_percent"": 10}",high,no,yes
+NIST-ID.AM-02-EOL,NIST CSF 2.0,Identify (ID),Software Lifecycle Tracking,eol_software,"{""flag_security_only"": true, ""min_match_confidence"": 0.8}",high,no,yes
+NIST-PR.DS-01,NIST CSF 2.0,Protect (PR),Data-at-Rest Protection — Encryption Software,custom_app_presence,"{""app_pattern"": """", ""must_exist"": true}",high,yes,yes
+NIST-PR.IR-01,NIST CSF 2.0,Protect (PR),Infrastructure Resilience — Endpoints Protected,agent_online,"{""max_offline_days"": 3}",critical,no,yes
+NIST-PR.IR-01-VER,NIST CSF 2.0,Protect (PR),Infrastructure Resilience — Agent Currency,agent_version,"{}",high,no,yes
+NIST-PR.PS-01,NIST CSF 2.0,Protect (PR),Platform Security — Configuration Management,delta_detection,"{""lookback_hours"": 24}",high,no,yes
+NIST-PR.PS-02,NIST CSF 2.0,Protect (PR),Platform Security — Software Maintenance,app_version,"{""max_outdated_percent"": 15}",medium,no,yes
+NIST-PR.PS-02-EOL,NIST CSF 2.0,Protect (PR),Platform Security — EOL Software Removal,eol_software,"{""flag_security_only"": false, ""min_match_confidence"": 0.8}",high,no,yes
+NIST-PR.PS-05,NIST CSF 2.0,Protect (PR),Platform Security — Authorized Software Only,prohibited_app,"{}",critical,no,yes
+NIST-PR.PS-05-REQ,NIST CSF 2.0,Protect (PR),Platform Security — Required Security Software,required_app,"{""required_apps"": []}",high,yes,yes
+NIST-DE.CM-01,NIST CSF 2.0,Detect (DE),Continuous Monitoring — Endpoint Coverage,agent_online,"{""max_offline_days"": 1}",critical,no,yes
+NIST-DE.CM-06,NIST CSF 2.0,Detect (DE),Continuous Monitoring — Security Agent Currency,agent_version,"{}",high,no,yes
+NIST-DE.CM-09,NIST CSF 2.0,Detect (DE),Continuous Monitoring — Vulnerability Awareness,eol_software,"{""flag_security_only"": true, ""min_match_confidence"": 0.8}",high,no,yes
+NIS2-21.2a-1,NIS2 — EU Directive 2022/2555,Policies on risk analysis (Art. 21.2a),IT System Security — Endpoint Protection Active,agent_online,"{""max_offline_days"": 3}",critical,no,yes
+NIS2-21.2a-2,NIS2 — EU Directive 2022/2555,Policies on risk analysis (Art. 21.2a),IT System Security — EDR Agent Currency,agent_version,"{}",high,no,yes
+NIS2-21.2a-3,NIS2 — EU Directive 2022/2555,Policies on risk analysis (Art. 21.2a),Risk Analysis — EOL Software Exposure,eol_software,"{""flag_security_only"": true, ""min_match_confidence"": 0.8}",high,no,yes
+NIS2-21.2a-INV,NIS2 — EU Directive 2022/2555,Policies on risk analysis (Art. 21.2a),Risk Analysis — Asset Inventory Completeness,classification_coverage,"{""min_classified_percent"": 90}",high,no,yes
+NIS2-21.2d-1,NIS2 — EU Directive 2022/2555,Supply chain security (Art. 21.2d),Supply Chain — Software Patch Currency,app_version,"{""max_outdated_percent"": 15}",high,no,yes
+NIS2-21.2d-2,NIS2 — EU Directive 2022/2555,Supply chain security (Art. 21.2d),Supply Chain — Third-Party EOL Software,eol_software,"{""flag_security_only"": false, ""min_match_confidence"": 0.8}",high,no,yes
+NIS2-21.2e-1,NIS2 — EU Directive 2022/2555,Acquisition, development, maintenance (Art. 21.2e),Acquisition Security — No Unauthorized Software,prohibited_app,"{}",critical,no,yes
+NIS2-21.2e-2,NIS2 — EU Directive 2022/2555,Acquisition, development, maintenance (Art. 21.2e),Maintenance Security — Required Security Software,required_app,"{""required_apps"": []}",high,yes,yes
+NIS2-21.2e-3,NIS2 — EU Directive 2022/2555,Acquisition, development, maintenance (Art. 21.2e),Acquisition Security — Software Classification,classification_coverage,"{""min_classified_percent"": 80}",medium,no,yes
+NIS2-21.2e-CHG,NIS2 — EU Directive 2022/2555,Acquisition, development, maintenance (Art. 21.2e),Maintenance Security — Change Detection,delta_detection,"{""lookback_hours"": 24}",high,no,yes
+NIS2-21.2h-1,NIS2 — EU Directive 2022/2555,Cyber hygiene practices (Art. 21.2h),Cyber Hygiene — Software Inventory Known,unclassified_threshold,"{""max_unclassified_percent"": 10}",medium,no,yes
+NIS2-21.2h-2,NIS2 — EU Directive 2022/2555,Cyber hygiene practices (Art. 21.2h),Cyber Hygiene — Data Freshness,sync_freshness,"{""max_hours_since_sync"": 48}",medium,no,yes
+NIS2-21.2i-1,NIS2 — EU Directive 2022/2555,Cryptography and encryption (Art. 21.2i),Cryptography — Encryption Software Present,custom_app_presence,"{""app_pattern"": """", ""must_exist"": true}",high,yes,yes
+CIS-1.1,CIS Controls v8,Control 1 — Inventory of Enterprise Assets,Establish and Maintain Enterprise Asset Inventory,classification_coverage,"{""min_classified_percent"": 90}",high,no,yes
+CIS-1.1-SYNC,CIS Controls v8,Control 1 — Inventory of Enterprise Assets,Asset Inventory Currency,sync_freshness,"{""max_hours_since_sync"": 24}",medium,no,yes
+CIS-2.1,CIS Controls v8,Control 2 — Inventory of Software Assets,Establish and Maintain Software Inventory,unclassified_threshold,"{""max_unclassified_percent"": 10}",high,no,yes
+CIS-2.2,CIS Controls v8,Control 2 — Inventory of Software Assets,Ensure Authorized Software Is Currently Supported,eol_software,"{""flag_security_only"": true, ""min_match_confidence"": 0.8}",high,no,yes
+CIS-2.3,CIS Controls v8,Control 2 — Inventory of Software Assets,Address Unauthorized Software,prohibited_app,"{}",critical,no,yes
+CIS-2.5,CIS Controls v8,Control 2 — Inventory of Software Assets,Allowlist Authorized Software,required_app,"{""required_apps"": []}",high,yes,yes
+CIS-2.6,CIS Controls v8,Control 2 — Inventory of Software Assets,Allowlist Authorized Libraries — Change Detection,delta_detection,"{""lookback_hours"": 24}",high,no,yes
+CIS-2.7,CIS Controls v8,Control 2 — Inventory of Software Assets,Allowlist Authorized Scripts — Software Classification,classification_coverage,"{""min_classified_percent"": 95}",medium,no,yes
+CIS-7.1,CIS Controls v8,Control 7 — Continuous Vulnerability Management,Establish Vulnerability Management Process,eol_software,"{""flag_security_only"": false, ""min_match_confidence"": 0.8}",high,no,yes
+CIS-7.3,CIS Controls v8,Control 7 — Continuous Vulnerability Management,Perform Automated Operating System Patch Management,agent_version,"{}",high,no,yes
+CIS-7.4,CIS Controls v8,Control 7 — Continuous Vulnerability Management,Perform Automated Application Patch Management,app_version,"{""max_outdated_percent"": 10}",high,no,yes
+CIS-10.1,CIS Controls v8,Control 10 — Malware Defenses,Deploy and Maintain Anti-Malware Software,agent_online,"{""max_offline_days"": 1}",critical,no,yes
+CIS-10.2,CIS Controls v8,Control 10 — Malware Defenses,Configure Automatic Anti-Malware Signature Updates,agent_version,"{}",high,no,yes
+CIS-10.7,CIS Controls v8,Control 10 — Malware Defenses,Use Behavior-Based Anti-Malware Software,agent_online,"{""max_offline_days"": 7}",critical,no,yes

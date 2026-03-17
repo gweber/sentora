@@ -1,7 +1,7 @@
 """Auto-fingerprint proposer — Lift-based cross-group marker proposals.
 
-For each SentinelOne group, computes a ranked set of discriminative
-application markers using the Lift statistic:
+For each group, computes a ranked set of discriminative application
+markers using the Lift statistic:
 
     lift = P(app | group) / P(app)
 
@@ -9,8 +9,8 @@ A lift of 12 means "agents in this group are 12× more likely to have
 this app than any random agent in the fleet."  This is directly human-
 readable and maps naturally to the "X×" badge in the UI.
 
-Three MongoDB aggregates over ``s1_agents`` are used (no cross-
-collection joins):
+Three MongoDB aggregates over the ``agents`` collection are used
+(no cross-collection joins):
 1. Group sizes and names.
 2. Per-(group, app) agent counts.
 3. Global per-app agent counts.
@@ -26,6 +26,7 @@ from bson import ObjectId
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from domains.fingerprint.entities import AutoFingerprintProposal, ProposedMarker
+from domains.sources.collections import AGENTS
 from utils.dt import utc_now
 
 # Strips trailing version suffix like " - 14.36.32543" from app names.
@@ -67,7 +68,7 @@ async def generate_proposals(
     """
     # ── Step 1: group sizes + names ───────────────────────────────────────────
     group_docs = (
-        await db["s1_agents"]
+        await db[AGENTS]
         .aggregate(
             [
                 {
@@ -99,11 +100,11 @@ async def generate_proposals(
     # ── Steps 2+3: stream agents → build global_df + in_group in one pass ──
     # Each agent has ``installed_app_names`` (denormalized by sync) — a compact
     # list of distinct normalised app names. Reading 150k agent docs (~12 MB)
-    # is orders of magnitude faster than aggregating 9M s1_installed_apps docs.
+    # is orders of magnitude faster than aggregating 9M installed_apps docs.
     global_df: dict[str, int] = {}
     in_group: dict[str, dict[str, int]] = {}
 
-    async for agent in db["s1_agents"].find(
+    async for agent in db[AGENTS].find(
         {"group_id": {"$ne": None}, "installed_app_names": {"$exists": True, "$ne": []}},
         {"group_id": 1, "installed_app_names": 1, "_id": 0},
     ):

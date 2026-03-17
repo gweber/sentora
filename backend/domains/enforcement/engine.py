@@ -28,6 +28,7 @@ from domains.enforcement.repository import (
     list_rules,
     store_results,
 )
+from domains.sources.collections import AGENTS
 from utils.dt import utc_now
 
 
@@ -97,7 +98,7 @@ def _build_scope_filter(
     Delegates to the shared ``utils.scope.build_agent_scope_filter``.
 
     Args:
-        scope_groups: S1 group names.
+        scope_groups: Group names.
         scope_tags: Agent tags.
 
     Returns:
@@ -126,7 +127,7 @@ async def _check_required(
         EnforcementResult with violations for agents missing the category.
     """
     now = utc_now()
-    total = await db["s1_agents"].count_documents(scope_filter or {})
+    total = await db[AGENTS].count_documents(scope_filter or {})
     if total == 0:
         return EnforcementResult(
             rule_id=rule.id,
@@ -142,15 +143,15 @@ async def _check_required(
         )
 
     violations: list[EnforcementViolation] = []
-    projection = {"s1_agent_id": 1, "hostname": 1, "installed_app_names": 1}
+    projection = {"source_id": 1, "hostname": 1, "installed_app_names": 1}
 
-    async for agent in db["s1_agents"].find(scope_filter or {}, projection):
+    async for agent in db[AGENTS].find(scope_filter or {}, projection):
         installed = agent.get("installed_app_names", [])
         has_match = any(_matches_any(app, compiled_patterns) for app in installed)
         if not has_match:
             violations.append(
                 EnforcementViolation(
-                    agent_id=agent["s1_agent_id"],
+                    agent_id=agent["source_id"],
                     agent_hostname=agent.get("hostname", "unknown"),
                     violation_detail=(
                         f"Missing: no application in category '{rule.taxonomy_category_id}'"
@@ -193,7 +194,7 @@ async def _check_forbidden(
         EnforcementResult with violations for agents with forbidden apps.
     """
     now = utc_now()
-    total = await db["s1_agents"].count_documents(scope_filter or {})
+    total = await db[AGENTS].count_documents(scope_filter or {})
     if total == 0:
         return EnforcementResult(
             rule_id=rule.id,
@@ -209,15 +210,15 @@ async def _check_forbidden(
         )
 
     violations: list[EnforcementViolation] = []
-    projection = {"s1_agent_id": 1, "hostname": 1, "installed_app_names": 1}
+    projection = {"source_id": 1, "hostname": 1, "installed_app_names": 1}
 
-    async for agent in db["s1_agents"].find(scope_filter or {}, projection):
+    async for agent in db[AGENTS].find(scope_filter or {}, projection):
         installed = agent.get("installed_app_names", [])
         for app in installed:
             if _matches_any(app, compiled_patterns):
                 violations.append(
                     EnforcementViolation(
-                        agent_id=agent["s1_agent_id"],
+                        agent_id=agent["source_id"],
                         agent_hostname=agent.get("hostname", "unknown"),
                         violation_detail=(
                             f"Forbidden application '{app}' found"
@@ -264,7 +265,7 @@ async def _check_allowlist(
         EnforcementResult with violations for unapproved apps.
     """
     now = utc_now()
-    total = await db["s1_agents"].count_documents(scope_filter or {})
+    total = await db[AGENTS].count_documents(scope_filter or {})
     if total == 0:
         return EnforcementResult(
             rule_id=rule.id,
@@ -280,15 +281,15 @@ async def _check_allowlist(
         )
 
     violations: list[EnforcementViolation] = []
-    projection = {"s1_agent_id": 1, "hostname": 1, "installed_app_names": 1}
+    projection = {"source_id": 1, "hostname": 1, "installed_app_names": 1}
 
-    async for agent in db["s1_agents"].find(scope_filter or {}, projection):
+    async for agent in db[AGENTS].find(scope_filter or {}, projection):
         installed = agent.get("installed_app_names", [])
         for app in installed:
             if not _matches_any(app, compiled_patterns):
                 violations.append(
                     EnforcementViolation(
-                        agent_id=agent["s1_agent_id"],
+                        agent_id=agent["source_id"],
                         agent_hostname=agent.get("hostname", "unknown"),
                         violation_detail=f"Unapproved application '{app}' not in allowlist",
                         app_name=app,

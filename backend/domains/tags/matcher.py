@@ -8,6 +8,7 @@ from typing import Any
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from domains.fingerprint.matcher import matches_pattern
+from domains.sources.collections import AGENTS
 from domains.tags.dto import TagPreviewAgent
 from domains.tags.entities import TagRule
 
@@ -77,7 +78,7 @@ async def find_matching_agents(
         query = {"installed_app_names": {"$exists": True, "$ne": []}}
 
     projection = {
-        "s1_agent_id": 1,
+        "source_id": 1,
         "hostname": 1,
         "group_name": 1,
         "site_name": 1,
@@ -89,7 +90,7 @@ async def find_matching_agents(
     results: list[TagPreviewAgent] = []
     total_matched = 0
 
-    cursor = db["s1_agents"].find(query, projection)
+    cursor = db[AGENTS].find(query, projection)
 
     async for doc in cursor:
         agent_apps: list[str] = doc.get("installed_app_names") or []
@@ -117,7 +118,7 @@ async def find_matching_agents(
             if cap is None or len(results) < cap:
                 results.append(
                     TagPreviewAgent(
-                        s1_agent_id=doc.get("s1_agent_id", ""),
+                        source_id=doc.get("source_id", ""),
                         hostname=doc.get("hostname", ""),
                         group_name=doc.get("group_name", ""),
                         site_name=doc.get("site_name", ""),

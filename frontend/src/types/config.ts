@@ -36,6 +36,28 @@ export interface AppConfig {
   password_history_count: number
   password_max_age_days: number
   password_check_breached: boolean
+  // OIDC SSO (per-tenant)
+  oidc_enabled: boolean
+  oidc_discovery_url: string
+  oidc_client_id: string
+  oidc_client_secret: string
+  oidc_redirect_uri: string
+  oidc_default_role: string
+  // SAML SSO (per-tenant)
+  saml_enabled: boolean
+  saml_idp_metadata_url: string
+  saml_sp_entity_id: string
+  saml_sp_acs_url: string
+  saml_default_role: string
+  // Backup storage
+  backup_storage_type: string
+  backup_local_path: string
+  backup_local_path_writable: boolean
+  backup_s3_endpoint: string
+  backup_s3_bucket: string
+  backup_s3_access_key: string
+  backup_s3_secret_key: string
+  backup_s3_region: string
   updated_at: string
 }
 
@@ -77,6 +99,27 @@ export interface AppConfigUpdate {
   password_history_count?: number
   password_max_age_days?: number
   password_check_breached?: boolean
+  // OIDC SSO
+  oidc_enabled?: boolean
+  oidc_discovery_url?: string
+  oidc_client_id?: string
+  oidc_client_secret?: string
+  oidc_redirect_uri?: string
+  oidc_default_role?: string
+  // SAML SSO
+  saml_enabled?: boolean
+  saml_idp_metadata_url?: string
+  saml_sp_entity_id?: string
+  saml_sp_acs_url?: string
+  saml_default_role?: string
+  // Backup storage
+  backup_storage_type?: string
+  backup_local_path?: string
+  backup_s3_endpoint?: string
+  backup_s3_bucket?: string
+  backup_s3_access_key?: string
+  backup_s3_secret_key?: string
+  backup_s3_region?: string
 }
 
 /** Public branding info returned by GET /api/v1/branding (no auth required) */

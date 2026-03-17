@@ -262,9 +262,10 @@ class TestPreview:
         analyst_headers: dict,
     ) -> None:
         # Insert an agent with a known app name
-        await seeded_db["s1_agents"].insert_one(
+        await seeded_db["agents"].insert_one(
             {
-                "s1_agent_id": "agent_001",
+                "source": "sentinelone",
+                "source_id": "agent_001",
                 "hostname": "host-manufacturing-01",
                 "group_name": "Manufacturing",
                 "site_name": "Site A",
@@ -292,9 +293,10 @@ class TestPreview:
         seeded_db: AsyncIOMotorDatabase,
         analyst_headers: dict,
     ) -> None:
-        await seeded_db["s1_agents"].insert_one(
+        await seeded_db["agents"].insert_one(
             {
-                "s1_agent_id": "agent_002",
+                "source": "sentinelone",
+                "source_id": "agent_002",
                 "hostname": "host-lab-01",
                 "group_name": "Labs",
                 "site_name": "Site B",

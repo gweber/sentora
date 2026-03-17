@@ -17,6 +17,7 @@ from domains.compliance.entities import (
     ComplianceViolation,
     ControlSeverity,
 )
+from domains.sources.collections import AGENTS
 from utils.dt import utc_now
 
 
@@ -49,7 +50,7 @@ async def execute(
     now = utc_now()
     min_classified_pct: float = parameters.get("min_classified_percent", 90)
 
-    total_agents = await db["s1_agents"].count_documents(scope_filter or {})
+    total_agents = await db[AGENTS].count_documents(scope_filter or {})
     if total_agents == 0:
         return not_applicable_result(
             control_id=control_id,
@@ -60,8 +61,16 @@ async def execute(
             checked_at=now,
         )
 
-    # Count agents with classification results
-    classified_count = await db["classification_results"].count_documents(scope_filter or {})
+    # Resolve scoped agent IDs, then count classification results by agent_id.
+    # classification_results uses agent_id (not tags/group_name), so we cannot
+    # apply scope_filter directly — we must join via agents first.
+    scoped_agent_ids: list[str] = []
+    async for doc in db[AGENTS].find(scope_filter or {}, {"source_id": 1}):
+        scoped_agent_ids.append(doc["source_id"])
+
+    classified_count = await db["classification_results"].count_documents(
+        {"agent_id": {"$in": scoped_agent_ids}} if scoped_agent_ids else {}
+    )
 
     coverage_pct = (classified_count / total_agents * 100) if total_agents > 0 else 0
     violations: list[ComplianceViolation] = []
