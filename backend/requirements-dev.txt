@@ -93,7 +93,7 @@ pytest==9.0.2
     #   pytest-cov
 pytest-asyncio==1.3.0
     # via sentora-backend (pyproject.toml)
-pytest-cov==7.0.0
+pytest-cov==7.1.0
     # via sentora-backend (pyproject.toml)
 python-dotenv==1.2.2
     # via
