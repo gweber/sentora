@@ -69,7 +69,7 @@ pyyaml==6.0.3
     # via
     #   sentora-backend (pyproject.toml)
     #   uvicorn
-starlette==0.52.1
+starlette==1.0.0
     # via fastapi
 typing-extensions==4.15.0
     # via
