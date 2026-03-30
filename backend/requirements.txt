@@ -23,7 +23,7 @@ click==8.3.1
     # via uvicorn
 dnspython==2.8.0
     # via pymongo
-fastapi==0.135.1
+fastapi==0.135.2
     # via sentora-backend (pyproject.toml)
 h11==0.16.0
     # via
