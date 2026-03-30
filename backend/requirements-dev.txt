@@ -108,7 +108,7 @@ pyyaml==6.0.3
     # via
     #   sentora-backend (pyproject.toml)
     #   uvicorn
-ruff==0.15.5
+ruff==0.15.8
     # via sentora-backend (pyproject.toml)
 sentinels==1.1.1
     # via mongomock
