@@ -80,7 +80,7 @@ pydantic-core==2.41.5
     # via pydantic
 pydantic-settings==2.13.1
     # via sentora-backend (pyproject.toml)
-pygments==2.19.2
+pygments==2.20.0
     # via pytest
 pyjwt==2.12.0
     # via sentora-backend (pyproject.toml)
