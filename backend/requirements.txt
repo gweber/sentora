@@ -94,5 +94,5 @@ websockets==16.0
     # via uvicorn
 pyotp==2.9.0
 qrcode==8.0
-cryptography==46.0.5
+cryptography==46.0.6
 defusedxml==0.7.1
